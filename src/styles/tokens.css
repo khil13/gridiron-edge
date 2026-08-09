@@ -1,0 +1,66 @@
+/* ==========================================================================
+   Design tokens — "Night Broadcast"
+   Reference points: a network production truck at 1am and a paper betting
+   ticket. Deep blue-black surfaces, warm bone type, and three accents that
+   are strictly semantic:
+     gold  = what the market says   (chalk on a board)
+     mint  = what the model says    (value / edge)
+     flare = live game state
+   Nothing else is allowed to use those hues.
+   ========================================================================== */
+
+:root {
+  /* Surfaces — cool, blue-shifted black rather than neutral grey */
+  --ink:        #0A0E12;
+  --ink-sunk:   #070A0D;
+  --slab:       #121A22;
+  --slab-hi:    #18232D;
+  --slab-lift:  #1E2B37;
+
+  /* Structure */
+  --line:       #232F3A;
+  --line-hi:    #33434F;
+
+  /* Type — warm bone, never pure white. Reads as newsprint under stage light. */
+  --bone:       #ECE7DC;
+  --bone-dim:   #B7BEC6;
+  --muted:      #7F8D9A;
+  --faint:      #5A6672;
+
+  /* Semantic accents */
+  --gold:       #F2C14E;   /* market price, favorites, "chalk" */
+  --gold-soft:  rgba(242, 193, 78, 0.14);
+  --mint:       #3FD9A4;   /* model edge, positive EV */
+  --mint-soft:  rgba(63, 217, 164, 0.14);
+  --flare:      #FF5A47;   /* live, negative EV, losses */
+  --flare-soft: rgba(255, 90, 71, 0.14);
+  --sky:        #62A8FF;   /* model projection line */
+  --sky-soft:   rgba(98, 168, 255, 0.14);
+
+  /* Type stacks */
+  --font-display: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+  --font-body:    'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono:    'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* Scale */
+  --t-micro: 0.6875rem;   /* 11px — eyebrows, table headers */
+  --t-small: 0.8125rem;   /* 13px */
+  --t-base:  0.9375rem;   /* 15px */
+  --t-lg:    1.125rem;
+  --t-xl:    1.5rem;
+  --t-2xl:   2rem;
+  --t-score: 2.25rem;
+
+  /* Space */
+  --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px;
+  --s5: 24px; --s6: 32px; --s7: 48px; --s8: 64px;
+
+  --r-sm: 3px;
+  --r-md: 6px;
+  --r-lg: 10px;
+
+  --rail-w: 72px;
+  --shell-max: 1360px;
+
+  --shadow-lift: 0 1px 0 rgba(255,255,255,0.03) inset, 0 8px 24px rgba(0,0,0,0.45);
+}

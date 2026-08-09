@@ -1,0 +1,21 @@
+{
+  "name": "gridiron-edge",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "NFL scores, standings and market-vs-model betting analytics.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 4173",
+    "ratings": "node scripts/build-ratings.mjs"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^5.4.11"
+  }
+}
