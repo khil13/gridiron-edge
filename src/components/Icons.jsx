@@ -24,6 +24,9 @@ export const IconTeams = (p) => (
 export const IconSlip = (p) => (
   <svg {...base} {...p}><path d="M5 3h10v14l-2.5-1.6L10 17l-2.5-1.6L5 17V3z" /><path d="M8 7h4M8 10.5h4" /></svg>
 )
-export const IconBack = (p) => (
+export const IconCard = (p) => (
+  <svg {...base} {...p}><rect x="2.5" y="4.5" width="15" height="11" rx="1.5" /><path d="M2.5 8.5h15M6 12h3" /></svg>
+)
+  export const IconBack = (p) => (
   <svg {...base} {...p}><path d="M12 4l-6 6 6 6" /></svg>
 )
