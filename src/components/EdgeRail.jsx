@@ -5,13 +5,15 @@ import { KEY_NUMBERS } from '../lib/odds.js'
 /**
  * The Edge Rail — this app's one signature object.
  *
- * A spread number line for a single game. The gold pin above the axis is
- * where the market has it; the blue pin below is where the model has it.
- * The shaded band between them is the disagreement, and its width is the
- * entire argument for or against a bet. Key numbers are drawn taller,
- * because 3 and 7 are where NFL games actually land.
+ * A number line for a single game. The gold pin above the axis is where the
+ * market has it; the blue pin below is where the model has it. The shaded
+ * band between them is the disagreement, and its width is the entire
+ * argument for or against a bet.
  */
-export default function EdgeRail({ marketLine, modelLine, home, away, compact = false }) {
+export default function EdgeRail({
+  marketLine, modelLine, home, away, compact = false,
+  keyNumbers = KEY_NUMBERS, describe, format = fmtSpread
+}) {
   if (marketLine == null || modelLine == null) return null
 
   const rounded = Math.round(modelLine * 10) / 10
@@ -38,15 +40,14 @@ export default function EdgeRail({ marketLine, modelLine, home, away, compact = 
       <div className="edge-axis" />
 
       {ticks.map((n) => {
-        const key = KEY_NUMBERS.includes(Math.abs(n))
-        // Hide a tick label that would sit underneath the market flag.
+        const key = keyNumbers.includes(Math.abs(n))
         const crowded = Math.abs(pos(n) - marketAt) < 7
         return (
           <span key={n}>
             <span className={`edge-tick${key ? ' key' : ''}`} style={{ left: `${pos(n)}%` }} />
             {!compact && key && !crowded && (
               <span className="edge-tick-label" style={{ left: `${pos(n)}%` }}>
-                {n > 0 ? `+${n}` : n}
+                {format(n)}
               </span>
             )}
           </span>
@@ -56,13 +57,15 @@ export default function EdgeRail({ marketLine, modelLine, home, away, compact = 
       <div className="edge-band" style={{ left: `${bandLeft}%`, width: `${bandWidth}%` }} />
 
       <div className="edge-pin market" style={{ left: `${marketAt}%` }} />
-      <span className="edge-flag market" style={{ left: `${marketAt}%` }}>{fmtSpread(marketLine)}</span>
+      <span className="edge-flag market" style={{ left: `${marketAt}%` }}>{format(marketLine)}</span>
 
       <div className="edge-pin model" style={{ left: `${modelAt}%` }} />
-      <span className="edge-flag model" style={{ left: `${modelAt}%` }}>{fmtSpread(rounded)}</span>
+      <span className="edge-flag model" style={{ left: `${modelAt}%` }}>{format(rounded)}</span>
 
       <span className="sr-only">
-        {`Market has ${favourite} favoured at ${fmtSpread(marketLine)}. The model projects ${fmtSpread(rounded)}, a gap of ${gap.toFixed(1)} points ${modelFavoursHome ? 'toward the home side' : 'toward the away side'}.`}
+        {describe
+          ? describe(marketLine, rounded, gap)
+          : `Market has ${favourite} favoured at ${fmtSpread(marketLine)}. The model projects ${fmtSpread(rounded)}, a gap of ${gap.toFixed(1)} points ${modelFavoursHome ? 'toward the home side' : 'toward the away side'}.`}
       </span>
     </div>
   )
