@@ -2,10 +2,11 @@ import { useStore } from '../lib/store.jsx'
 import { href } from '../lib/router.js'
 import TickerRail from './TickerRail.jsx'
 import BetSlip from './BetSlip.jsx'
-import { IconScores, IconOdds, IconModel, IconStandings, IconTeams, IconSlip } from './Icons.jsx'
+import { IconScores, IconCard, IconOdds, IconModel, IconStandings, IconTeams, IconSlip } from './Icons.jsx'
 
 const NAV = [
   { view: 'scores', label: 'Scores', Icon: IconScores },
+  { view: 'card', label: 'Card', Icon: IconCard },
   { view: 'odds', label: 'Odds', Icon: IconOdds },
   { view: 'model', label: 'Model', Icon: IconModel },
   { view: 'standings', label: 'Table', Icon: IconStandings },
