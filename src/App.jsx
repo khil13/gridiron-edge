@@ -3,6 +3,7 @@ import { useDataset } from './lib/useDataset.js'
 import AppShell from './components/AppShell.jsx'
 import ScoresView from './views/ScoresView.jsx'
 import GameView from './views/GameView.jsx'
+import CardView from './views/CardView.jsx'
 import OddsBoardView from './views/OddsBoardView.jsx'
 import StandingsView from './views/StandingsView.jsx'
 import TeamsView from './views/TeamsView.jsx'
@@ -38,7 +39,9 @@ function Router({ route, data }) {
     case 'team': {
       return <TeamView abbr={route.param} data={data} />
     }
-    case 'odds':
+    case 'card':
+     return <CardView data={data} />
+      case 'odds':
       return <OddsBoardView data={data} />
     case 'standings':
       return <StandingsView data={data} />
