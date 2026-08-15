@@ -32,7 +32,20 @@ export const fmtDay = (iso) => dayFmt.format(new Date(iso))
 export const fmtShortDay = (iso) => shortDayFmt.format(new Date(iso))
 export const fmtKickoff = (iso) => `${fmtShortDay(iso)} ${fmtTime(iso)}`
 
-export const dayKey = (iso) => new Date(iso).toISOString().slice(0, 10)
+/**
+ * Group games by the viewer's LOCAL calendar day, not the UTC one.
+ *
+ * A Saturday 8pm ET kickoff is Sunday 00:00 UTC. Bucketing on the UTC date
+ * splits one slate across two days, which showed up as duplicate "Today"
+ * tabs and a card that could only see part of the night. Everyone means
+ * their own Saturday when they say Saturday.
+ */
+export const dayKey = (iso) => {
+  const d = new Date(iso)
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${m}-${day}`
+}
 
 export const relativeDay = (iso) => {
   const d = new Date(iso)

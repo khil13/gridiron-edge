@@ -33,7 +33,7 @@ export default function CardView({ data }) {
   const [dayKeySel, setDayKeySel] = useState(defaultKey)
   const day = days.find((d) => d.key === dayKeySel) || days[0]
 
-  const { plays, passes, stats } = useMemo(
+  const { reads, plays, leans, stats } = useMemo(
     () => buildCard(day?.games ?? [], settings),
     [day, settings]
   )
@@ -77,7 +77,7 @@ export default function CardView({ data }) {
   }
 
   const addAll = () => {
-    for (const p of plays) {
+    for (const p of plays) { // staked plays only; leans carry no stake
       dispatch({
         type: 'addLeg',
         leg: { ...toSlipLeg(p.best), stake: Math.max(1, Math.round(p.stake)) }
@@ -163,7 +163,10 @@ export default function CardView({ data }) {
           <div>
             <div className="eyebrow">{fmtDay(day.kickoff)}</div>
             <h2 style={{ fontSize: 'var(--t-lg)', marginTop: 4 }}>
-              {plays.length ? `${plays.length} play${plays.length === 1 ? '' : 's'} from ${day.games.length} games` : 'No plays today'}
+              {day.games.length} game{day.games.length === 1 ? '' : 's'} ·{' '}
+              {plays.length
+                ? `${plays.length} worth a stake`
+                : 'none worth a stake'}
             </h2>
           </div>
           {plays.length > 0 && (
@@ -181,6 +184,11 @@ export default function CardView({ data }) {
             gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))'
           }}
         >
+          <Stat
+            label="Reads"
+            value={`${plays.length} + ${leans.length}`}
+            sub="staked + leans"
+          />
           <Stat label="Units" value={stats.units} sub={`1u = ${fmtMoney(stats.unit)}`} />
           <Stat label="At risk" value={fmtMoney(stats.risked)} sub={`${(stats.bankrollPct * 100).toFixed(1)}% of bankroll`} />
           <Stat
@@ -203,72 +211,12 @@ export default function CardView({ data }) {
       </section>
 
       {/* The card */}
-      {plays.length === 0 ? (
-        <Empty title="The card is empty, and that is a result">
-          Nothing on this slate cleared the bar. A quiet day usually means the market
-          has these games priced correctly, which is the normal state of affairs — not
-          a reason to lower the threshold until something appears.
-          {daysWithPlays.length > 0 && (
-            <> Plays are showing {listOf(daysWithPlays)}.</>
-          )}
-        </Empty>
-      ) : (
+      {reads.length > 0 && (
         <div style={{ display: 'grid', gap: 'var(--s4)', marginBottom: 'var(--s6)' }}>
-          {plays.map((entry) => (
+          {reads.map((entry) => (
             <PlayCard key={entry.best.id} entry={entry} dispatch={dispatch} />
           ))}
         </div>
-      )}
-
-      {/* Passes — deliberately not hidden */}
-      {passes.length > 0 && (
-        <section className="panel">
-          <div className="panel-head">
-            <div>
-              <div className="eyebrow">Games the card skips</div>
-              <h2 style={{ fontSize: 'var(--t-base)', marginTop: 4 }}>
-                {passes.length} pass{passes.length === 1 ? '' : 'es'}
-              </h2>
-            </div>
-            <span className="eyebrow">Why</span>
-          </div>
-          <div className="tbl-scroll">
-            <table className="tbl">
-              <thead>
-                <tr>
-                  <th style={{ textAlign: 'left' }}>Game</th>
-                  <th>Kick</th>
-                  <th style={{ textAlign: 'left' }}>Closest look</th>
-                  <th>EV</th>
-                  <th style={{ textAlign: 'left' }}>Reason</th>
-                </tr>
-              </thead>
-              <tbody>
-                {passes.map(({ game, best, reason }) => (
-                  <tr key={game.id}>
-                    <td style={{ textAlign: 'left' }}>
-                      <a className="row gap-2" href={href(`game/${game.id}`)}>
-                        <TeamMark abbr={game.away} size={16} />
-                        <TeamMark abbr={game.home} size={16} />
-                        <span className="mono" style={{ fontSize: 11 }}>
-                          {game.away} @ {game.home}
-                        </span>
-                      </a>
-                    </td>
-                    <td className="num dim">{fmtTime(game.kickoff)}</td>
-                    <td style={{ textAlign: 'left' }} className="dim">
-                      {best ? best.label : '—'}
-                    </td>
-                    <td className={`num ${best && best.ev > 0 ? 'pos' : 'dim'}`}>
-                      {best ? `${best.ev > 0 ? '+' : ''}${(best.ev * 100).toFixed(1)}%` : '—'}
-                    </td>
-                    <td style={{ textAlign: 'left' }} className="dim">{reason}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
       )}
 
       {locked && (
@@ -281,9 +229,11 @@ export default function CardView({ data }) {
       )}
 
       <p className="dim" style={{ fontSize: 12, marginTop: 'var(--s4)', maxWidth: '80ch' }}>
-        Locking freezes these plays at today's prices so they can be graded honestly later.
-        Grading a re-derived card would flatter the model, because the model will have changed
-        by then.{' '}
+        Every game on the slate gets the model's read. Only the ones carrying units are
+        worth a stake — a lean means the model likes a side but there is no edge left after
+        the vig, and betting those is how a card bleeds. Locking freezes the staked plays at
+        today's prices so they can be graded honestly later; leans are not locked, because
+        they were never bets.{' '}
         Tiers require both an EV threshold and a minimum points of disagreement, so a
         large EV built on a quarter-point gap will not make the card. Only one play per
         game is listed: a spread and a total on the same game express the same opinion
@@ -296,9 +246,11 @@ export default function CardView({ data }) {
 /* ---------- One play, as a ticket ---------- */
 
 function PlayCard({ entry, dispatch }) {
-  const { game, best, tier, alternate, stake, kellyStake } = entry
+  const { game, best, tier, alternate, stake, kellyStake, reason } = entry
+  const isLean = tier.units === 0
   const consensus = game.market?.books?.find((b) => b.sharp) || game.market?.books?.[0]
-  const kellyGap = kellyStake > 0 ? kellyStake / stake : 0
+  // Guard the divide: a lean has no flat stake to compare Kelly against.
+  const kellyGap = stake > 0 && kellyStake > 0 ? kellyStake / stake : 0
 
   // The rail must argue for the play on the card. Showing a spread number
   // line under a totals play compares two things that have nothing to do
@@ -342,7 +294,10 @@ function PlayCard({ entry, dispatch }) {
   }, [consensus, game.projection, best.type])
 
   return (
-    <article className="panel" style={{ overflow: 'hidden' }}>
+    <article
+      className="panel"
+      style={{ overflow: 'hidden', opacity: isLean ? 0.72 : 1 }}
+    >
       <div className="gcard-strap">
         <span className="row gap-2">
           <TeamMark abbr={game.away} size={16} />
@@ -359,7 +314,9 @@ function PlayCard({ entry, dispatch }) {
         >
           <div style={{ minWidth: 200 }}>
             <div className="row gap-3" style={{ marginBottom: 6 }}>
-              <Badge tone={tier.tone}>{tier.units}u · {tier.label}</Badge>
+              <Badge tone={tier.tone}>
+                {isLean ? 'Lean · no stake' : `${tier.units}u · ${tier.label}`}
+              </Badge>
               {best.sharp && <Badge tone="quiet">Sharp book</Badge>}
             </div>
             <h3 style={{ fontSize: 'var(--t-xl)' }}>{best.label}</h3>
@@ -377,10 +334,10 @@ function PlayCard({ entry, dispatch }) {
             <Metric label="Edge" value={`${fmtSigned(best.edgePoints)} pts`} />
             <Metric
               label="EV"
-              value={`+${(best.ev * 100).toFixed(1)}%`}
-              tone="pos"
+              value={`${best.ev >= 0 ? '+' : ''}${(best.ev * 100).toFixed(1)}%`}
+              tone={best.ev > 0 ? 'pos' : best.ev < 0 ? 'neg' : undefined}
             />
-            <Metric label="Stake" value={fmtMoney(stake)} />
+            <Metric label="Stake" value={isLean ? '—' : fmtMoney(stake)} dim={isLean} />
           </div>
         </div>
 
@@ -409,6 +366,7 @@ function PlayCard({ entry, dispatch }) {
 
         <div className="row spread-between gap-3" style={{ flexWrap: 'wrap' }}>
           <p className="dim grow" style={{ fontSize: 11, margin: 0, minWidth: 240 }}>
+            {isLean && <span>{reason}. Shown as the model's read on the game, not as a bet. </span>}
             {tier.suspicious && (
               <span className="neg">
                 An edge this large is far more likely to be a modelling error than
@@ -424,17 +382,19 @@ function PlayCard({ entry, dispatch }) {
           </p>
           <div className="row gap-2">
             <a className="btn ghost" href={href(`game/${game.id}`)}>Game</a>
-            <button
-              className="btn"
-              onClick={() =>
-                dispatch({
-                  type: 'addLeg',
-                  leg: { ...toSlipLeg(best), stake: Math.max(1, Math.round(stake)) }
-                })
-              }
-            >
-              Add
-            </button>
+            {!isLean && (
+              <button
+                className="btn"
+                onClick={() =>
+                  dispatch({
+                    type: 'addLeg',
+                    leg: { ...toSlipLeg(best), stake: Math.max(1, Math.round(stake)) }
+                  })
+                }
+              >
+                Add
+              </button>
+            )}
           </div>
         </div>
       </div>

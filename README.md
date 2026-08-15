@@ -12,7 +12,7 @@ Built with React and Vite. Two runtime dependencies. No backend required.
 
 **Game detail** — market-vs-model breakdown, a full odds comparison across six books with best-price highlighting, line movement since open, win probability charts for finished games, and a Model tab that shows every input that produced the number.
 
-**Card of the day** — at most one play per game, chosen at the best price across all books and tiered by conviction in units. Every game that *doesn't* make the card is listed underneath with a specific reason, because a card with a play on every game isn't selective — it's a schedule. Preseason slates carry a visible low-confidence banner.
+**Card of the day** — every game on the slate gets the model's read, but only some carry a stake. Games where the model beats the market are tiered in units; games where it agrees are shown as zero-unit **leans** with a reason attached. A lean means the model likes a side but there is no edge left after the vig, and betting those is how a card bleeds — so staked units, risk and expected return count qualifying plays only, and leans are never locked for grading. At most one play per game, chosen at the best price across all books and tiered by conviction in units. Every game that *doesn't* make the card is listed underneath with a specific reason, because a card with a play on every game isn't selective — it's a schedule. Preseason slates carry a visible low-confidence banner.
 
 **Results** — locked cards graded against final scores, with a running record in units, ROI, and a split by market. Leads with whether the sample is big enough to mean anything, because a betting record without a sample-size caveat is decoration.
 

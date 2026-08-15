@@ -5,16 +5,20 @@
  * the best price available anywhere, with everything that fails to clear the
  * bar shown explicitly as a pass.
  *
- * Two rules drive the whole thing:
+ * Every game on the slate gets the model's best read, so the card is a
+ * complete view of the day. But a read and a bet are not the same thing,
+ * and the card never pretends otherwise:
  *
  *   1. One play per game. Two sides of the same game are the same opinion
  *      expressed twice — a spread and a total on one game correlate, and
  *      stacking them silently doubles your exposure to a single roster being
  *      mis-rated. So the card takes the strongest view per game and stops.
  *
- *   2. Passes are shown. A card with a play on every game is not a card, it
- *      is a schedule. The games you skip are as much a part of the output as
- *      the games you take, and hiding them makes a thin day look strong.
+ *   2. Only some reads carry a stake. A game where the model agrees with the
+ *      market is shown as a LEAN at zero units: this is who the model likes,
+ *      but there is no edge to pay for the vig, and betting it is how a card
+ *      bleeds. Staked units, risk and expected return all count qualifying
+ *      plays only.
  */
 
 import { dayKey } from './format.js'
@@ -32,6 +36,12 @@ export const TIERS = [
 ]
 
 /**
+ * The zero-unit tier. Shown so the card covers the whole slate, staked at
+ * nothing so the card does not quietly become a bet-everything product.
+ */
+export const NO_PLAY = { units: 0, label: 'No edge', tone: 'quiet', lean: true }
+
+/**
  * Above this, an "edge" is almost certainly a modelling error rather than
  * free money. Real, repeatable edges against a priced market live in the
  * low single digits; a market is not going to leave 15% on the table on a
@@ -41,11 +51,12 @@ export const TIERS = [
  */
 export const IMPLAUSIBLE_EV = 0.12
 
-/** Highest tier a play qualifies for, or null if it clears none. */
+/** Highest tier a play qualifies for. Never null — falls back to a lean. */
 export function tierFor(play) {
+  if (!play) return NO_PLAY
   const points = Math.abs(play.edgePoints ?? 0)
   const tier = TIERS.find((t) => play.ev >= t.minEv && points >= t.minPoints) || null
-  if (!tier) return null
+  if (!tier) return NO_PLAY
 
   // Do not let a suspicious number buy its way to the top of the card.
   // It gets flagged and capped at one unit instead.
@@ -56,15 +67,15 @@ export function tierFor(play) {
 }
 
 /**
- * Reason a game produced no play. Being specific here is the difference
- * between a card that teaches you something and one that just looks empty.
+ * Why a read is not worth a stake. Being specific here is the difference
+ * between a card that teaches you something and one that just says no.
  */
-function passReason(best) {
+export function leanReason(best) {
   if (!best) return 'No priced market'
   const points = Math.abs(best.edgePoints ?? 0)
-  if (best.ev <= 0) return 'Model agrees with the market'
+  if (best.ev <= 0) return 'Model agrees with the market — no edge to pay the vig'
   if (points < 0.5) return `Only ${points.toFixed(1)} pts of disagreement`
-  return `Edge too thin (${(best.ev * 100).toFixed(1)}% EV)`
+  return `Edge too thin at ${(best.ev * 100).toFixed(1)}% EV`
 }
 
 /**
@@ -88,39 +99,50 @@ export function buildCard(games, settings) {
     }
     const ranked = [...bySide.values()].sort((a, b) => b.ev - a.ev)
     const best = ranked[0] ?? null
-    const tier = best ? tierFor(best) : null
+    const tier = tierFor(best)
 
     // The runner-up is worth surfacing: if the second-best play is on the
     // same game it is deliberately NOT on the card, and saying so explains
     // the one-play-per-game rule without a footnote.
     const alternate = ranked[1] ?? null
 
-    return { game, best, tier, alternate, reason: tier ? null : passReason(best) }
-  })
-
-  const plays = entries
-    .filter((e) => e.tier)
-    .map((e) => ({
-      ...e,
-      stake: e.tier.units * unit,
+    return {
+      game,
+      best,
+      tier,
+      alternate,
+      reason: tier.lean ? leanReason(best) : null,
+      stake: tier.units * unit,
       // Kelly is computed per play from the model's own probability; where it
       // disagrees sharply with the flat tier stake, that is worth showing.
-      kellyStake: e.best.stake
-    }))
+      kellyStake: best?.stake ?? 0
+    }
+  })
+
+  // Everything the model has an opinion on, strongest first. Leans sink to
+  // the bottom because they carry no stake.
+  const reads = entries
+    .filter((e) => e.best)
     .sort((a, b) => b.tier.units - a.tier.units || b.best.ev - a.best.ev)
 
-  const passes = entries.filter((e) => !e.tier)
+  const plays = reads.filter((e) => e.tier.units > 0)
+  const leans = reads.filter((e) => e.tier.units === 0)
+  const passes = leans // kept for callers that still ask for passes
 
   const suspicious = plays.filter((p) => p.tier.suspicious).length
   const risked = plays.reduce((s, p) => s + p.stake, 0)
   const expected = plays.reduce((s, p) => s + p.best.ev * p.stake, 0)
 
   return {
+    reads,
     plays,
+    leans,
     passes,
     stats: {
       unit,
       count: plays.length,
+      reads: reads.length,
+      leanCount: leans.length,
       suspicious,
       units: plays.reduce((s, p) => s + p.tier.units, 0),
       risked,
@@ -212,7 +234,7 @@ export function lockCard({ dayKey, kickoff, plays, settings, source }) {
       kellyFraction: settings.kellyFraction,
       bankroll: settings.bankroll
     },
-    legs: plays.map(({ best, tier, stake, game }) => ({
+    legs: plays.filter((p) => p.tier.units > 0).map(({ best, tier, stake, game }) => ({
       id: best.id,
       gameId: best.gameId,
       matchup: best.matchup,
