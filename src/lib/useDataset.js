@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react'
-import { loadSlate, dataMode } from '../data/provider.js'
+import { loadSlate, dataMode, REFRESH_MS } from '../data/provider.js'
 import { buildMarkets } from '../data/markets.js'
 import { projectGame, powerRankings } from './model.js'
 import { computeEdges, consensusPlays } from './edges.js'
@@ -18,16 +18,36 @@ export function useSlate() {
   useEffect(() => {
     const controller = new AbortController()
     let alive = true
-    loadSlate({ signal: controller.signal })
-      .then((slate) => alive && setState({ loading: false, ...slate }))
-      .catch((err) =>
-        alive &&
-        setState({
-          loading: false, games: [], source: 'none', label: '',
-          warnings: [`Could not load any slate: ${err.message}`]
+    let timer = null
+
+    const pull = () => {
+      loadSlate({ signal: controller.signal })
+        .then((slate) => {
+          if (!alive) return
+          setState({ loading: false, ...slate })
+          // Only keep polling when something is actually in progress. A
+          // finished or future slate does not change minute to minute, and
+          // hammering a public endpoint for no reason is rude.
+          const anyLive = slate.games?.some((g) => g.status === 'live')
+          if (anyLive && slate.source === 'espn') {
+            timer = setTimeout(pull, REFRESH_MS)
+          }
         })
-      )
-    return () => { alive = false; controller.abort() }
+        .catch((err) => {
+          if (!alive) return
+          setState({
+            loading: false, games: [], source: 'none', label: '',
+            warnings: [`Could not load any slate: ${err.message}`]
+          })
+        })
+    }
+
+    pull()
+    return () => {
+      alive = false
+      controller.abort()
+      if (timer) clearTimeout(timer)
+    }
   }, [])
 
   return state

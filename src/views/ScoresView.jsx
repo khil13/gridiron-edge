@@ -40,7 +40,14 @@ export default function ScoresView({ data }) {
     <div className="page">
       <header className="page-head">
         <div>
-          <div className="eyebrow">{data.label}</div>
+          <div className="row gap-2" style={{ marginBottom: 2 }}>
+            {data.source === 'espn' ? (
+              <span className="badge live"><span className="live-dot" /> Live data</span>
+            ) : (
+              <span className="badge quiet">Bundled data</span>
+            )}
+            <span className="eyebrow">{data.label}</span>
+          </div>
           <h1 className="page-title">Scores</h1>
         </div>
         <Tabs
@@ -96,8 +103,12 @@ export default function ScoresView({ data }) {
       )}
 
       {byDay.length === 0 && (
-        <Empty title="No games match that filter">
-          Try the All tab, or check back when the next slate posts.
+        <Empty title={filter === 'live' ? 'Nothing in progress right now' : 'No games match that filter'}>
+          {filter === 'live'
+            ? data.source === 'espn'
+              ? 'Scores are coming from ESPN and no game is currently being played. This page refreshes itself while a game is live.'
+              : 'This build is showing the bundled slate, which has fixed results and never goes live.'
+            : 'Try the All tab, or check back when the next slate posts.'}
         </Empty>
       )}
 

@@ -9,7 +9,10 @@ import * as espn from './providers/espnProvider.js'
 import * as oddsApi from './providers/oddsApiProvider.js'
 
 const env = import.meta.env || {}
-const wantsLive = (env.VITE_DATA_SOURCE || 'mock') === 'live'
+// Live by default: ESPN's scoreboard needs no key, and every failure path
+// below already falls back to the bundled slate with a visible warning.
+// Set VITE_DATA_SOURCE=mock to force the bundled data.
+const wantsLive = (env.VITE_DATA_SOURCE || 'live') !== 'mock'
 const espnEnabled = (env.VITE_ENABLE_ESPN || 'true') !== 'false'
 const oddsKey = env.VITE_ODDS_API_KEY || ''
 const oddsBooks = env.VITE_ODDS_BOOKS || ''
@@ -19,6 +22,9 @@ export const dataMode = {
   espn: wantsLive && espnEnabled,
   odds: Boolean(oddsKey)
 }
+
+/** How often to re-poll live scores. Games change roughly every play. */
+export const REFRESH_MS = 45000
 
 export async function loadSlate({ signal } = {}) {
   const warnings = []

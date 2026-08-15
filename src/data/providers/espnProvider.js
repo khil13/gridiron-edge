@@ -5,16 +5,39 @@
  * Endpoint: site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard
  */
 
-const ENDPOINT = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard'
+/**
+ * Two hosts serve the same scoreboard payload. site.api has been returning
+ * permission errors for some callers since around August 2026, and the
+ * community fix is the site.web.api host — so try that first and keep the
+ * original as a fallback rather than betting the feature on either one.
+ */
+const ENDPOINTS = [
+  'https://site.web.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard',
+  'https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard'
+]
 
 // ESPN uses three abbreviations the rest of this app does not.
 const ABBR = { WSH: 'WAS', LAR: 'LA', JAX: 'JAC' }
 const norm = (a) => ABBR[a] || a
 
+/** Try each host in turn; surface the last error only if all of them fail. */
+async function fetchScoreboard(signal) {
+  let lastError
+  for (const url of ENDPOINTS) {
+    try {
+      const res = await fetch(url, { signal })
+      if (!res.ok) throw new Error(`returned ${res.status}`)
+      return await res.json()
+    } catch (err) {
+      if (signal?.aborted) throw err
+      lastError = err
+    }
+  }
+  throw new Error(`ESPN scoreboard unreachable (${lastError?.message ?? 'unknown error'})`)
+}
+
 export async function fetchSlate({ signal } = {}) {
-  const res = await fetch(ENDPOINT, { signal })
-  if (!res.ok) throw new Error(`ESPN scoreboard returned ${res.status}`)
-  const json = await res.json()
+  const json = await fetchScoreboard(signal)
 
   const games = (json.events || []).map((event) => {
     const comp = event.competitions?.[0] || {}
@@ -47,9 +70,15 @@ export async function fetchSlate({ signal } = {}) {
     }
   })
 
+  const typeName = { 1: 'preseason', 2: 'regular season', 3: 'postseason' }[
+    json.season?.type ?? 2
+  ] || ''
+
   return {
     source: 'espn',
-    label: `ESPN · ${json.season?.year ?? ''} week ${json.week?.number ?? '—'}`.trim(),
+    label: `Live · ESPN ${json.season?.year ?? ''} ${typeName} week ${json.week?.number ?? '—'}`
+      .replace(/\s+/g, ' ')
+      .trim(),
     games: games.filter((g) => g.home && g.away),
     history: []
   }

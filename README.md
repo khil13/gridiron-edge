@@ -88,11 +88,13 @@ Simulated prices exist so the analytics have something coherent to work on with 
 Copy `.env.example` to `.env`:
 
 ```bash
-VITE_DATA_SOURCE=live          # pull live scores instead of the bundled slate
+# VITE_DATA_SOURCE=mock        # live is the default; set this to force bundled data
 VITE_ENABLE_ESPN=true          # ESPN's public scoreboard, no key needed
 VITE_ODDS_API_KEY=your_key     # the-odds-api.com, free tier is plenty
 VITE_ODDS_BOOKS=draftkings,fanduel,betmgm,pinnacle
 ```
+
+Live scores are on by default and need no configuration. The app polls ESPN every 45 seconds while a game is in progress and stops polling when nothing is live. Two ESPN hosts are tried in turn, because `site.api.espn.com` began refusing some callers in August 2026 and `site.web.api.espn.com` serves the same payload.
 
 Live sources are best-effort. If ESPN or The Odds API is unreachable the app falls back to the bundled slate and tells you why in a banner rather than showing an empty page. Odds API events are matched back to schedule games by team, so the two feeds do not have to agree on IDs.
 
