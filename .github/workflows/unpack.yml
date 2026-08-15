@@ -1,0 +1,30 @@
+name: Unpack archive
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  unpack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract the project files
+        run: |
+          unzip -oq gridiron-edge.zip -d _unpacked -x ".git/*" ".github/*"
+          if [ ! -f _unpacked/package.json ] && [ -f _unpacked/gridiron-edge/package.json ]; then
+            mv _unpacked/gridiron-edge/* _unpacked/ 2>/dev/null || true
+            mv _unpacked/gridiron-edge/.[!.]* _unpacked/ 2>/dev/null || true
+          fi
+          rm -rf _unpacked/.git _unpacked/.github
+          cp -r _unpacked/. .
+          rm -rf _unpacked gridiron-edge.zip
+      - name: Commit the files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Extract project files from archive"
+          git push
