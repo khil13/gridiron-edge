@@ -30,6 +30,42 @@ export const DEFAULT_SETTINGS = {
   bankroll: 1000
 }
 
+/**
+ * Named presets.
+ *
+ * Most people do not want to configure a quant model; they want to say how
+ * picky the card should be and how much to risk. These set the two controls
+ * that actually change the output, and leave the model internals alone.
+ */
+export const PRESETS = [
+  {
+    key: 'cautious',
+    label: 'Cautious',
+    blurb: 'Only the clearest edges, small stakes. Fewer plays, most days quiet.',
+    settings: { minEdge: 0.04, kellyFraction: 0.15 }
+  },
+  {
+    key: 'balanced',
+    label: 'Balanced',
+    blurb: 'The default. A handful of plays on a normal slate.',
+    settings: { minEdge: 0.02, kellyFraction: 0.25 }
+  },
+  {
+    key: 'aggressive',
+    label: 'Aggressive',
+    blurb: 'Takes thinner edges and stakes them harder. More plays, more variance.',
+    settings: { minEdge: 0.01, kellyFraction: 0.5 }
+  }
+]
+
+/** Which preset the current settings match, if any. */
+export const presetFor = (s) =>
+  PRESETS.find(
+    (p) =>
+      Math.abs(p.settings.minEdge - s.minEdge) < 1e-9 &&
+      Math.abs(p.settings.kellyFraction - s.kellyFraction) < 1e-9
+  ) || null
+
 /** Elo win expectancy for a rating difference already including HFA. */
 export const eloExpected = (ratingDiff) => 1 / (1 + Math.pow(10, -ratingDiff / 400))
 
