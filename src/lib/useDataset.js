@@ -6,6 +6,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { loadSlate, dataMode, REFRESH_MS } from '../data/provider.js'
+import { fetchGameSummary } from '../data/providers/espnProvider.js'
 import { buildMarkets } from '../data/markets.js'
 import { projectGame, powerRankings } from './model.js'
 import { computeEdges, consensusPlays } from './edges.js'
@@ -119,4 +120,52 @@ export function useDataset() {
       dataMode
     }
   }, [slate, settings])
+}
+
+/**
+ * Live box score for one game.
+ *
+ * Fetched lazily when a game page is opened rather than for the whole slate,
+ * and only when the score feed is actually live — the bundled dataset has no
+ * box scores to fetch. Re-polls while the game is in progress.
+ */
+export function useGameSummary(game, source) {
+  const [state, setState] = useState({ loading: false, summary: null, error: null })
+
+  const eligible =
+    source === 'espn' && game && (game.status === 'live' || game.status === 'final')
+
+  useEffect(() => {
+    if (!eligible) {
+      setState({ loading: false, summary: null, error: null })
+      return
+    }
+
+    const controller = new AbortController()
+    let alive = true
+    let timer = null
+    setState((s) => ({ ...s, loading: true }))
+
+    const pull = () => {
+      fetchGameSummary(game.id, { signal: controller.signal })
+        .then((summary) => {
+          if (!alive) return
+          setState({ loading: false, summary, error: null })
+          if (game.status === 'live') timer = setTimeout(pull, REFRESH_MS)
+        })
+        .catch((err) => {
+          if (!alive) return
+          setState({ loading: false, summary: null, error: err.message })
+        })
+    }
+
+    pull()
+    return () => {
+      alive = false
+      controller.abort()
+      if (timer) clearTimeout(timer)
+    }
+  }, [eligible, game?.id, game?.status])
+
+  return state
 }

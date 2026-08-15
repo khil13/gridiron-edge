@@ -7,6 +7,7 @@ import { IconBack } from '../components/Icons.jsx'
 import { getTeam } from '../data/teams.js'
 import { recordOf } from '../data/season2025.js'
 import { useStore } from '../lib/store.jsx'
+import { useGameSummary } from '../lib/useDataset.js'
 import { toSlipLeg } from '../lib/edges.js'
 import { winProbabilityPath } from '../lib/model.js'
 import {
@@ -19,6 +20,7 @@ export default function GameView({ game, data }) {
   const home = getTeam(game.home)
   const away = getTeam(game.away)
   const isFinal = game.status === 'final'
+  const isLive = game.status === 'live'
   const proj = game.projection
 
   const path = useMemo(() => {
@@ -81,6 +83,7 @@ export default function GameView({ game, data }) {
         onChange={setTab}
         tabs={[
           { value: 'overview', label: 'Overview' },
+          ...(isLive || isFinal ? [{ value: 'stats', label: 'Stats' }] : []),
           { value: 'odds', label: 'Odds', count: game.market?.books?.length },
           { value: 'model', label: 'Model' }
         ]}
@@ -88,6 +91,7 @@ export default function GameView({ game, data }) {
 
       <div style={{ marginTop: 'var(--s4)' }}>
         {tab === 'overview' && <Overview game={game} path={path} data={data} />}
+        {tab === 'stats' && <StatsTab game={game} data={data} />}
         {tab === 'odds' && <OddsTab game={game} />}
         {tab === 'model' && <ModelTab game={game} data={data} />}
       </div>
@@ -414,5 +418,170 @@ function ModelTab({ game, data }) {
         </table>
       </div>
     </section>
+  )
+}
+
+/* ---------------- Live box score ---------------- */
+
+/**
+ * Real in-game numbers, pulled per game rather than for the whole slate.
+ *
+ * Everything here degrades: if the feed is bundled, unreachable, or simply
+ * has not filled a section in yet, that block is omitted rather than shown
+ * empty or faked.
+ */
+function StatsTab({ game, data }) {
+  const { loading, summary, error } = useGameSummary(game, data.source)
+  const home = getTeam(game.home)
+  const away = getTeam(game.away)
+
+  if (data.source !== 'espn') {
+    return (
+      <Empty title="Box scores need the live feed">
+        This build is showing the bundled slate, which carries final scores but no
+        play-level statistics. Live scores are on by default — if you are seeing this,
+        the feed fell back, and the banner on the Scores page says why.
+      </Empty>
+    )
+  }
+  if (loading && !summary) {
+    return <Empty title="Loading the box score">Pulling stats from the live feed.</Empty>
+  }
+  if (error) {
+    return (
+      <Empty title="Box score unavailable">
+        {error}. Scores above are still current; only the detailed statistics failed
+        to load.
+      </Empty>
+    )
+  }
+  if (!summary) return <Empty title="No stats posted yet">Nothing has been recorded for this game.</Empty>
+
+  const { situation, linescores, teamStats, lastPlay, leaders } = summary
+
+  return (
+    <div style={{ display: 'grid', gap: 'var(--s4)' }}>
+      {game.status === 'live' && situation && (
+        <section className="panel" style={{ borderColor: situation.isRedZone ? 'rgba(255,90,71,0.45)' : 'var(--line)' }}>
+          <div className="panel-head">
+            <div className="row gap-2">
+              <span className="live-dot" />
+              <span className="eyebrow">Live situation</span>
+            </div>
+            {situation.isRedZone && <Badge tone="live">Red zone</Badge>}
+          </div>
+          <div style={{ padding: 'var(--s4)' }}>
+            <div className="row gap-4" style={{ flexWrap: 'wrap' }}>
+              {situation.possession && (
+                <div className="row gap-2">
+                  <TeamMark abbr={situation.possession} size={22} />
+                  <span className="team-name">{situation.possession} ball</span>
+                </div>
+              )}
+              {situation.downDistance && (
+                <span className="mono" style={{ fontSize: 'var(--t-lg)' }}>{situation.downDistance}</span>
+              )}
+              {situation.fieldPosition && <span className="dim mono">{situation.fieldPosition}</span>}
+            </div>
+            {lastPlay && (
+              <p className="dim" style={{ fontSize: 12, marginBottom: 0, marginTop: 'var(--s3)' }}>
+                {lastPlay}
+              </p>
+            )}
+          </div>
+        </section>
+      )}
+
+      {linescores && (
+        <section className="panel">
+          <div className="panel-head"><h2 style={{ fontSize: 'var(--t-base)' }}>Scoring by quarter</h2></div>
+          <div className="tbl-scroll">
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left' }}>Team</th>
+                  {linescores[0].periods.map((_, i) => (
+                    <th key={i}>{i < 4 ? `Q${i + 1}` : `OT${i - 3}`}</th>
+                  ))}
+                  <th>T</th>
+                </tr>
+              </thead>
+              <tbody>
+                {linescores.map((r) => (
+                  <tr key={r.abbr}>
+                    <td style={{ textAlign: 'left' }}>
+                      <span className="row gap-2">
+                        <TeamMark abbr={r.abbr} size={18} />
+                        <span className="team-name">{r.abbr}</span>
+                      </span>
+                    </td>
+                    {r.periods.map((p, i) => <td className="num" key={i}>{p}</td>)}
+                    <td className="num" style={{ fontWeight: 700 }}>{r.total}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {teamStats && (
+        <section className="panel">
+          <div className="panel-head">
+            <h2 style={{ fontSize: 'var(--t-base)' }}>Team stats</h2>
+            <span className="eyebrow">Live from ESPN</span>
+          </div>
+          <div className="tbl-scroll">
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left' }}>Stat</th>
+                  {teamStats.teams.map((t) => <th key={t}>{t}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {teamStats.rows.map((r) => (
+                  <tr key={r.name}>
+                    <td style={{ textAlign: 'left' }}>{r.label}</td>
+                    {r.values.map((v, i) => <td className="num" key={i}>{v}</td>)}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {leaders && (
+        <section className="panel">
+          <div className="panel-head"><h2 style={{ fontSize: 'var(--t-base)' }}>Leaders</h2></div>
+          <div className="tbl-scroll">
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left' }}>Category</th>
+                  <th style={{ textAlign: 'left' }}>Player</th>
+                  <th style={{ textAlign: 'left' }}>Line</th>
+                </tr>
+              </thead>
+              <tbody>
+                {leaders.map((l, i) => (
+                  <tr key={i}>
+                    <td style={{ textAlign: 'left' }} className="dim">{l.category}</td>
+                    <td style={{ textAlign: 'left' }}>
+                      <span className="row gap-2">
+                        <TeamMark abbr={l.team} size={16} />
+                        <span className="team-name">{l.athlete}</span>
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'left' }} className="mono dim">{l.line}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+    </div>
   )
 }
