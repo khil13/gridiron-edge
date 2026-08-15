@@ -12,6 +12,10 @@ Built with React and Vite. Two runtime dependencies. No backend required.
 
 **Game detail** — market-vs-model breakdown, a full odds comparison across six books with best-price highlighting, line movement since open, win probability charts for finished games, and a Model tab that shows every input that produced the number.
 
+**Card of the day** — at most one play per game, chosen at the best price across all books and tiered by conviction in units. Every game that *doesn't* make the card is listed underneath with a specific reason, because a card with a play on every game isn't selective — it's a schedule. Preseason slates carry a visible low-confidence banner.
+
+**Results** — locked cards graded against final scores, with a running record in units, ROI, and a split by market. Leads with whether the sample is big enough to mean anything, because a betting record without a sample-size caveat is decoration.
+
 **Odds board** — one row per candidate play across the whole slate, ranked by expected value rather than kickoff time. Filter by market, restrict to reduced-juice books, set a minimum EV bar. Each row shows the model's probability, the book's no-vig probability, the edge in points, EV, and a fractional-Kelly stake.
 
 **Model lab** — every assumption is a slider: home field advantage, Elo-to-points conversion, margin standard deviation, rest, preseason shrink, devig method, Kelly fraction, bankroll. Move one and the entire app re-prices instantly.
@@ -116,6 +120,22 @@ Preseason projections are deliberately pulled toward a pick'em. Starters play a 
 - Cover and total probabilities with an NFL push-mass table — 3 and 7 carry far more probability than a normal curve implies, which is exactly why whole-number spreads price differently from half-points
 - Expected value, full and fractional Kelly, parlay pricing, closing line value
 
+### Card selection rules
+
+Two constraints do the work:
+
+**One play per game.** A spread and a total on the same game express the same opinion about the same roster. Stacking them silently doubles your exposure to one team being mis-rated, so the card takes the strongest view per game and stops. The runner-up is named on the card so you can see what was left off and why.
+
+**Both bars must clear.** A tier requires a minimum EV *and* a minimum points of disagreement. A large EV built on a quarter-point gap is mostly rounding error in the ratings, not a real edge, so it doesn't make the card.
+
+| Tier | Units | Min EV | Min edge |
+| --- | --- | --- | --- |
+| Best bet | 3u | 5.0% | 1.5 pts |
+| Strong | 2u | 3.0% | 1.0 pts |
+| Lean | 1u | 1.5% | 0.5 pts |
+
+One unit is 1% of bankroll. The card reports expected *winners* rather than projected profit, because a positive-EV card still loses money more often than people expect.
+
 ---
 
 ## Layout
@@ -138,8 +158,10 @@ src/
 │   ├── router.js           40-line hash router
 │   ├── store.jsx           settings + bet slip, persisted
 │   └── useDataset.js       loads once, re-derives on settings change
+│   ├── card.js             card-of-the-day selection, tiers, passes
+│   ├── grading.js          settling locked cards, record, significance
 ├── components/             shell, ticker, game card, Edge Rail, charts, slip
-├── views/                  scores, game, odds board, standings, teams, model lab
+├── views/                  scores, card, game, odds board, standings, teams, model lab
 └── styles/                 design tokens and one global sheet
 ```
 

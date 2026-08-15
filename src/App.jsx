@@ -40,8 +40,8 @@ function Router({ route, data }) {
       return <TeamView abbr={route.param} data={data} />
     }
     case 'card':
-     return <CardView data={data} />
-      case 'odds':
+      return <CardView data={data} />
+    case 'odds':
       return <OddsBoardView data={data} />
     case 'standings':
       return <StandingsView data={data} />

@@ -191,6 +191,21 @@ export function overProbability(projTotal, line, sigma = 10.4) {
   return { win: raw * (1 - pPush), lose: (1 - raw) * (1 - pPush), push: pPush }
 }
 
+/**
+ * Probability a single team goes over its own team total.
+ *
+ * A single NFL team's score has a standard deviation of roughly 9.5 points.
+ * That is smaller than the margin's spread but NOT small — getting this
+ * number too tight is the classic way to manufacture edges that do not
+ * exist, because it turns a one-point line difference into a large
+ * probability swing.
+ */
+export function teamOverProbability(projTeamPoints, line, sigma = 9.6) {
+  const pPush = Number.isInteger(line) ? 0.031 : 0
+  const raw = 1 - normalCdf(line, projTeamPoints, sigma)
+  return { win: raw * (1 - pPush), lose: (1 - raw) * (1 - pPush), push: pPush }
+}
+
 /** Straight-up win probability implied by a projected margin. */
 export const winProbFromMargin = (projMargin, sigma = 13.2) =>
   normalCdf(projMargin, 0, sigma)

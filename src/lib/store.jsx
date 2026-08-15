@@ -14,6 +14,7 @@ const initial = () => ({
   settings: { ...DEFAULT_SETTINGS, preseasonShrink: 0.55, ...load('settings', {}) },
   slip: load('slip', []),
   tickets: load('tickets', []),
+  lockedCards: load('lockedCards', []),
   slipOpen: false,
   mode: load('mode', 'straight') // 'straight' | 'parlay'
 })
@@ -41,6 +42,14 @@ function reducer(state, action) {
       return { ...state, slipOpen: action.open ?? !state.slipOpen }
     case 'setMode':
       return { ...state, mode: action.mode }
+    case 'lockCard': {
+      // One lock per slate date. Re-locking replaces it, so a day cannot be
+      // quietly logged twice with different numbers.
+      const rest = state.lockedCards.filter((c) => c.dayKey !== action.card.dayKey)
+      return { ...state, lockedCards: [action.card, ...rest] }
+    }
+    case 'unlockCard':
+      return { ...state, lockedCards: state.lockedCards.filter((c) => c.id !== action.id) }
     case 'placeTickets':
       return { ...state, tickets: [...action.tickets, ...state.tickets], slip: [], slipOpen: false }
     case 'removeTicket':
@@ -56,6 +65,7 @@ export function StoreProvider({ children }) {
   useEffect(() => { save('settings', state.settings) }, [state.settings])
   useEffect(() => { save('slip', state.slip) }, [state.slip])
   useEffect(() => { save('tickets', state.tickets) }, [state.tickets])
+  useEffect(() => { save('lockedCards', state.lockedCards) }, [state.lockedCards])
   useEffect(() => { save('mode', state.mode) }, [state.mode])
 
   const value = useMemo(() => ({ ...state, dispatch }), [state])

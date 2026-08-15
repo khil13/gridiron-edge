@@ -48,6 +48,10 @@ export function useDataset() {
       if (!game.preseason) return base
       const k = 1 - (settings.preseasonShrink ?? 0)
       const margin = base.margin * k
+      // Team totals must be rebuilt from the shrunk margin, or they would
+      // still encode the unshrunk view of who is better.
+      const homeTeamTotal = Math.round(((base.total + margin) / 2) * 2) / 2
+      const awayTeamTotal = Math.round(((base.total - margin) / 2) * 2) / 2
       return {
         ...base,
         margin,
@@ -55,6 +59,8 @@ export function useDataset() {
         modelSpreadAway: margin,
         homeWinProb: 0.5 + (base.homeWinProb - 0.5) * k,
         awayWinProb: 0.5 - (base.homeWinProb - 0.5) * k,
+        homeTeamTotal,
+        awayTeamTotal,
         shrunk: true
       }
     }

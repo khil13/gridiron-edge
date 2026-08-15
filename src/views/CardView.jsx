@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
 import TeamMark from '../components/TeamMark.jsx'
 import EdgeRail from '../components/EdgeRail.jsx'
-import { Badge, Empty } from '../components/Controls.jsx'
+import { Badge, Empty, Tabs } from '../components/Controls.jsx'
 import { useStore } from '../lib/store.jsx'
 import { toSlipLeg } from '../lib/edges.js'
-import { buildCard, daysFrom, confidenceOf } from '../lib/card.js'
+import { buildCard, daysFrom, confidenceOf, lockCard } from '../lib/card.js'
+import ResultsView from './ResultsView.jsx'
 import {
   fmtOdds, fmtPct, fmtMoney, fmtSigned, fmtDay, fmtTime, relativeDay
 } from '../lib/format.js'
@@ -19,7 +20,8 @@ import { href } from '../lib/router.js'
  * thing separating this from a list of games.
  */
 export default function CardView({ data }) {
-  const { settings, dispatch } = useStore()
+  const { settings, lockedCards, dispatch } = useStore()
+  const [tab, setTab] = useState('today')
   const days = useMemo(() => daysFrom(data.games), [data.games])
 
   // Default to the first day that still has games to bet, else the last day.
@@ -36,7 +38,8 @@ export default function CardView({ data }) {
     [day, settings]
   )
 
-  // If today is quiet, say which days are not.
+  // If today is quiet, say which days are not — without implying the quiet
+  // day is a failure.
   const daysWithPlays = useMemo(
     () =>
       days
@@ -57,6 +60,22 @@ export default function CardView({ data }) {
     )
   }
 
+  const locked = lockedCards.find((c) => c.dayKey === day?.key)
+
+  const lock = () => {
+    dispatch({
+      type: 'lockCard',
+      card: lockCard({
+        dayKey: day.key,
+        kickoff: day.kickoff,
+        plays,
+        settings,
+        source: data.simulatedPrices ? 'simulated' : 'live'
+      })
+    })
+    setTab('results')
+  }
+
   const addAll = () => {
     for (const p of plays) {
       dispatch({
@@ -66,9 +85,35 @@ export default function CardView({ data }) {
     }
   }
 
+  if (tab === 'results') {
+    return (
+      <>
+        <div className="page" style={{ paddingBottom: 0 }}>
+          <Tabs
+            value={tab}
+            onChange={setTab}
+            tabs={[
+              { value: 'today', label: 'Card' },
+              { value: 'results', label: 'Results', count: lockedCards.length }
+            ]}
+          />
+        </div>
+        <ResultsView data={data} />
+      </>
+    )
+  }
+
   return (
     <div className="page">
-      <header className="page-head">
+      <Tabs
+        value={tab}
+        onChange={setTab}
+        tabs={[
+          { value: 'today', label: 'Card' },
+          { value: 'results', label: 'Results', count: lockedCards.length }
+        ]}
+      />
+      <header className="page-head" style={{ marginTop: 'var(--s5)' }}>
         <div>
           <div className="eyebrow">One play per game · best price across books</div>
           <h1 className="page-title">Card of the day</h1>
@@ -122,7 +167,12 @@ export default function CardView({ data }) {
             </h2>
           </div>
           {plays.length > 0 && (
-            <button className="btn primary" onClick={addAll}>Add card to slip</button>
+            <div className="row gap-2">
+              <button className="btn" onClick={addAll}>Add to slip</button>
+              <button className="btn primary" onClick={lock}>
+                {locked ? 'Re-lock card' : 'Lock card'}
+              </button>
+            </div>
           )}
         </div>
         <div
@@ -140,9 +190,14 @@ export default function CardView({ data }) {
             tone={stats.expected > 0 ? 'pos' : undefined}
           />
           <Stat
-            label="Model expects"
-            value={plays.length ? `${stats.expectedWinners.toFixed(1)} / ${plays.length}` : '—'}
-            sub="winners"
+            label={stats.suspicious ? 'Flagged' : 'Model expects'}
+            value={
+              stats.suspicious
+                ? `${stats.suspicious} / ${plays.length}`
+                : plays.length ? `${stats.expectedWinners.toFixed(1)} / ${plays.length}` : '—'
+            }
+            sub={stats.suspicious ? 'implausible edges' : 'winners'}
+            tone={stats.suspicious ? 'neg' : undefined}
           />
         </div>
       </section>
@@ -216,7 +271,19 @@ export default function CardView({ data }) {
         </section>
       )}
 
+      {locked && (
+        <p className="dim" style={{ fontSize: 12, marginTop: 'var(--s4)', maxWidth: '80ch' }}>
+          This card was locked {new Date(locked.lockedAt).toLocaleString()} and will be graded
+          under Results once the games go final. Re-locking replaces that snapshot — which is
+          worth avoiding once kickoff has passed, since a card changed after the fact is not
+          the card you would have bet.
+        </p>
+      )}
+
       <p className="dim" style={{ fontSize: 12, marginTop: 'var(--s4)', maxWidth: '80ch' }}>
+        Locking freezes these plays at today's prices so they can be graded honestly later.
+        Grading a re-derived card would flatter the model, because the model will have changed
+        by then.{' '}
         Tiers require both an EV threshold and a minimum points of disagreement, so a
         large EV built on a quarter-point gap will not make the card. Only one play per
         game is listed: a spread and a total on the same game express the same opinion
@@ -234,15 +301,31 @@ function PlayCard({ entry, dispatch }) {
   const kellyGap = kellyStake > 0 ? kellyStake / stake : 0
 
   // The rail must argue for the play on the card. Showing a spread number
-  // line under a totals play compares two unrelated things.
+  // line under a totals play compares two things that have nothing to do
+  // with each other.
   const rail = useMemo(() => {
     if (!consensus || !game.projection) return null
+    if (best.type === 'teamTotal') {
+      const isHome = best.side.startsWith('home')
+      const projPts = isHome ? game.projection.homeTeamTotal : game.projection.awayTeamTotal
+      const posted = consensus.teamTotal?.[isHome ? 'home' : 'away']?.line
+      if (posted == null || projPts == null) return null
+      return {
+        kind: 'team total',
+        market: posted,
+        model: projPts,
+        keyNumbers: [],
+        format: (n) => String(n),
+        describe: (m, mo, gap) =>
+          `Market team total is ${m}. The model projects ${mo}, a gap of ${gap.toFixed(1)} points.`
+      }
+    }
     if (best.type === 'total') {
       return {
         kind: 'total',
         market: consensus.total.line,
         model: game.projection.total,
-        keyNumbers: [],
+        keyNumbers: [],   // 3 and 7 are spread numbers, not totals numbers
         format: (n) => String(n),
         describe: (m, mo, gap) =>
           `Market total is ${m}. The model projects ${mo}, a gap of ${gap.toFixed(1)} points.`
@@ -292,7 +375,11 @@ function PlayCard({ entry, dispatch }) {
             <Metric label="Model" value={fmtPct(best.modelProb)} />
             <Metric label="No-vig" value={fmtPct(best.marketProb)} dim />
             <Metric label="Edge" value={`${fmtSigned(best.edgePoints)} pts`} />
-            <Metric label="EV" value={`+${(best.ev * 100).toFixed(1)}%`} tone="pos" />
+            <Metric
+              label="EV"
+              value={`+${(best.ev * 100).toFixed(1)}%`}
+              tone="pos"
+            />
             <Metric label="Stake" value={fmtMoney(stake)} />
           </div>
         </div>
@@ -322,6 +409,13 @@ function PlayCard({ entry, dispatch }) {
 
         <div className="row spread-between gap-3" style={{ flexWrap: 'wrap' }}>
           <p className="dim grow" style={{ fontSize: 11, margin: 0, minWidth: 240 }}>
+            {tier.suspicious && (
+              <span className="neg">
+                An edge this large is far more likely to be a modelling error than
+                free money — most often the projected total is off. Capped at 1u and
+                worth checking before it is worth betting.{' '}
+              </span>
+            )}
             {kellyGap > 1.4 && `Kelly would size this at ${fmtMoney(kellyStake)} — larger than the flat ${tier.units}u. Flat staking is the safer default when the model's probabilities are themselves uncertain. `}
             {kellyGap > 0 && kellyGap < 0.7 && `Kelly would size this smaller, at ${fmtMoney(kellyStake)}. `}
             {alternate && alternate.ev > 0 && (

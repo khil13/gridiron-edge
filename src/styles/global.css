@@ -552,6 +552,7 @@ table.tbl td.num { font-family: var(--font-mono); }
   }
   .rail-mark { display: none; }
   .rail-link { width: auto; flex: 1 1 0; padding: 4px 0; }
+  .rail-label { font-size: 8.5px; letter-spacing: 0.06em; }
   .slip-toggle { bottom: 80px; right: var(--s3); }
   .slip { width: 100%; }
 }

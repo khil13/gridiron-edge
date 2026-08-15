@@ -5,10 +5,11 @@ import { KEY_NUMBERS } from '../lib/odds.js'
 /**
  * The Edge Rail — this app's one signature object.
  *
- * A number line for a single game. The gold pin above the axis is where the
- * market has it; the blue pin below is where the model has it. The shaded
- * band between them is the disagreement, and its width is the entire
- * argument for or against a bet.
+ * A spread number line for a single game. The gold pin above the axis is
+ * where the market has it; the blue pin below is where the model has it.
+ * The shaded band between them is the disagreement, and its width is the
+ * entire argument for or against a bet. Key numbers are drawn taller,
+ * because 3 and 7 are where NFL games actually land.
  */
 export default function EdgeRail({
   marketLine, modelLine, home, away, compact = false,
@@ -41,6 +42,7 @@ export default function EdgeRail({
 
       {ticks.map((n) => {
         const key = keyNumbers.includes(Math.abs(n))
+        // Hide a tick label that would sit underneath the market flag.
         const crowded = Math.abs(pos(n) - marketAt) < 7
         return (
           <span key={n}>

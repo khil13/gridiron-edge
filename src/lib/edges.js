@@ -8,7 +8,7 @@
 
 import {
   devig, expectedValue, kelly, coverProbability, overProbability,
-  marginFromWinProb, impliedProb
+  teamOverProbability, marginFromWinProb, impliedProb
 } from './odds.js'
 import { bestPrice } from '../data/markets.js'
 
@@ -52,6 +52,32 @@ export function computeEdges(game, market, projection, s) {
       label: `Under ${book.total.line}`, model: under, marketProb: tProbs[1],
       edgePoints: book.total.line - projection.total, s
     }))
+
+    // ---- Team totals ----
+    if (book.teamTotal) {
+      for (const side of ['home', 'away']) {
+        const tt = book.teamTotal[side]
+        if (!tt) continue
+        const projPts = side === 'home' ? projection.homeTeamTotal : projection.awayTeamTotal
+        if (projPts == null) continue
+
+        const over = teamOverProbability(projPts, tt.line)
+        const under = { win: 1 - over.win - over.push, lose: over.win, push: over.push }
+        const { probs } = devig([tt.over, tt.under], s.devigMethod)
+        const abbr = abbrFor(game, side)
+
+        plays.push(makePlay({
+          game, book, type: 'teamTotal', side: `${side}-over`, line: tt.line, price: tt.over,
+          label: `${abbr} Over ${tt.line}`, model: over, marketProb: probs[0],
+          edgePoints: projPts - tt.line, s
+        }))
+        plays.push(makePlay({
+          game, book, type: 'teamTotal', side: `${side}-under`, line: tt.line, price: tt.under,
+          label: `${abbr} Under ${tt.line}`, model: under, marketProb: probs[1],
+          edgePoints: tt.line - projPts, s
+        }))
+      }
+    }
 
     // ---- Moneyline ----
     const { probs: mProbs } = devig([book.moneyline.home, book.moneyline.away], s.devigMethod)

@@ -21,6 +21,8 @@ export const DEFAULT_SETTINGS = {
   marginSigma: 13.2,      // SD of NFL final margins
   totalSigma: 10.4,
   restPointsPerDay: 0.12, // short week / bye adjustment
+  preseasonShrink: 0.55,  // pull spreads toward a pick'em
+  preseasonTotalShift: -7.0, // see note in projectGame
   offseasonRegression: 0.25,
   devigMethod: 'shin',
   minEdge: 0.02,          // 2% EV before a play is flagged
@@ -85,7 +87,23 @@ export function projectGame(game, ratings, s = DEFAULT_SETTINGS) {
   // then shrink toward the league mean because single-season pace is noisy.
   const leagueMean = 44.2
   const raw = (home.ppg + away.papg) / 2 + (away.ppg + home.papg) / 2
-  const total = raw * 0.72 + leagueMean * 0.28
+  let total = raw * 0.72 + leagueMean * 0.28
+
+  // Preseason scores far lower than the regular season: vanilla playcalling,
+  // no game-planning, backups for three quarters, and a running clock late.
+  // Books post preseason totals in the mid-to-high 30s while this model,
+  // built from regular-season ratings, would otherwise say 44. Without this
+  // correction every preseason total projection is ~7 points too high and
+  // the model wrongly loves overs.
+  if (game.preseason) total += s.preseasonTotalShift ?? -7
+
+  const rounded = Math.round(total * 2) / 2
+
+  // Team totals fall straight out of the two numbers the model already has:
+  // if the game totals T and the home side wins by M, the two scores are
+  // (T + M) / 2 and (T - M) / 2. No new assumptions required.
+  const homeTeamTotal = Math.round(((rounded + margin) / 2) * 2) / 2
+  const awayTeamTotal = Math.round(((rounded - margin) / 2) * 2) / 2
 
   return {
     margin,                       // + means home favoured
@@ -93,7 +111,9 @@ export function projectGame(game, ratings, s = DEFAULT_SETTINGS) {
     modelSpreadAway: margin,
     homeWinProb,
     awayWinProb: 1 - homeWinProb,
-    total: Math.round(total * 2) / 2,
+    total: rounded,
+    homeTeamTotal,
+    awayTeamTotal,
     hfa,
     rest
   }

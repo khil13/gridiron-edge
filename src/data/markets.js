@@ -12,7 +12,9 @@
  */
 
 import { mulberry32 } from '../lib/model.js'
-import { probToAmerican, winProbFromMargin, coverProbability, overProbability } from '../lib/odds.js'
+import {
+  probToAmerican, winProbFromMargin, coverProbability, overProbability, teamOverProbability
+} from '../lib/odds.js'
 import { SPORTSBOOKS } from './schedule.js'
 
 const HOLD = 0.045              // 4.5% two-way hold, typical US retail
@@ -80,12 +82,30 @@ export function buildMarkets(games, project) {
       const pHome = winProbFromMargin(consensusMargin)
       const [mlHome, mlAway] = priceTwoWay(pHome, 1 - pHome, bookHold * 1.35).map(post)
 
+      // Team totals. Books hang these looser than the game total because
+      // they attract less volume, which is exactly why they are worth
+      // checking: a wider market is a softer one.
+      const ttHold = bookHold * 1.5
+      const mkTeamTotal = (consensusTeamPts) => {
+        const line = toHalf(consensusTeamPts + jitter() * 0.45)
+        const over = teamOverProbability(consensusTeamPts, line)
+        const under = { win: 1 - over.win - over.push }
+        const [ov, un] = priceTwoWay(over.win, under.win, ttHold).map(post)
+        return { line, over: ov, under: un }
+      }
+      const consensusHomePts = (consensusTotal + consensusMargin) / 2
+      const consensusAwayPts = (consensusTotal - consensusMargin) / 2
+
       return {
         key: book.key,
         name: book.name,
         sharp,
         spread: { home: { line: spreadHome, price: spHome }, away: { line: -spreadHome, price: spAway } },
         total: { line: totalLine, over: ovPrice, under: unPrice },
+        teamTotal: {
+          home: mkTeamTotal(consensusHomePts),
+          away: mkTeamTotal(consensusAwayPts)
+        },
         moneyline: { home: mlHome, away: mlAway }
       }
     })

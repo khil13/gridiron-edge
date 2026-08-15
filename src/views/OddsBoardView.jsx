@@ -53,6 +53,7 @@ export default function OddsBoardView({ data }) {
               { value: 'all', label: 'All' },
               { value: 'spread', label: 'Spread' },
               { value: 'total', label: 'Total' },
+              { value: 'teamTotal', label: 'Team' },
               { value: 'moneyline', label: 'ML' }
             ]}
           />
