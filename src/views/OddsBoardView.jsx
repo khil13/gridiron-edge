@@ -91,7 +91,7 @@ export default function OddsBoardView({ data }) {
       ) : (
         <div className="panel">
           <div className="tbl-scroll">
-            <table className="tbl">
+            <table className="tbl responsive">
               <thead>
                 <tr>
                   <th>Play</th><th style={{ textAlign: 'left' }}>Game</th><th>Kick</th>
@@ -109,22 +109,24 @@ export default function OddsBoardView({ data }) {
                         {p.sharp && <Badge tone="chalk">Sharp</Badge>}
                       </span>
                     </td>
-                    <td style={{ textAlign: 'left' }}>
+                    <td style={{ textAlign: 'left' }} data-label="Game">
                       <a className="row gap-2 dim" href={href(`game/${p.gameId}`)}>
                         <TeamMark abbr={p.game.away} size={16} />
                         <TeamMark abbr={p.game.home} size={16} />
                         <span className="mono" style={{ fontSize: 11 }}>{p.matchup}</span>
                       </a>
                     </td>
-                    <td className="num dim">{fmtKickoff(p.kickoff)}</td>
-                    <td className="num market">{fmtOdds(p.price)}</td>
-                    <td className="dim">{p.book}</td>
-                    <td className="num">{fmtPct(p.modelProb)}</td>
-                    <td className="num dim">{fmtPct(p.marketProb)}</td>
-                    <td className="num">{fmtSigned(p.edgePoints)} <span className="dim">pts</span></td>
-                    <td className={`num ${p.ev > 0 ? 'pos' : 'neg'}`}>{p.ev > 0 ? '+' : ''}{(p.ev * 100).toFixed(1)}%</td>
-                    <td className="num dim">{p.ev > 0 ? fmtMoney(p.stake) : '—'}</td>
-                    <td>
+                    <td className="num dim" data-label="Kick">{fmtKickoff(p.kickoff)}</td>
+                    <td className="num market" data-label="Price">{fmtOdds(p.price)}</td>
+                    <td className="dim" data-label="Book">{p.book}</td>
+                    <td className="num" data-label="Model">{fmtPct(p.modelProb)}</td>
+                    <td className="num dim" data-label="No-vig">{fmtPct(p.marketProb)}</td>
+                    <td className="num" data-label="Edge">
+                      <span>{fmtSigned(p.edgePoints)} <span className="dim">pts</span></span>
+                    </td>
+                    <td className={`num ${p.ev > 0 ? 'pos' : 'neg'}`} data-label="EV">{p.ev > 0 ? '+' : ''}{(p.ev * 100).toFixed(1)}%</td>
+                    <td className="num dim" data-label="Stake">{p.ev > 0 ? fmtMoney(p.stake) : '—'}</td>
+                    <td className="action">
                       <button className="btn" onClick={() => dispatch({ type: 'addLeg', leg: toSlipLeg(p) })}>Add</button>
                     </td>
                   </tr>

@@ -15,6 +15,9 @@ const initial = () => ({
   slip: load('slip', []),
   tickets: load('tickets', []),
   lockedCards: load('lockedCards', []),
+  // Stored separately from settings so it is never bundled into an export
+  // or a shared card snapshot.
+  oddsKey: load('oddsKey', ''),
   slipOpen: false,
   mode: load('mode', 'straight') // 'straight' | 'parlay'
 })
@@ -42,6 +45,8 @@ function reducer(state, action) {
       return { ...state, slipOpen: action.open ?? !state.slipOpen }
     case 'setMode':
       return { ...state, mode: action.mode }
+    case 'setOddsKey':
+      return { ...state, oddsKey: action.key }
     case 'lockCard': {
       // One lock per slate date. Re-locking replaces it, so a day cannot be
       // quietly logged twice with different numbers.
@@ -66,6 +71,7 @@ export function StoreProvider({ children }) {
   useEffect(() => { save('slip', state.slip) }, [state.slip])
   useEffect(() => { save('tickets', state.tickets) }, [state.tickets])
   useEffect(() => { save('lockedCards', state.lockedCards) }, [state.lockedCards])
+  useEffect(() => { save('oddsKey', state.oddsKey) }, [state.oddsKey])
   useEffect(() => { save('mode', state.mode) }, [state.mode])
 
   const value = useMemo(() => ({ ...state, dispatch }), [state])

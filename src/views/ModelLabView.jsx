@@ -17,7 +17,8 @@ import { href } from '../lib/router.js'
  * the app, so they live behind a toggle and stay shut by default.
  */
 export default function ModelLabView({ data }) {
-  const { settings, dispatch } = useStore()
+  const { settings, oddsKey, dispatch } = useStore()
+  const [keyDraft, setKeyDraft] = useState(oddsKey || '')
   const [showAdvanced, setShowAdvanced] = useState(false)
   const set = (key) => (value) => dispatch({ type: 'setting', key, value })
 
@@ -79,6 +80,77 @@ export default function ModelLabView({ data }) {
               </button>
             )
           })}
+        </div>
+      </section>
+
+      <section className="panel" style={{ marginBottom: 'var(--s4)' }}>
+        <div className="panel-head">
+          <div>
+            <div className="eyebrow">Sportsbook prices</div>
+            <h2 style={{ fontSize: 'var(--t-lg)', marginTop: 4 }}>
+              {data.simulatedPrices ? 'Using simulated prices' : 'Live prices connected'}
+            </h2>
+          </div>
+          {data.simulatedPrices
+            ? <Badge tone="quiet">Simulated</Badge>
+            : <Badge tone="edge">Live</Badge>}
+        </div>
+
+        <div style={{ padding: 'var(--s4)' }}>
+          <p className="dim" style={{ fontSize: 12, marginTop: 0, maxWidth: '75ch' }}>
+            {data.simulatedPrices ? (
+              <>
+                Every EV, stake and edge in this app is currently computed against prices
+                the app generated itself. They are coherent, but they are not real, so the
+                numbers test the method rather than the market. A free key from{' '}
+                <a href="https://the-odds-api.com" target="_blank" rel="noreferrer"
+                   style={{ color: 'var(--gold)' }}>the-odds-api.com</a>{' '}
+                replaces them with real books.
+              </>
+            ) : (
+              <>
+                Prices are live.{' '}
+                {data.oddsMeta?.matched != null && `${data.oddsMeta.matched} games matched. `}
+                {data.oddsMeta?.quota?.remaining != null &&
+                  `${data.oddsMeta.quota.remaining} API requests left this period.`}
+              </>
+            )}
+          </p>
+
+          <div className="row gap-2" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <div className="field grow" style={{ minWidth: 240 }}>
+              <label><span>API key</span></label>
+              <input
+                type="password"
+                autoComplete="off"
+                spellCheck="false"
+                placeholder="Paste your key"
+                value={keyDraft}
+                onChange={(e) => setKeyDraft(e.target.value.trim())}
+              />
+            </div>
+            <button
+              className="btn primary"
+              onClick={() => dispatch({ type: 'setOddsKey', key: keyDraft })}
+              disabled={keyDraft === (oddsKey || '')}
+            >
+              {oddsKey ? 'Update' : 'Connect'}
+            </button>
+            {oddsKey && (
+              <button
+                className="btn"
+                onClick={() => { setKeyDraft(''); dispatch({ type: 'setOddsKey', key: '' }) }}
+              >
+                Disconnect
+              </button>
+            )}
+          </div>
+
+          <p className="dim" style={{ fontSize: 11, marginBottom: 0, marginTop: 'var(--s3)' }}>
+            The key is stored in this browser only. It is never committed to the repo and
+            never sent anywhere except The Odds API — which is why it is entered here rather
+            than built into the site, where every visitor could read it.
+          </p>
         </div>
       </section>
 
@@ -270,7 +342,12 @@ export default function ModelLabView({ data }) {
           </div>
           <div className="tbl-scroll" style={{ maxHeight: 520, overflowY: 'auto' }}>
             <table className="tbl">
-              <thead><tr><th style={{ textAlign: 'left' }}>Game</th><th>Kick</th><th>Market</th><th>Model</th><th>Diff</th><th>Total</th></tr></thead>
+              <thead><tr>
+                <th style={{ textAlign: 'left' }}>Game</th>
+                <th className="hide-sm">Kick</th>
+                <th>Market</th><th>Model</th><th>Diff</th>
+                <th className="hide-sm">Total</th>
+              </tr></thead>
               <tbody>
                 {data.games.filter((g) => g.projection && g.market).map((g) => {
                   const mkt = g.market.consensus.spreadHome
@@ -283,13 +360,13 @@ export default function ModelLabView({ data }) {
                           <span className="mono" style={{ fontSize: 11 }}>{g.away} @ {g.home}</span>
                         </a>
                       </td>
-                      <td className="num dim">{fmtKickoff(g.kickoff)}</td>
+                      <td className="num dim hide-sm">{fmtKickoff(g.kickoff)}</td>
                       <td className="num market">{fmtSpread(mkt)}</td>
                       <td className="num model">{fmtSpread(Math.round(mdl * 10) / 10)}</td>
                       <td className={`num ${Math.abs(diff) >= 1 ? (diff > 0 ? 'pos' : 'neg') : 'dim'}`}>
                         {fmtSigned(diff)}
                       </td>
-                      <td className="num dim">{g.projection.total.toFixed(1)}</td>
+                      <td className="num dim hide-sm">{g.projection.total.toFixed(1)}</td>
                     </tr>
                   )
                 })}

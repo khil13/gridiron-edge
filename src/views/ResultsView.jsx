@@ -120,7 +120,7 @@ export default function ResultsView({ data }) {
             <span className="eyebrow">Where the edge is, if anywhere</span>
           </div>
           <div className="tbl-scroll">
-            <table className="tbl">
+            <table className="tbl responsive">
               <thead>
                 <tr><th style={{ textAlign: 'left' }}>Market</th><th>W</th><th>L</th><th>P</th><th>Profit</th><th>ROI</th></tr>
               </thead>
@@ -177,7 +177,7 @@ function CardResult({ card, dispatch }) {
       <div className="panel-head">
         <div>
           <div className="eyebrow">
-            Locked {new Date(card.lockedAt).toLocaleString()} · {card.source} prices
+            Locked {new Date(card.lockedAt).toLocaleDateString()} · {card.source} prices
           </div>
           <h3 style={{ fontSize: 'var(--t-base)', marginTop: 4 }}>{fmtDay(card.kickoff)}</h3>
         </div>
@@ -199,7 +199,7 @@ function CardResult({ card, dispatch }) {
       </div>
 
       <div className="tbl-scroll">
-        <table className="tbl">
+        <table className="tbl responsive">
           <thead>
             <tr>
               <th style={{ textAlign: 'left' }}>Play</th>
@@ -223,22 +223,22 @@ function CardResult({ card, dispatch }) {
                     {leg.units}u {leg.tierLabel} · {leg.book}
                   </div>
                 </td>
-                <td style={{ textAlign: 'left' }}>
+                <td style={{ textAlign: 'left' }} data-label="Game">
                   <a className="row gap-2 dim" href={href(`game/${leg.gameId}`)}>
                     <span className="mono" style={{ fontSize: 11 }}>{leg.matchup}</span>
                   </a>
                 </td>
-                <td className="num market">{fmtOdds(leg.price)}</td>
-                <td className="num dim">{fmtMoney(leg.stake)}</td>
-                <td className="num dim">
+                <td className="num market" data-label="Price">{fmtOdds(leg.price)}</td>
+                <td className="num dim" data-label="Stake">{fmtMoney(leg.stake)}</td>
+                <td className="num dim" data-label="Score">
                   {leg.finalScore
                     ? `${leg.finalScore.awayAbbr} ${leg.finalScore.away}–${leg.finalScore.home} ${leg.finalScore.homeAbbr}`
                     : '—'}
                 </td>
-                <td>
+                <td data-label="Result">
                   <ResultChip result={leg.result} />
                 </td>
-                <td className={`num ${leg.profit > 0 ? 'pos' : leg.profit < 0 ? 'neg' : 'dim'}`}>
+                <td className={`num ${leg.profit > 0 ? 'pos' : leg.profit < 0 ? 'neg' : 'dim'}`} data-label="P/L">
                   {leg.result === 'pending' ? '—' : `${leg.profit >= 0 ? '+' : ''}${fmtMoney(leg.profit)}`}
                 </td>
               </tr>

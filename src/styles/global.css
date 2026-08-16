@@ -580,3 +580,182 @@ table.tbl td.num { font-family: var(--font-mono); }
   .edge-strip::-webkit-scrollbar { display: none; }
   .edge-strip > a { scroll-snap-align: start; }
 }
+
+/* ---------- Box score comparison rows ---------- */
+/* Away value, label, home value on one line, with a split bar underneath.
+   Fits a 360px phone without horizontal scroll, which a three-column table
+   of long stat names does not. */
+
+.cmp-group + .cmp-group { border-top: 1px solid var(--line); }
+
+.cmp-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding: var(--s3) var(--s4) var(--s2);
+}
+
+.cmp-row { padding: 9px var(--s4) 11px; }
+.cmp-row + .cmp-row { border-top: 1px solid rgba(35, 47, 58, 0.5); }
+
+.cmp-line {
+  display: grid;
+  grid-template-columns: minmax(3.5rem, auto) 1fr minmax(3.5rem, auto);
+  align-items: baseline;
+  gap: var(--s3);
+  margin-bottom: 6px;
+}
+.cmp-val {
+  font-family: var(--font-mono);
+  font-size: var(--t-base);
+  color: var(--bone-dim);
+  white-space: nowrap;
+}
+.cmp-val.lead { color: var(--bone); font-weight: 600; }
+.cmp-val.away { text-align: left; }
+.cmp-val.home { text-align: right; }
+.cmp-label {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  line-height: 1.3;
+}
+
+/* On turnovers, sacks and penalties a longer bar is worse, not better. The
+   bar still shows the true quantity, but it is dimmed and the label carries
+   an arrow so it never reads as "ahead". */
+.cmp-bar { display: flex; height: 4px; gap: 2px; }
+.cmp-bar.inverse span { opacity: 0.4; }
+.cmp-label .lower-hint { color: var(--faint); letter-spacing: 0; }
+.cmp-bar span { display: block; height: 100%; border-radius: 99px; min-width: 2px; }
+.cmp-bar.empty { background: var(--line); border-radius: 99px; }
+
+/* Sticky team names so you always know which column is which */
+.cmp-teams {
+  position: sticky; top: 0; z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s3) var(--s4);
+  background: var(--slab);
+  border-bottom: 1px solid var(--line);
+}
+
+/* Linescore must fit without sideways scroll on a phone */
+table.tbl.linescore th, table.tbl.linescore td { padding: 8px 6px; }
+table.tbl.linescore th:first-child, table.tbl.linescore td:first-child { padding-left: var(--s4); }
+
+/* ==========================================================================
+   Responsive data tables
+   --------------------------------------------------------------------------
+   A dense table cannot shrink to a phone. The odds board needs 1065px to
+   show 11 columns; a 390px screen hides two-thirds of it behind a sideways
+   drag, which is where the ADD buttons and the EV live.
+
+   So under 760px a table marked `.responsive` stops being a table: each row
+   becomes a card and each cell becomes a labelled line, using the header
+   text carried on `data-label`. One set of markup, no JS, no resize
+   listeners, and nothing hidden from the reader.
+   ========================================================================== */
+
+@media (max-width: 760px) {
+  table.tbl.responsive,
+  table.tbl.responsive tbody,
+  table.tbl.responsive td { display: block; width: 100%; }
+
+  /* width:100% plus horizontal margin overflows by the margin total, so the
+     row takes its width from the container instead. */
+  table.tbl.responsive tr { display: block; width: auto; }
+
+  table.tbl.responsive thead { display: none; }
+
+  table.tbl.responsive tr {
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    margin: 0 var(--s3) var(--s2);
+    padding: var(--s3);
+    background: var(--slab-hi);
+  }
+  table.tbl.responsive tbody tr:hover { background: var(--slab-hi); }
+
+  table.tbl.responsive td {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--s3);
+    text-align: right !important;
+    padding: 4px 0;
+    border-bottom: none;
+    white-space: normal;
+  }
+
+  table.tbl.responsive td::before {
+    content: attr(data-label);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+    flex: 0 0 auto;
+  }
+
+  /* The first cell is the row's identity: give it the full width, no label. */
+  table.tbl.responsive td:first-child {
+    text-align: left !important;
+    justify-content: flex-start;
+    padding-bottom: var(--s2);
+    margin-bottom: var(--s2);
+    border-bottom: 1px solid var(--line);
+    font-size: var(--t-base);
+  }
+  table.tbl.responsive td:first-child::before { content: none; }
+
+  /* Cells holding only a control should not be squeezed against a label. */
+  table.tbl.responsive td.action { justify-content: stretch; padding-top: var(--s3); }
+  table.tbl.responsive td.action::before { content: none; }
+  table.tbl.responsive td.action .btn { width: 100%; justify-content: center; }
+
+  /* Empty cells add noise on a phone. */
+  table.tbl.responsive td:empty { display: none; }
+}
+
+/* Columns worth dropping on a phone rather than stacking. */
+@media (max-width: 760px) {
+  .hide-sm { display: none !important; }
+  /* "Los Angeles Chargers" is what makes the standings table too wide; the
+     club name alone is unambiguous inside a division table. */
+  .team-location-sm { display: none; }
+}
+
+/* ---------- Game header on a phone ---------- */
+/* Three columns of team name, score and kickoff cannot share 390px without
+   truncating the club name to "Cincinna…". Below 640px the header stacks:
+   each side gets a full-width row, and the score sits inline with it. */
+
+@media (max-width: 640px) {
+  .gh-grid { display: grid; grid-template-columns: 1fr; gap: var(--s3); }
+  .gh-side { text-align: left !important; }
+  .gh-side .gh-row { justify-content: space-between !important; }
+  .gh-side h1 { font-size: var(--t-lg); }
+  .gh-score { font-size: var(--t-2xl) !important; text-align: right !important; margin-top: 0 !important; }
+  .gh-middle {
+    order: 3;
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding-top: var(--s3);
+    border-top: 1px solid var(--line);
+  }
+  .gh-middle .eyebrow { margin: 0; }
+}
+
+/* Panel heads with a long meta line must wrap, not push the panel wide. */
+.panel-head > * { min-width: 0; }
+.panel-head .eyebrow { overflow-wrap: anywhere; }
+
+@media (max-width: 760px) {
+  /* A value and its unit are one item. Without this they become separate
+     flex children and drift to opposite ends of the row. */
+  table.tbl.responsive td > * { flex: 0 0 auto; }
+}

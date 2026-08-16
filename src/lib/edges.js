@@ -23,6 +23,7 @@ export function computeEdges(game, market, projection, s) {
   for (const book of market.books) {
     // ---- Spread ----
     for (const side of ['home', 'away']) {
+      if (book.spread?.[side]?.line == null || book.spread[side].price == null) continue
       const line = book.spread[side].line
       const price = book.spread[side].price
       const margin = side === 'home' ? projection.margin : -projection.margin
@@ -39,6 +40,9 @@ export function computeEdges(game, market, projection, s) {
     }
 
     // ---- Total ----
+    if (book.total?.line == null || book.total.over == null || book.total.under == null) {
+      // fall through to the other markets rather than pricing a missing line
+    } else {
     const over = overProbability(projection.total, book.total.line, s.totalSigma)
     const under = { win: 1 - over.win - over.push, lose: over.win, push: over.push }
     const { probs: tProbs } = devig([book.total.over, book.total.under], s.devigMethod)
@@ -52,6 +56,7 @@ export function computeEdges(game, market, projection, s) {
       label: `Under ${book.total.line}`, model: under, marketProb: tProbs[1],
       edgePoints: book.total.line - projection.total, s
     }))
+    }
 
     // ---- Team totals ----
     if (book.teamTotal) {
@@ -80,6 +85,10 @@ export function computeEdges(game, market, projection, s) {
     }
 
     // ---- Moneyline ----
+    // Live feeds omit markets a book has not posted. Devigging a missing
+    // price yields NaN, which downstream reads as a wildly attractive play,
+    // so an incomplete market is skipped outright.
+    if (book.moneyline?.home == null || book.moneyline?.away == null) continue
     const { probs: mProbs } = devig([book.moneyline.home, book.moneyline.away], s.devigMethod)
     for (const side of ['home', 'away']) {
       const p = side === 'home' ? projection.homeWinProb : projection.awayWinProb

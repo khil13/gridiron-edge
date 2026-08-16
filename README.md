@@ -90,9 +90,12 @@ Copy `.env.example` to `.env`:
 ```bash
 # VITE_DATA_SOURCE=mock        # live is the default; set this to force bundled data
 VITE_ENABLE_ESPN=true          # ESPN's public scoreboard, no key needed
-VITE_ODDS_API_KEY=your_key     # the-odds-api.com, free tier is plenty
 VITE_ODDS_BOOKS=draftkings,fanduel,betmgm,pinnacle
 ```
+
+**Live odds** are connected in the app, not in the build: open **Model lab** and paste a free key from [the-odds-api.com](https://the-odds-api.com). The key is stored in your browser only. This is deliberate — the app deploys as a static site, so a key baked in at build time would be readable by anyone who visits. Remaining API quota is shown next to the field so the free tier does not run out invisibly.
+
+Odds API events are matched to the slate on the two teams plus a kickoff within 36 hours, since its event IDs will never line up with ESPN's. Any game that cannot be matched keeps simulated prices and is reported in a banner. Books that have not posted a given market are dropped from that market rather than filled in with a placeholder.
 
 Live scores are on by default and need no configuration. The app polls ESPN every 45 seconds while a game is in progress and stops polling when nothing is live. Two ESPN hosts are tried in turn, because `site.api.espn.com` began refusing some callers in August 2026 and `site.web.api.espn.com` serves the same payload.
 
@@ -162,6 +165,7 @@ src/
 │   └── useDataset.js       loads once, re-derives on settings change
 │   ├── card.js             card-of-the-day selection, tiers, passes
 │   ├── grading.js          settling locked cards, record, significance
+│   ├── boxscore.js         grouping and parsing ESPN's flat stat dump
 ├── components/             shell, ticker, game card, Edge Rail, charts, slip
 ├── views/                  scores, card, game, odds board, standings, teams, model lab
 └── styles/                 design tokens and one global sheet

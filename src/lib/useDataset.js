@@ -13,7 +13,7 @@ import { computeEdges, consensusPlays } from './edges.js'
 import { useStore } from './store.jsx'
 import ratingsFile from '../data/generated/ratings.json'
 
-export function useSlate() {
+export function useSlate(oddsKey) {
   const [state, setState] = useState({ loading: true, games: [], warnings: [], source: 'bundled', label: '' })
 
   useEffect(() => {
@@ -22,7 +22,7 @@ export function useSlate() {
     let timer = null
 
     const pull = () => {
-      loadSlate({ signal: controller.signal })
+      loadSlate({ signal: controller.signal, oddsKey })
         .then((slate) => {
           if (!alive) return
           setState({ loading: false, ...slate })
@@ -49,14 +49,14 @@ export function useSlate() {
       controller.abort()
       if (timer) clearTimeout(timer)
     }
-  }, [])
+  }, [oddsKey])
 
   return state
 }
 
 export function useDataset() {
-  const slate = useSlate()
-  const { settings } = useStore()
+  const { settings, oddsKey } = useStore()
+  const slate = useSlate(oddsKey)
 
   return useMemo(() => {
     const ratings = ratingsFile.ratings
@@ -117,6 +117,7 @@ export function useDataset() {
       rankings: powerRankings(ratings),
       board,
       simulatedPrices: !slate.markets,
+      oddsMeta: slate.oddsMeta ?? null,
       dataMode
     }
   }, [slate, settings])

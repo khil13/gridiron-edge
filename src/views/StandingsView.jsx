@@ -58,7 +58,12 @@ function Table({ rows, title }) {
       <div className="tbl-scroll">
         <table className="tbl">
           <thead>
-            <tr><th>Team</th><th>W</th><th>L</th><th>PCT</th><th>Seed</th><th>Rating</th><th>vs Avg</th></tr>
+            <tr>
+              <th>Team</th><th>W</th><th>L</th>
+              <th className="hide-sm">PCT</th>
+              <th className="hide-sm">Seed</th>
+              <th>Rating</th><th>vs Avg</th>
+            </tr>
           </thead>
           <tbody>
             {rows.map((r) => (
@@ -66,14 +71,16 @@ function Table({ rows, title }) {
                 <td>
                   <a className="row gap-3" href={href(`team/${r.abbr}`)}>
                     <TeamMark abbr={r.abbr} size={20} />
-                    <span className="team-name truncate">{r.team.location} {r.team.name}</span>
+                    <span className="team-name truncate">
+                      <span className="team-location-sm">{r.team.location} </span>{r.team.name}
+                    </span>
                     {r.result?.startsWith('Won') && <Badge tone="chalk">Champs</Badge>}
                   </a>
                 </td>
                 <td className="num">{r.w}</td>
                 <td className="num">{r.l}</td>
-                <td className="num dim">{(r.w / (r.w + r.l)).toFixed(3).slice(1)}</td>
-                <td className="num dim">{r.seed ?? '—'}</td>
+                <td className="num dim hide-sm">{(r.w / (r.w + r.l)).toFixed(3).slice(1)}</td>
+                <td className="num dim hide-sm">{r.seed ?? '—'}</td>
                 <td className="num">{r.rating ? Math.round(r.rating.elo) : '—'}</td>
                 <td className={`num ${r.rating?.pointsVsAverage > 0 ? 'pos' : 'neg'}`}>
                   {r.rating ? fmtSigned(r.rating.pointsVsAverage) : '—'}

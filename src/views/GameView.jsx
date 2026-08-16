@@ -8,6 +8,7 @@ import { getTeam } from '../data/teams.js'
 import { recordOf } from '../data/season2025.js'
 import { useStore } from '../lib/store.jsx'
 import { useGameSummary } from '../lib/useDataset.js'
+import { groupTeamStats } from '../lib/boxscore.js'
 import { toSlipLeg } from '../lib/edges.js'
 import { winProbabilityPath } from '../lib/model.js'
 import {
@@ -50,9 +51,9 @@ export default function GameView({ game, data }) {
           {game.venue && <span className="eyebrow truncate">{game.venue}</span>}
         </div>
 
-        <div className="row spread-between gap-4">
+        <div className="row spread-between gap-4 gh-grid">
           <Side team={away} score={game.awayScore} show={isFinal} align="left" />
-          <div style={{ textAlign: 'center', flex: '0 0 auto' }}>
+          <div className="gh-middle" style={{ textAlign: 'center', flex: '0 0 auto' }}>
             <div className="eyebrow">{isFinal ? 'Final' : 'Kickoff'}</div>
             <div className="mono" style={{ fontSize: 'var(--t-lg)', marginTop: 4 }}>
               {isFinal ? `${game.awayScore}–${game.homeScore}` : fmtTime(game.kickoff)}
@@ -112,10 +113,10 @@ function Side({ team, score, show, align }) {
   return (
     <a
       href={href(`team/${team.abbr}`)}
-      className="grow"
+      className="grow gh-side"
       style={{ textAlign: align, minWidth: 0, display: 'block' }}
     >
-      <div className="row gap-3" style={{ justifyContent: align === 'right' ? 'flex-end' : 'flex-start' }}>
+      <div className="row gap-3 gh-row" style={{ justifyContent: align === 'right' ? 'flex-end' : 'flex-start' }}>
         {align === 'left' && <TeamMark abbr={team.abbr} size={40} />}
         <div style={{ minWidth: 0 }}>
           <div className="eyebrow truncate">{team.location}</div>
@@ -125,7 +126,7 @@ function Side({ team, score, show, align }) {
         {align === 'right' && <TeamMark abbr={team.abbr} size={40} />}
       </div>
       {show && (
-        <div className="team-score" style={{ fontSize: 'var(--t-score)', textAlign: align, marginTop: 4 }}>
+        <div className="team-score gh-score" style={{ fontSize: 'var(--t-score)', textAlign: align, marginTop: 4 }}>
           {score}
         </div>
       )}
@@ -277,7 +278,7 @@ function OddsTab({ game }) {
           {game.market.simulated && <Badge tone="quiet">Simulated prices</Badge>}
         </div>
         <div className="tbl-scroll">
-          <table className="tbl">
+          <table className="tbl responsive">
             <thead>
               <tr>
                 <th>Book</th>
@@ -298,22 +299,22 @@ function OddsTab({ game }) {
                       {b.sharp && <Badge tone="chalk">Sharp</Badge>}
                     </span>
                   </td>
-                  <td className="num">
+                  <td className="num" data-label={`${game.away} spread`}>
                     <Cell best={b.spread.away.line === bestSpreadAway}>
                       {fmtSpread(b.spread.away.line)} <span className="dim">{fmtOdds(b.spread.away.price)}</span>
                     </Cell>
                   </td>
-                  <td className="num">
+                  <td className="num" data-label={`${game.home} spread`}>
                     <Cell best={b.spread.home.line === bestSpreadHome}>
                       {fmtSpread(b.spread.home.line)} <span className="dim">{fmtOdds(b.spread.home.price)}</span>
                     </Cell>
                   </td>
-                  <td className="num">
-                    {b.total.line} <span className="dim">o{fmtOdds(b.total.over)}/u{fmtOdds(b.total.under)}</span>
+                  <td className="num" data-label="Total">
+                    <span>{b.total.line} <span className="dim">o{fmtOdds(b.total.over)}/u{fmtOdds(b.total.under)}</span></span>
                   </td>
-                  <td className="num"><Cell best={b.moneyline.away === bestMlAway}>{fmtOdds(b.moneyline.away)}</Cell></td>
-                  <td className="num"><Cell best={b.moneyline.home === bestMlHome}>{fmtOdds(b.moneyline.home)}</Cell></td>
-                  <td className="num dim">{holdOf(b)}</td>
+                  <td className="num" data-label={`${game.away} ML`}><Cell best={b.moneyline.away === bestMlAway}>{fmtOdds(b.moneyline.away)}</Cell></td>
+                  <td className="num" data-label={`${game.home} ML`}><Cell best={b.moneyline.home === bestMlHome}>{fmtOdds(b.moneyline.home)}</Cell></td>
+                  <td className="num dim" data-label="Hold">{holdOf(b)}</td>
                 </tr>
               ))}
             </tbody>
@@ -329,7 +330,7 @@ function OddsTab({ game }) {
           </div>
         </div>
         <div className="tbl-scroll">
-          <table className="tbl">
+          <table className="tbl responsive">
             <thead>
               <tr>
                 <th>Play</th><th>Price</th><th>Book</th><th>Model</th><th>No-vig</th><th>EV</th><th>¼ Kelly</th><th />
@@ -344,13 +345,13 @@ function OddsTab({ game }) {
                       {p.qualified && <Badge tone="edge">Play</Badge>}
                     </span>
                   </td>
-                  <td className="num market">{fmtOdds(p.price)}</td>
-                  <td className="dim">{p.book}</td>
-                  <td className="num">{fmtPct(p.modelProb)}</td>
-                  <td className="num dim">{fmtPct(p.marketProb)}</td>
-                  <td className={`num ${p.ev > 0 ? 'pos' : 'neg'}`}>{p.ev > 0 ? '+' : ''}{(p.ev * 100).toFixed(1)}%</td>
-                  <td className="num dim">{p.ev > 0 ? fmtMoney(p.stake) : '—'}</td>
-                  <td>
+                  <td className="num market" data-label="Price">{fmtOdds(p.price)}</td>
+                  <td className="dim" data-label="Book">{p.book}</td>
+                  <td className="num" data-label="Model">{fmtPct(p.modelProb)}</td>
+                  <td className="num dim" data-label="No-vig">{fmtPct(p.marketProb)}</td>
+                  <td className={`num ${p.ev > 0 ? 'pos' : 'neg'}`} data-label="EV">{p.ev > 0 ? '+' : ''}{(p.ev * 100).toFixed(1)}%</td>
+                  <td className="num dim" data-label="¼ Kelly">{p.ev > 0 ? fmtMoney(p.stake) : '—'}</td>
+                  <td className="action">
                     <button className="btn" onClick={() => dispatch({ type: 'addLeg', leg: toSlipLeg(p) })}>
                       Add
                     </button>
@@ -405,13 +406,13 @@ function ModelTab({ game, data }) {
       </div>
       <div className="tbl-scroll">
         <table className="tbl">
-          <thead><tr><th>Input</th><th>Value</th><th style={{ textAlign: 'left' }}>Notes</th></tr></thead>
+          <thead><tr><th>Input</th><th>Value</th><th style={{ textAlign: 'left' }} className="hide-sm">Notes</th></tr></thead>
           <tbody>
             {rows.map(([label, value, note]) => (
               <tr key={label}>
                 <td>{label}</td>
                 <td className="num">{value}</td>
-                <td className="dim" style={{ textAlign: 'left', whiteSpace: 'normal' }}>{note}</td>
+                <td className="dim hide-sm" style={{ textAlign: 'left', whiteSpace: 'normal' }}>{note}</td>
               </tr>
             ))}
           </tbody>
@@ -459,6 +460,19 @@ function StatsTab({ game, data }) {
 
   const { situation, linescores, teamStats, lastPlay, leaders } = summary
 
+  // The feed lists boxscore teams in its own order; the rest of this app
+  // always reads away-then-home, so flip when they disagree.
+  const oriented = useMemo(() => {
+    if (!teamStats) return null
+    if (teamStats.teams[0] === game.away) return teamStats
+    return {
+      teams: [teamStats.teams[1], teamStats.teams[0]],
+      rows: teamStats.rows.map((r) => ({ ...r, values: [r.values[1], r.values[0]] }))
+    }
+  }, [teamStats, game.away])
+
+  const statGroups = useMemo(() => groupTeamStats(oriented), [oriented])
+
   return (
     <div style={{ display: 'grid', gap: 'var(--s4)' }}>
       {game.status === 'live' && situation && (
@@ -496,7 +510,7 @@ function StatsTab({ game, data }) {
         <section className="panel">
           <div className="panel-head"><h2 style={{ fontSize: 'var(--t-base)' }}>Scoring by quarter</h2></div>
           <div className="tbl-scroll">
-            <table className="tbl">
+            <table className="tbl linescore">
               <thead>
                 <tr>
                   <th style={{ textAlign: 'left' }}>Team</th>
@@ -525,30 +539,51 @@ function StatsTab({ game, data }) {
         </section>
       )}
 
-      {teamStats && (
+      {statGroups.length > 0 && (
         <section className="panel">
-          <div className="panel-head">
-            <h2 style={{ fontSize: 'var(--t-base)' }}>Team stats</h2>
-            <span className="eyebrow">Live from ESPN</span>
+          <div className="cmp-teams">
+            <span className="row gap-2">
+              <TeamMark abbr={away.abbr} size={20} />
+              <span className="team-name">{away.abbr}</span>
+            </span>
+            <span className="eyebrow">Team stats</span>
+            <span className="row gap-2" style={{ justifyContent: 'flex-end' }}>
+              <span className="team-name">{home.abbr}</span>
+              <TeamMark abbr={home.abbr} size={20} />
+            </span>
           </div>
-          <div className="tbl-scroll">
-            <table className="tbl">
-              <thead>
-                <tr>
-                  <th style={{ textAlign: 'left' }}>Stat</th>
-                  {teamStats.teams.map((t) => <th key={t}>{t}</th>)}
-                </tr>
-              </thead>
-              <tbody>
-                {teamStats.rows.map((r) => (
-                  <tr key={r.name}>
-                    <td style={{ textAlign: 'left' }}>{r.label}</td>
-                    {r.values.map((v, i) => <td className="num" key={i}>{v}</td>)}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+
+          {statGroups.map((group) => (
+            <div className="cmp-group" key={group.title}>
+              <div className="cmp-head">
+                <span className="eyebrow">{group.title}</span>
+              </div>
+              {group.rows.map((row) => (
+                <div className="cmp-row" key={row.name}>
+                  <div className="cmp-line">
+                    <span className={`cmp-val away${row.leader === 0 ? ' lead' : ''}`}>
+                      {row.values[0]}
+                    </span>
+                    <span className="cmp-label">
+                      {row.label}
+                      {row.lowerBetter && <span className="lower-hint"> ↓</span>}
+                    </span>
+                    <span className={`cmp-val home${row.leader === 1 ? ' lead' : ''}`}>
+                      {row.values[1]}
+                    </span>
+                  </div>
+                  {row.share ? (
+                    <div className={`cmp-bar${row.lowerBetter ? ' inverse' : ''}`}>
+                      <span style={{ width: `${row.share[0]}%`, background: readable(away.primary) }} />
+                      <span style={{ width: `${row.share[1]}%`, background: readable(home.primary) }} />
+                    </div>
+                  ) : (
+                    <div className="cmp-bar empty" />
+                  )}
+                </div>
+              ))}
+            </div>
+          ))}
         </section>
       )}
 
