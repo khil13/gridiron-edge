@@ -177,7 +177,9 @@ export function powerRankings(ratings) {
     .map(([abbr, r]) => ({
       abbr,
       ...r,
-      pointsVsAverage: (r.elo - ELO_BASE) / ELO_PER_POINT
+      // Rounded here so downstream comparisons and any raw display do not
+      // carry floating-point noise like 5.9360000000000035.
+      pointsVsAverage: Math.round(((r.elo - ELO_BASE) / ELO_PER_POINT) * 100) / 100
     }))
     .sort((a, b) => b.elo - a.elo)
     .map((r, i) => ({ ...r, rank: i + 1 }))

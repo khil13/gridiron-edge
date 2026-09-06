@@ -26,3 +26,8 @@ strip on Scores, both of which are deliberate swipe affordances.
   the `td`.
 - A value and its unit go in one wrapper element, or flex pushes them to
   opposite ends of the row.
+- Do not reorder elements in the DOM to achieve a mirrored desktop layout.
+  The game header rendered the logo before the name on one side and after it
+  on the other; once both sides stacked on a phone the two teams interleaved
+  and looked like one scrambled row. Keep DOM order constant and mirror with
+  `flex-direction: row-reverse` at the wider breakpoint instead.

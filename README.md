@@ -14,13 +14,19 @@ Built with React and Vite. Two runtime dependencies. No backend required.
 
 **Card of the day** — every game on the slate gets the model's read, but only some carry a stake. Games where the model beats the market are tiered in units; games where it agrees are shown as zero-unit **leans** with a reason attached. A lean means the model likes a side but there is no edge left after the vig, and betting those is how a card bleeds — so staked units, risk and expected return count qualifying plays only, and leans are never locked for grading. At most one play per game, chosen at the best price across all books and tiered by conviction in units. Every game that *doesn't* make the card is listed underneath with a specific reason, because a card with a play on every game isn't selective — it's a schedule. Preseason slates carry a visible low-confidence banner.
 
+**Touchdown props** — anytime scorers and quarterback passing touchdowns on any upcoming game. Loaded only when you ask for them, because props cost roughly 20 API credits per game and a whole slate would spend most of a free month's quota on games you never opened.
+
+The model chain: the game projection gives each team's points; points convert to expected touchdowns at about 0.105 each; a player's share of his team's touchdowns comes from real season data shrunk hard toward a positional prior while the sample is thin; touchdowns are Poisson, so the anytime probability is 1 − e^−λ.
+
+Removing the vig here is the part that matters. Anytime touchdown is not a two-way market — a book posts a list of "yes" prices whose implied probabilities sum far above the number of players who will actually score, with holds of 10–25% against 4.5% on a spread. Treating each price as a fair two-way market would manufacture an edge on nearly every player. Instead the posted field is split by team and each side normalised against its own expected number of distinct scorers. If a team's list is too short to be the complete field, the margin cannot be removed and **no EV is claimed for those players at all** — an edge computed against a price that still contains the vig is not an edge.
+
 **Results** — locked cards graded against final scores, with a running record in units, ROI, and a split by market. Leads with whether the sample is big enough to mean anything, because a betting record without a sample-size caveat is decoration.
 
 **Odds board** — one row per candidate play across the whole slate, ranked by expected value rather than kickoff time. Filter by market, restrict to reduced-juice books, set a minimum EV bar. Each row shows the model's probability, the book's no-vig probability, the edge in points, EV, and a fractional-Kelly stake.
 
 **Model lab** — every assumption is a slider: home field advantage, Elo-to-points conversion, margin standard deviation, rest, preseason shrink, devig method, Kelly fraction, bankroll. Move one and the entire app re-prices instantly.
 
-**Standings & teams** — 2025 final tables with playoff seeds, plus 2026 opening power ratings for all 32 clubs.
+**Teams** — two views of the same 32 clubs answering different questions. *Standings* is how last season finished: record, seed, how far they went. *Power* is how good the model thinks each team is now, ranked across the whole league, which is the number every projection is built from.
 
 **Bet slip** — straight or parlay, priced with model probabilities rather than book probabilities, so you can see exactly what stacking legs costs you. Stored in your browser only. Nothing is transmitted and no money moves.
 
@@ -118,6 +124,14 @@ Game projection is `(home rating − away rating) / 25 + home field + rest`, con
 
 Preseason projections are deliberately pulled toward a pick'em. Starters play a handful of snaps, and a model that reads a preseason roster like a real one will hand you edges that aren't there.
 
+### Keeping the ratings current
+
+Opening ratings are only a starting point. As the season is played, the app fetches every finished game and **replays** them onto the opening ratings in chronological order, applying the margin-aware Elo update.
+
+The rule is that ratings are always rebuilt from the opening values plus the full result set — never mutated in place. Incremental mutation looks cheaper and is a trap: a game applied twice, or out of order, silently corrupts the ratings with no way to notice or undo it. A full replay is deterministic and auditable, and a season is only a few hundred games.
+
+Preseason results are excluded, since they say almost nothing about a roster. Real points scored and allowed replace the synthetic figures once a team has eight games, blended in gradually before that. Teams shows how far each club has moved since opening, and says plainly whether it is showing current or opening ratings.
+
 ### Odds math (`src/lib/odds.js`)
 
 - American ↔ decimal ↔ implied probability
@@ -164,10 +178,12 @@ src/
 │   ├── store.jsx           settings + bet slip, persisted
 │   └── useDataset.js       loads once, re-derives on settings change
 │   ├── card.js             card-of-the-day selection, tiers, passes
+│   ├── ratings.js          replaying results onto the opening ratings
+│   ├── props.js            touchdown props: Poisson, field devig, priors
 │   ├── grading.js          settling locked cards, record, significance
 │   ├── boxscore.js         grouping and parsing ESPN's flat stat dump
 ├── components/             shell, ticker, game card, Edge Rail, charts, slip
-├── views/                  scores, card, game, odds board, standings, teams, model lab
+├── views/                  scores, card, game, odds board, teams, model lab
 └── styles/                 design tokens and one global sheet
 ```
 

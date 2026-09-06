@@ -730,21 +730,33 @@ table.tbl.linescore th:first-child, table.tbl.linescore td:first-child { padding
   .team-location-sm { display: none; }
 }
 
-/* ---------- Game header on a phone ---------- */
-/* Three columns of team name, score and kickoff cannot share 390px without
-   truncating the club name to "Cincinna…". Below 640px the header stacks:
-   each side gets a full-width row, and the score sits inline with it. */
+/* ---------- Game header ---------- */
+/* Logo, name, then score — the same order on both sides, so the two teams
+   never interleave. Desktop mirrors the home side back outward; a phone
+   keeps them stacked and identical. */
+
+.gh-row { flex-wrap: nowrap; }
+.gh-score {
+  margin-left: auto;
+  font-size: var(--t-score);
+  line-height: 1;
+}
+
+@media (min-width: 641px) {
+  .gh-side[data-align='right'] .gh-row { flex-direction: row-reverse; }
+  .gh-side[data-align='right'] .gh-name { text-align: right; }
+  .gh-side[data-align='right'] .gh-score { margin-left: 0; margin-right: auto; }
+}
 
 @media (max-width: 640px) {
-  .gh-grid { display: grid; grid-template-columns: 1fr; gap: var(--s3); }
-  .gh-side { text-align: left !important; }
-  .gh-side .gh-row { justify-content: space-between !important; }
+  .gh-grid { display: grid; grid-template-columns: 1fr; gap: var(--s2); }
   .gh-side h1 { font-size: var(--t-lg); }
-  .gh-score { font-size: var(--t-2xl) !important; text-align: right !important; margin-top: 0 !important; }
+  .gh-score { font-size: var(--t-2xl); }
   .gh-middle {
     order: 3;
     display: flex; align-items: baseline; justify-content: space-between;
     padding-top: var(--s3);
+    margin-top: var(--s2);
     border-top: 1px solid var(--line);
   }
   .gh-middle .eyebrow { margin: 0; }
@@ -758,4 +770,12 @@ table.tbl.linescore th:first-child, table.tbl.linescore td:first-child { padding
   /* A value and its unit are one item. Without this they become separate
      flex children and drift to opposite ends of the row. */
   table.tbl.responsive td > * { flex: 0 0 auto; }
+}
+
+/* ---------- Power ratings row ---------- */
+/* The bar is the least important element in the row, so it is what gives up
+   width on a phone — a truncated club name is worse than a shorter bar. */
+.pw-bar { flex: 0 0 120px; }
+@media (max-width: 480px) {
+  .pw-bar { flex: 0 0 64px; }
 }

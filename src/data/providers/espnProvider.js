@@ -215,3 +215,83 @@ function parseLeaders(json) {
   }
   return out.length ? out : null
 }
+
+/* ------------------------------------------------------------------ */
+/* Season results, for keeping the power ratings current.              */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Fetch every finished game in a season.
+ *
+ * The scoreboard endpoint returns one week at a time, so this walks the
+ * weeks. Regular season is seasontype 2 (18 weeks); the postseason is
+ * seasontype 3 (5 weeks, including the pointless Pro Bowl week which simply
+ * returns nothing useful and is harmless to request).
+ *
+ * Weeks are fetched in parallel but failures are tolerated individually: one
+ * bad week yields fewer games rather than no ratings at all.
+ */
+export async function fetchSeasonResults(year, { signal, throughWeek = 18 } = {}) {
+  const requests = []
+  for (let week = 1; week <= Math.min(throughWeek, 18); week++) {
+    requests.push(fetchWeek(year, 2, week, signal))
+  }
+  if (throughWeek > 18) {
+    for (let week = 1; week <= 5; week++) requests.push(fetchWeek(year, 3, week, signal))
+  }
+
+  const settled = await Promise.allSettled(requests)
+  const games = []
+  let failedWeeks = 0
+
+  for (const result of settled) {
+    if (result.status === 'fulfilled') games.push(...result.value)
+    else failedWeeks++
+  }
+
+  // De-duplicate: a game can appear in more than one week's payload around
+  // flexed scheduling.
+  const seen = new Set()
+  const unique = games.filter((g) => (seen.has(g.id) ? false : (seen.add(g.id), true)))
+
+  return { games: unique, failedWeeks, weeksRequested: requests.length }
+}
+
+async function fetchWeek(year, seasontype, week, signal) {
+  let lastError
+  for (const base of ENDPOINTS) {
+    try {
+      const url = `${base}?dates=${year}&seasontype=${seasontype}&week=${week}`
+      const res = await fetch(url, { signal })
+      if (!res.ok) throw new Error(`returned ${res.status}`)
+      const json = await res.json()
+      return (json.events || [])
+        .map((event) => {
+          const comp = event.competitions?.[0] || {}
+          const home = comp.competitors?.find((c) => c.homeAway === 'home')
+          const away = comp.competitors?.find((c) => c.homeAway === 'away')
+          if (event.status?.type?.state !== 'post') return null
+          const h = Number(home?.score)
+          const a = Number(away?.score)
+          if (!Number.isFinite(h) || !Number.isFinite(a)) return null
+          return {
+            id: event.id,
+            kickoff: event.date,
+            week,
+            seasontype,
+            preseason: seasontype === 1,
+            home: norm(home?.team?.abbreviation),
+            away: norm(away?.team?.abbreviation),
+            homeScore: h,
+            awayScore: a,
+            status: 'final'
+          }
+        })
+        .filter((g) => g && g.home && g.away)
+    } catch (err) {
+      if (signal?.aborted) throw err
+      lastError = err
+    }
+  }
+  throw lastError ?? new Error('week unavailable')
+}

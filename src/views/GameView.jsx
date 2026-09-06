@@ -9,6 +9,7 @@ import { recordOf } from '../data/season2025.js'
 import { useStore } from '../lib/store.jsx'
 import { useGameSummary } from '../lib/useDataset.js'
 import { groupTeamStats } from '../lib/boxscore.js'
+import PropsTab from './PropsTab.jsx'
 import { toSlipLeg } from '../lib/edges.js'
 import { winProbabilityPath } from '../lib/model.js'
 import {
@@ -44,11 +45,14 @@ export default function GameView({ game, data }) {
           background: `linear-gradient(100deg, ${tintOf(away.primary)}, transparent 42%, transparent 58%, ${tintOf(home.primary)})`
         }}
       >
-        <div className="row spread-between gap-3" style={{ marginBottom: 'var(--s4)' }}>
+        <div
+          className="row spread-between gap-3"
+          style={{ marginBottom: 'var(--s4)', flexWrap: 'wrap' }}
+        >
           <span className="eyebrow">
             {game.title || (game.preseason ? 'Preseason' : 'Regular season')} · {fmtDay(game.kickoff)}
           </span>
-          {game.venue && <span className="eyebrow truncate">{game.venue}</span>}
+          {game.venue && <span className="eyebrow">{game.venue}</span>}
         </div>
 
         <div className="row spread-between gap-4 gh-grid">
@@ -86,6 +90,7 @@ export default function GameView({ game, data }) {
           { value: 'overview', label: 'Overview' },
           ...(isLive || isFinal ? [{ value: 'stats', label: 'Stats' }] : []),
           { value: 'odds', label: 'Odds', count: game.market?.books?.length },
+          ...(isFinal ? [] : [{ value: 'props', label: 'Props' }]),
           { value: 'model', label: 'Model' }
         ]}
       />
@@ -93,6 +98,7 @@ export default function GameView({ game, data }) {
       <div style={{ marginTop: 'var(--s4)' }}>
         {tab === 'overview' && <Overview game={game} path={path} data={data} />}
         {tab === 'stats' && <StatsTab game={game} data={data} />}
+        {tab === 'props' && <PropsTab game={game} data={data} />}
         {tab === 'odds' && <OddsTab game={game} />}
         {tab === 'model' && <ModelTab game={game} data={data} />}
       </div>
@@ -114,22 +120,23 @@ function Side({ team, score, show, align }) {
     <a
       href={href(`team/${team.abbr}`)}
       className="grow gh-side"
-      style={{ textAlign: align, minWidth: 0, display: 'block' }}
+      data-align={align}
+      style={{ minWidth: 0, display: 'block' }}
     >
-      <div className="row gap-3 gh-row" style={{ justifyContent: align === 'right' ? 'flex-end' : 'flex-start' }}>
-        {align === 'left' && <TeamMark abbr={team.abbr} size={40} />}
-        <div style={{ minWidth: 0 }}>
+      {/* Logo always comes first in the DOM. Mirroring it for the home side
+          looked right in two desktop columns, but once both sides stack
+          full-width on a phone the two teams interleave: one logo on the
+          left with its name on the right, the next reversed. Desktop gets
+          the mirror back with row-reverse instead. */}
+      <div className="row gap-3 gh-row">
+        <TeamMark abbr={team.abbr} size={40} />
+        <div className="gh-name" style={{ minWidth: 0 }}>
           <div className="eyebrow truncate">{team.location}</div>
           <h1 style={{ fontSize: 'var(--t-xl)' }} className="truncate">{team.name}</h1>
           {rec && <div className="mono dim" style={{ fontSize: 11 }}>{rec.w}-{rec.l} in 2025</div>}
         </div>
-        {align === 'right' && <TeamMark abbr={team.abbr} size={40} />}
+        {show && <div className="team-score gh-score">{score}</div>}
       </div>
-      {show && (
-        <div className="team-score gh-score" style={{ fontSize: 'var(--t-score)', textAlign: align, marginTop: 4 }}>
-          {score}
-        </div>
-      )}
     </a>
   )
 }

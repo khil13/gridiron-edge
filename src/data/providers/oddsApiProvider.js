@@ -160,3 +160,106 @@ const median = (xs) => {
   const m = Math.floor(s.length / 2)
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2
 }
+
+/* ------------------------------------------------------------------ */
+/* Player props — fetched per game, deliberately.                      */
+/* ------------------------------------------------------------------ */
+
+const EVENTS_BASE = 'https://api.the-odds-api.com/v4/sports/americanfootball_nfl/events'
+
+/**
+ * Props markets cost roughly ten API credits each, per game, per region.
+ * Two markets across a sixteen-game slate is over three hundred credits —
+ * most of a free month's quota in one page load. So props are never fetched
+ * for the whole slate, only for a game the user has actually opened.
+ */
+export const PROPS_MARKETS = ['player_anytime_td', 'player_pass_tds']
+export const PROPS_CREDIT_COST = PROPS_MARKETS.length * 10
+
+/** Find the Odds API event id for one of our games. */
+export async function findEventId({ apiKey, game, signal }) {
+  const res = await fetch(`${EVENTS_BASE}?apiKey=${encodeURIComponent(apiKey)}`, { signal })
+  if (!res.ok) throw new Error(`Could not list events (${res.status})`)
+  const events = await res.json()
+
+  const home = toAbbr(game.home)
+  const away = toAbbr(game.away)
+  const target = new Date(game.kickoff).getTime()
+
+  const match = (events || [])
+    .filter((e) => toAbbr(e.home_team) === game.home && toAbbr(e.away_team) === game.away)
+    .map((e) => ({ e, gap: Math.abs(new Date(e.commence_time).getTime() - target) }))
+    .filter((c) => c.gap < 36 * 3600 * 1000)
+    .sort((a, b) => a.gap - b.gap)[0]
+
+  return match?.e?.id ?? null
+}
+
+/**
+ * Anytime touchdown and quarterback passing touchdown prices for one game.
+ *
+ * Outcomes carry the player in `description` and the side in `name`, which
+ * is the opposite of what the game-line markets do.
+ */
+export async function fetchGameProps({ apiKey, game, eventId, books, signal }) {
+  if (!apiKey) return null
+
+  const id = eventId || (await findEventId({ apiKey, game, signal }))
+  if (!id) return { anytime: [], passing: [], eventId: null, unmatched: true }
+
+  const params = new URLSearchParams({
+    apiKey,
+    regions: 'us',
+    markets: PROPS_MARKETS.join(','),
+    oddsFormat: 'american'
+  })
+  if (books) params.set('bookmakers', books)
+
+  const res = await fetch(`${EVENTS_BASE}/${id}/odds?${params}`, { signal })
+  if (!res.ok) {
+    throw new Error(
+      res.status === 422
+        ? 'This book or market is not available for that game.'
+        : res.status === 401
+          ? 'The Odds API rejected that key.'
+          : res.status === 429
+            ? 'The Odds API quota is used up.'
+            : `The Odds API returned ${res.status}.`
+    )
+  }
+
+  const quota = {
+    remaining: numeric(res.headers.get('x-requests-remaining')),
+    lastCost: numeric(res.headers.get('x-requests-last'))
+  }
+  const json = await res.json()
+
+  const anytime = []
+  const passing = []
+
+  for (const bm of json.bookmakers ?? []) {
+    for (const market of bm.markets ?? []) {
+      for (const o of market.outcomes ?? []) {
+        const player = o.description || o.participant || null
+        if (!player) continue
+
+        if (market.key === 'player_anytime_td') {
+          // Some books post a No side; only the Yes price is useful here.
+          if (o.name && !/^yes$/i.test(o.name)) continue
+          anytime.push({ book: bm.title, bookKey: bm.key, player, price: o.price })
+        } else if (market.key === 'player_pass_tds') {
+          passing.push({
+            book: bm.title,
+            bookKey: bm.key,
+            player,
+            side: /^over$/i.test(o.name) ? 'over' : 'under',
+            line: o.point,
+            price: o.price
+          })
+        }
+      }
+    }
+  }
+
+  return { eventId: id, anytime, passing, quota, unmatched: false }
+}

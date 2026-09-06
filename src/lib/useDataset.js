@@ -6,7 +6,9 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { loadSlate, dataMode, REFRESH_MS } from '../data/provider.js'
-import { fetchGameSummary } from '../data/providers/espnProvider.js'
+import { fetchGameSummary, fetchSeasonResults } from '../data/providers/espnProvider.js'
+import { applyResults } from './ratings.js'
+import { load, save } from './storage.js'
 import { buildMarkets } from '../data/markets.js'
 import { projectGame, powerRankings } from './model.js'
 import { computeEdges, consensusPlays } from './edges.js'
@@ -57,9 +59,13 @@ export function useSlate(oddsKey) {
 export function useDataset() {
   const { settings, oddsKey } = useStore()
   const slate = useSlate(oddsKey)
+  const season = new Date().getFullYear()
+  const current = useCurrentRatings(ratingsFile.ratings, settings, slate.source, season)
 
   return useMemo(() => {
-    const ratings = ratingsFile.ratings
+    // Ratings with the season replayed onto them when results are available,
+    // opening ratings otherwise.
+    const ratings = current.ratings || ratingsFile.ratings
 
     // Preseason results say little about a roster's real strength, so the
     // model deliberately pulls its own projections toward a pick'em.
@@ -114,13 +120,20 @@ export function useDataset() {
       markets,
       ratings,
       ratingsMeta: ratingsFile,
+      ratingsState: {
+        live: current.live,
+        applied: current.applied,
+        loading: current.loading,
+        error: current.error,
+        asOf: current.asOf
+      },
       rankings: powerRankings(ratings),
       board,
       simulatedPrices: !slate.markets,
       oddsMeta: slate.oddsMeta ?? null,
       dataMode
     }
-  }, [slate, settings])
+  }, [slate, settings, current])
 }
 
 /**
@@ -167,6 +180,71 @@ export function useGameSummary(game, source) {
       if (timer) clearTimeout(timer)
     }
   }, [eligible, game?.id, game?.status])
+
+  return state
+}
+
+/**
+ * Current power ratings: opening ratings with the season replayed onto them.
+ *
+ * Fetching every week of a season on each page load would be wasteful, so
+ * results are cached. The cache key includes the count of finished games, so
+ * it invalidates itself the moment a new result lands rather than relying on
+ * a timer that is either too eager or too slow.
+ */
+export function useCurrentRatings(opening, settings, source, season) {
+  const [state, setState] = useState({
+    loading: false, ratings: opening, applied: 0, error: null, live: false
+  })
+
+  useEffect(() => {
+    if (source !== 'espn') {
+      setState({ loading: false, ratings: opening, applied: 0, error: null, live: false })
+      return
+    }
+
+    const controller = new AbortController()
+    let alive = true
+
+    const cached = load(`results:${season}`, null)
+    if (cached?.games?.length) {
+      const replayed = applyResults(opening, cached.games, settings)
+      setState({
+        loading: true, ratings: replayed.ratings, applied: replayed.applied,
+        error: null, live: true, asOf: cached.fetchedAt
+      })
+    } else {
+      setState((s) => ({ ...s, loading: true }))
+    }
+
+    fetchSeasonResults(season, { signal: controller.signal, throughWeek: 22 })
+      .then(({ games, failedWeeks }) => {
+        if (!alive) return
+        save(`results:${season}`, { games, fetchedAt: new Date().toISOString() })
+        const replayed = applyResults(opening, games, settings)
+        setState({
+          loading: false,
+          ratings: replayed.ratings,
+          applied: replayed.applied,
+          history: replayed.history,
+          error: failedWeeks ? `${failedWeeks} week(s) could not be loaded` : null,
+          live: true,
+          asOf: new Date().toISOString()
+        })
+      })
+      .catch((err) => {
+        if (!alive) return
+        // Falling back to opening ratings is correct but must be visible:
+        // silently projecting off stale ratings is worse than saying so.
+        setState((s) => ({
+          ...s,
+          loading: false,
+          error: `Could not load season results (${err.message}). Using opening ratings.`
+        }))
+      })
+
+    return () => { alive = false; controller.abort() }
+  }, [opening, settings, source, season])
 
   return state
 }

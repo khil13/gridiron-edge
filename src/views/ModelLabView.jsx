@@ -306,35 +306,7 @@ export default function ModelLabView({ data }) {
         )}
       </section>
 
-      <div style={{ display: 'grid', gap: 'var(--s4)', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))' }}>
-        <section className="panel">
-          <div className="panel-head">
-            <h2 style={{ fontSize: 'var(--t-base)' }}>Power ratings</h2>
-            <span className="eyebrow">2026 opening</span>
-          </div>
-          <div className="tbl-scroll" style={{ maxHeight: 520, overflowY: 'auto' }}>
-            <table className="tbl">
-              <thead><tr><th>#</th><th style={{ textAlign: 'left' }}>Team</th><th>Elo</th><th>vs Avg</th><th>2025</th></tr></thead>
-              <tbody>
-                {data.rankings.map((r) => (
-                  <tr key={r.abbr}>
-                    <td className="num dim">{r.rank}</td>
-                    <td style={{ textAlign: 'left' }}>
-                      <a className="row gap-2" href={href(`team/${r.abbr}`)}>
-                        <TeamMark abbr={r.abbr} size={18} />
-                        <span className="team-name">{r.abbr}</span>
-                      </a>
-                    </td>
-                    <td className="num">{Math.round(r.elo)}</td>
-                    <td className={`num ${r.pointsVsAverage > 0 ? 'pos' : 'neg'}`}>{fmtSigned(r.pointsVsAverage)}</td>
-                    <td className="num dim">{r.wins}-{r.losses}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
+      <div style={{ display: 'grid', gap: 'var(--s4)' }}>
         <section className="panel">
           <div className="panel-head">
             <h2 style={{ fontSize: 'var(--t-base)' }}>Projections vs market</h2>
@@ -383,7 +355,9 @@ export default function ModelLabView({ data }) {
           plus {data.ratingsMeta.method.playoffWinBonus} points per postseason win and{' '}
           {data.ratingsMeta.method.titleBonus} for the title. That figure is then regressed{' '}
           {Math.round(data.ratingsMeta.method.offseasonRegression * 100)}% toward 1500, because rosters turn
-          over and last season predicts less than it feels like it should.
+          over and last season predicts less than it feels like it should. The resulting
+          ratings are listed under{' '}
+          <a href={href('teams?view=power')} style={{ color: 'var(--gold)' }}>Teams &rarr; Power</a>.
         </p>
         <p className="dim" style={{ fontSize: 12, marginBottom: 0, marginTop: 'var(--s3)' }}>
           {data.ratingsMeta.note}
