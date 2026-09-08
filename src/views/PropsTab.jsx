@@ -23,8 +23,9 @@ import { fmtOdds, fmtPct, fmtMoney, fmtSigned } from '../lib/format.js'
  * than in a footnote.
  */
 export default function PropsTab({ game, data }) {
-  const { settings, oddsKey } = useStore()
+  const { settings, oddsKey, manualPrices, dispatch } = useStore()
   const [state, setState] = useState({ status: 'idle' })
+  const entered = manualPrices[game.id] || {}
 
   const proj = game.projection
 
@@ -43,8 +44,8 @@ export default function PropsTab({ game, data }) {
 
   const analysis = useMemo(() => {
     if (state.status !== 'ready' || !proj) return null
-    return analyse({ game, proj, settings, rosters: state.rosters, props: state.props })
-  }, [state, game, proj, settings])
+    return analyse({ game, proj, settings, rosters: state.rosters, props: state.props, entered })
+  }, [state, game, proj, settings, entered])
 
   if (!proj) {
     return <Empty title="No projection">This game has teams the rating file does not cover.</Empty>
@@ -89,7 +90,13 @@ export default function PropsTab({ game, data }) {
   return (
     <div style={{ display: 'grid', gap: 'var(--s4)' }}>
       <Caveats analysis={analysis} game={game} rosters={state.rosters} />
-      <Anytime analysis={analysis} game={game} />
+      <Anytime
+        analysis={analysis}
+        game={game}
+        entered={entered}
+        onPrice={(key, price) => dispatch({ type: 'setManualPrice', gameId: game.id, key, price })}
+        onClear={() => dispatch({ type: 'clearManualPrices', gameId: game.id })}
+      />
       <Passing analysis={analysis} game={game} />
     </div>
   )
@@ -97,7 +104,7 @@ export default function PropsTab({ game, data }) {
 
 /* ---------- the maths, in one place ---------- */
 
-function analyse({ game, proj, settings, rosters, props }) {
+function analyse({ game, proj, settings, rosters, props, entered = {} }) {
   const teamCtx = {
     [game.home]: { expectedTds: expectedTouchdowns(proj.homeTeamTotal), teamTds: null, games: 0 },
     [game.away]: { expectedTds: expectedTouchdowns(proj.awayTeamTotal), teamTds: null, games: 0 }
@@ -157,8 +164,42 @@ function analyse({ game, proj, settings, rosters, props }) {
     }
   }).sort((a, b) => (b.ev ?? -Infinity) - (a.ev ?? -Infinity))
 
-  // Players the model rates but no book priced, and vice versa.
-  const unpriced = projected.filter((p) => !bestByPlayer.has(normName(p.name)))
+  // Players the model rates but no feed priced. These are the rows you type
+  // a sportsbook's number into: the EV is then computed against the price
+  // you would actually be taking, which is the number that decides the bet.
+  const unpriced = projected
+    .filter((p) => !bestByPlayer.has(normName(p.name)))
+    .map((p) => {
+      const price = entered[normName(p.name)]
+      const numeric = Number(price)
+      const valid = price != null && price !== '' && Number.isFinite(numeric) &&
+        Math.abs(numeric) >= 100
+      if (!valid) return { ...p, manualPrice: null }
+
+      const ev = expectedValue(p.prob, numeric)
+      // A twenty-five percent edge on a touchdown prop is not an edge, it is
+      // the model being wrong about a player — usually a backup handed too
+      // much of the team's scoring. Flagged rather than celebrated.
+      const implausible = ev > 0.25
+
+      return {
+        ...p,
+        manualPrice: numeric,
+        ev,
+        implausible,
+        impliedProb: impliedProb(numeric),
+        stake: implausible
+          ? 0
+          : kelly(p.prob, numeric, 0, settings.kellyFraction) * settings.bankroll
+      }
+    })
+    .sort((a, b) => {
+      // Anything priced floats to the top, best edge first.
+      if (a.ev != null && b.ev != null) return b.ev - a.ev
+      if (a.ev != null) return -1
+      if (b.ev != null) return 1
+      return b.prob - a.prob
+    })
 
   // Quarterback passing touchdowns.
   const passing = []
@@ -257,42 +298,98 @@ function Caveats({ analysis, game, rosters }) {
   )
 }
 
-function Anytime({ analysis, game }) {
+function Anytime({ analysis, game, entered, onPrice, onClear }) {
   const { anytime, unpriced } = analysis
 
   if (!analysis.hasPrices) {
+    const priced = unpriced.filter((p) => p.manualPrice != null)
     return (
       <section className="panel">
         <div className="panel-head">
-          <h2 style={{ fontSize: 'var(--t-base)' }}>Anytime touchdown</h2>
-          <Badge tone="quiet">Model only</Badge>
+          <div>
+            <div className="eyebrow">Type in the price your book is showing</div>
+            <h2 style={{ fontSize: 'var(--t-base)', marginTop: 4 }}>Anytime touchdown</h2>
+          </div>
+          {priced.length > 0 && (
+            <button className="btn ghost" onClick={onClear}>Clear prices</button>
+          )}
         </div>
+
+        <div style={{ padding: 'var(--s3) var(--s4) 0' }}>
+          <p className="dim" style={{ fontSize: 12, marginTop: 0, maxWidth: '75ch' }}>
+            A probability on its own decides nothing. Enter what FanDuel is offering and the
+            EV below is computed against the price you would actually take — vig included,
+            because the vig is already in the number you are being offered.
+          </p>
+        </div>
+
         <div className="tbl-scroll">
           <table className="tbl responsive">
             <thead>
-              <tr><th>Player</th><th>Team</th><th>Share</th><th>Model</th></tr>
+              <tr>
+                <th>Player</th><th>Model</th><th>Your price</th>
+                <th>Implied</th><th>Edge</th><th>EV</th><th>Stake</th>
+              </tr>
             </thead>
             <tbody>
               {unpriced.map((p) => (
                 <tr key={p.id}>
                   <td>
-                    {p.name}{' '}
-                    <span className="dim">
-                      {p.role}{p.depthKnown === false ? '' : ''}
+                    <span className="row gap-2">
+                      <TeamMark abbr={p.team} size={16} />
+                      <span className="team-name">{p.name}</span>
+                      <span className="dim">{p.role}</span>
+                      {p.injury && !/active/i.test(p.injury) && (
+                        <Badge tone="live">{p.injury}</Badge>
+                      )}
                     </span>
                   </td>
-                  <td data-label="Team"><TeamMark abbr={p.team} size={16} /></td>
-                  <td className="num" data-label="Share">{fmtPct(p.share, 0)}</td>
                   <td className="num" data-label="Model">{fmtPct(p.prob, 1)}</td>
+                  <td data-label="Your price">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="+450"
+                      value={entered[normName(p.name)] ?? ''}
+                      onChange={(e) => onPrice(normName(p.name), e.target.value.trim())}
+                      style={{ width: 84, textAlign: 'right' }}
+                      aria-label={`Price for ${p.name}`}
+                    />
+                  </td>
+                  <td className="num dim" data-label="Implied">
+                    {p.impliedProb != null ? fmtPct(p.impliedProb, 1) : '—'}
+                  </td>
+                  <td
+                    className={`num ${p.impliedProb == null ? 'dim' : p.prob > p.impliedProb ? 'pos' : 'neg'}`}
+                    data-label="Edge"
+                  >
+                    {p.impliedProb != null
+                      ? `${p.prob > p.impliedProb ? '+' : ''}${((p.prob - p.impliedProb) * 100).toFixed(1)}%`
+                      : '—'}
+                  </td>
+                  <td
+                    className={`num ${p.ev == null ? 'dim' : p.implausible ? 'neg' : p.ev > 0 ? 'pos' : 'neg'}`}
+                    data-label="EV"
+                  >
+                    {p.ev == null
+                      ? '—'
+                      : `${p.ev > 0 ? '+' : ''}${(p.ev * 100).toFixed(1)}%`}
+                  </td>
+                  <td className="num dim" data-label="Stake">
+                    {p.implausible
+                      ? <span className="neg" title="Check the model, not the price">check</span>
+                      : p.ev != null && p.ev > 0 ? fmtMoney(p.stake) : '—'}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <p className="dim" style={{ fontSize: 11, padding: 'var(--s3) var(--s4)', margin: 0 }}>
+
+        <p className="dim" style={{ fontSize: 11, padding: 'var(--s3) var(--s4)', margin: 0, maxWidth: '80ch' }}>
           {analysis.depthKnown
-            ? 'No prices to compare against — connect an odds key in Model lab.'
-            : 'Every player at a position shows the same number because no games have been played, so there is no basis for a depth chart yet. Connect an odds key in Model lab to compare against real prices.'}
+            ? 'A positive EV here is only as good as the model behind it, and touchdown props are the weakest thing it does. Anytime markets hold 15-25%, so a genuine edge has to be large to survive.'
+            : 'Every player at a position shows the same number because no games have been played, so there is no basis for a depth chart yet. Do not bet these — they are a demonstration of the method, not a read on these players.'}
         </p>
       </section>
     )

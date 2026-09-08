@@ -15,7 +15,7 @@ import { load, save } from './storage.js'
 
 export const BACKUP_VERSION = 1
 
-const KEYS = ['settings', 'lockedCards', 'tickets', 'mode']
+const KEYS = ['settings', 'lockedCards', 'tickets', 'mode', 'manualPrices']
 
 export function buildBackup() {
   const data = {}
@@ -96,6 +96,7 @@ export function restoreBackup(parsed, { merge = true } = {}) {
   }
 
   if (incoming.mode) save('mode', incoming.mode)
+  if (incoming.manualPrices) save('manualPrices', incoming.manualPrices)
 
   return report
 }

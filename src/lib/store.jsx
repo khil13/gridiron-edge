@@ -18,6 +18,9 @@ const initial = () => ({
   // Stored separately from settings so it is never bundled into an export
   // or a shared card snapshot.
   oddsKey: load('oddsKey', ''),
+  // Prices typed in by hand from a sportsbook, keyed gameId -> player -> price.
+  // Kept so a page reload does not throw away a slate's worth of typing.
+  manualPrices: load('manualPrices', {}),
   slipOpen: false,
   mode: load('mode', 'straight') // 'straight' | 'parlay'
 })
@@ -45,6 +48,18 @@ function reducer(state, action) {
       return { ...state, slipOpen: action.open ?? !state.slipOpen }
     case 'setMode':
       return { ...state, mode: action.mode }
+    case 'setManualPrice': {
+      const { gameId, key, price } = action
+      const forGame = { ...(state.manualPrices[gameId] || {}) }
+      if (price == null || price === '') delete forGame[key]
+      else forGame[key] = price
+      return { ...state, manualPrices: { ...state.manualPrices, [gameId]: forGame } }
+    }
+    case 'clearManualPrices': {
+      const next = { ...state.manualPrices }
+      delete next[action.gameId]
+      return { ...state, manualPrices: next }
+    }
     case 'setOddsKey':
       return { ...state, oddsKey: action.key }
     case 'lockCard': {
@@ -72,6 +87,7 @@ export function StoreProvider({ children }) {
   useEffect(() => { save('tickets', state.tickets) }, [state.tickets])
   useEffect(() => { save('lockedCards', state.lockedCards) }, [state.lockedCards])
   useEffect(() => { save('oddsKey', state.oddsKey) }, [state.oddsKey])
+  useEffect(() => { save('manualPrices', state.manualPrices) }, [state.manualPrices])
   useEffect(() => { save('mode', state.mode) }, [state.mode])
 
   const value = useMemo(() => ({ ...state, dispatch }), [state])

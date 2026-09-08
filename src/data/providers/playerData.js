@@ -126,14 +126,16 @@ export const GROUP_SHARE = { RB: 0.33, WR: 0.38, TE: 0.13, QB: 0.06 }
 
 const baseOf = (position) => (position === 'FB' ? 'RB' : position)
 
-export function assignRoles(players) {
+export function assignRoles(players, depthRanks = null) {
   const byGroup = {}
   for (const p of players) (byGroup[baseOf(p.position)] ??= []).push(p)
 
   const out = []
   for (const [group, list] of Object.entries(byGroup)) {
-    // Something to rank on means at least one player in the group has scored.
-    const signal = list.some((p) => (p.tds ?? 0) > 0)
+    // A published depth chart beats inferring from touchdowns, and is the
+    // only thing available before any games have been played.
+    const charted = depthRanks && list.some((p) => depthRanks.has(String(p.id)))
+    const signal = charted || list.some((p) => (p.tds ?? 0) > 0)
 
     if (!signal) {
       // No basis for a depth chart. Split the group's share evenly rather
@@ -145,7 +147,14 @@ export function assignRoles(players) {
       continue
     }
 
-    const ranked = [...list].sort((a, b) => (b.tds ?? 0) - (a.tds ?? 0))
+    const ranked = charted
+      ? [...list].sort((a, b) => {
+          const ra = depthRanks.get(String(a.id)) ?? 99
+          const rb = depthRanks.get(String(b.id)) ?? 99
+          return ra - rb || (b.tds ?? 0) - (a.tds ?? 0)
+        })
+      : [...list].sort((a, b) => (b.tds ?? 0) - (a.tds ?? 0))
+
     ranked.forEach((p, i) => {
       const role =
         group === 'QB' ? 'QB'
@@ -153,7 +162,7 @@ export function assignRoles(players) {
           : i === 1 ? `${group}2`
           : i === 2 && group === 'WR' ? 'WR3'
           : group
-      out.push({ ...p, role, depthKnown: true, depth: i + 1 })
+      out.push({ ...p, role, depthKnown: true, depth: i + 1, depthSource: charted ? 'chart' : 'scoring' })
     })
   }
   return out
@@ -161,15 +170,87 @@ export function assignRoles(players) {
 
 /** Both rosters for a game, with roles assigned. */
 export async function fetchGameRosters(game, { signal } = {}) {
-  const [home, away] = await Promise.all([
+  // Depth charts are best-effort: a failure there degrades the ranking, it
+  // does not break the page.
+  const [home, away, homeDepth, awayDepth] = await Promise.all([
     fetchRoster(game.home, { signal }),
-    fetchRoster(game.away, { signal })
+    fetchRoster(game.away, { signal }),
+    fetchDepthChart(game.home, { signal }).catch(() => null),
+    fetchDepthChart(game.away, { signal }).catch(() => null)
   ])
-  const players = [...assignRoles(home.players), ...assignRoles(away.players)]
+  const players = [
+    ...assignRoles(home.players, homeDepth),
+    ...assignRoles(away.players, awayDepth)
+  ]
   return {
     players,
     hasTouchdownData: home.hasTouchdownData && away.hasTouchdownData,
     depthKnown: players.some((p) => p.depthKnown),
+    depthSource: players.find((p) => p.depthSource)?.depthSource ?? null,
     notes: [home.note, away.note].filter(Boolean)
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* Depth charts — so week one is not a guess.                          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Fetch a team's published depth chart.
+ *
+ * Ranking players by touchdowns works from about week four onward, but on
+ * opening weekend nobody has scored and the fallback was roster order, which
+ * is not a depth chart. This is the real thing.
+ *
+ * The payload is undocumented and its shape varies, so several plausible
+ * layouts are tried and anything unrecognised yields null rather than a
+ * confident wrong answer.
+ */
+export async function fetchDepthChart(teamAbbr, { signal } = {}) {
+  const slug = teamAbbr === 'LA' ? 'lar' : teamAbbr === 'WAS' ? 'wsh' : teamAbbr === 'JAC' ? 'jax' : teamAbbr.toLowerCase()
+
+  let json = null
+  for (const host of HOSTS) {
+    try {
+      const res = await fetch(`${host}/teams/${slug}/depthcharts`, { signal })
+      if (!res.ok) throw new Error(String(res.status))
+      json = await res.json()
+      break
+    } catch (err) {
+      if (signal?.aborted) throw err
+    }
+  }
+  if (!json) return null
+
+  // athleteId -> rank within its position, lower is closer to starting.
+  const ranks = new Map()
+
+  const readPositions = (positions) => {
+    if (!positions) return
+    for (const entry of Object.values(positions)) {
+      const athletes = entry?.athletes
+      if (!Array.isArray(athletes)) continue
+      athletes.forEach((a, i) => {
+        const id = String(a?.athlete?.id ?? a?.id ?? idFromRef(a?.athlete?.$ref) ?? '')
+        if (!id) return
+        const rank = Number(a?.rank ?? i + 1)
+        // A player can appear in more than one formation; keep the best.
+        const existing = ranks.get(id)
+        if (existing == null || rank < existing) ranks.set(id, rank)
+      })
+    }
+  }
+
+  for (const group of json.items ?? json.depthchart ?? []) {
+    readPositions(group?.positions)
+    for (const sub of group?.items ?? []) readPositions(sub?.positions)
+  }
+
+  return ranks.size ? ranks : null
+}
+
+const idFromRef = (ref) => {
+  if (!ref) return null
+  const m = String(ref).match(/athletes\/(\d+)/)
+  return m ? m[1] : null
 }
