@@ -195,7 +195,8 @@ function analyse({ game, proj, settings, rosters, props }) {
     devig: dv,
     teamCtx,
     hasPrices: entries.length > 0,
-    hasTouchdownData: rosters.hasTouchdownData
+    hasTouchdownData: rosters.hasTouchdownData,
+    depthKnown: rosters.depthKnown
   }
 }
 
@@ -244,11 +245,11 @@ function Caveats({ analysis, game, rosters }) {
           </li>
           <li>
             <strong style={{ color: 'var(--bone-dim)' }}>
-              {analysis.hasTouchdownData ? 'Touchdowns are rare.' : 'No touchdown data.'}
+              {analysis.depthKnown ? 'Touchdowns are rare.' : 'The depth chart is unknown.'}
             </strong>{' '}
-            {analysis.hasTouchdownData
+            {analysis.depthKnown
               ? 'A player with two scores in four games does not have a 50% share, so observed rates are pulled hard toward a positional average until the sample earns its weight.'
-              : 'The feed returned no per-player touchdown counts, so every share here is a positional average rather than anything specific to these players. Treat the numbers as a sketch.'}
+              : 'Nobody has scored yet this season, so there is nothing to rank a depth chart on. Every player at a position is therefore given the same share — the starter and the fourth-stringer alike. That is not a claim that they are equally likely, it is an admission that this cannot yet tell them apart. These numbers become meaningful once a few weeks have been played.'}
           </li>
         </ul>
       </div>
@@ -274,7 +275,12 @@ function Anytime({ analysis, game }) {
             <tbody>
               {unpriced.map((p) => (
                 <tr key={p.id}>
-                  <td>{p.name} <span className="dim">{p.role}</span></td>
+                  <td>
+                    {p.name}{' '}
+                    <span className="dim">
+                      {p.role}{p.depthKnown === false ? '' : ''}
+                    </span>
+                  </td>
                   <td data-label="Team"><TeamMark abbr={p.team} size={16} /></td>
                   <td className="num" data-label="Share">{fmtPct(p.share, 0)}</td>
                   <td className="num" data-label="Model">{fmtPct(p.prob, 1)}</td>
@@ -284,7 +290,9 @@ function Anytime({ analysis, game }) {
           </table>
         </div>
         <p className="dim" style={{ fontSize: 11, padding: 'var(--s3) var(--s4)', margin: 0 }}>
-          No prices to compare against — connect an odds key in Model lab.
+          {analysis.depthKnown
+            ? 'No prices to compare against — connect an odds key in Model lab.'
+            : 'Every player at a position shows the same number because no games have been played, so there is no basis for a depth chart yet. Connect an odds key in Model lab to compare against real prices.'}
         </p>
       </section>
     )

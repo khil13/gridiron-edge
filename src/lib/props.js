@@ -111,7 +111,11 @@ export function projectAnytimeTouchdowns(players, teamCtx) {
       const ctx = teamCtx[p.team]
       if (!ctx || !ctx.expectedTds) return null
 
-      const share = touchdownShare(p.tds ?? 0, ctx.teamTds, ctx.games, p.role)
+      // A flat share means the caller could not establish a depth chart, so
+      // there is nothing to blend an observed rate against.
+      const share = p.flatShare != null
+        ? p.flatShare
+        : touchdownShare(p.tds ?? 0, ctx.teamTds, ctx.games, p.role)
       const lambda = ctx.expectedTds * share
       return {
         ...p,

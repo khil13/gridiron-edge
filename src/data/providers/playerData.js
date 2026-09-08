@@ -101,28 +101,59 @@ function touchdownsFrom(athlete) {
   return found ? total : null
 }
 
-/** Depth-chart role from position and ordering within it. */
+/**
+ * Assign roles, and be honest when the depth chart is unknown.
+ *
+ * Two things went wrong in the first version, both visible on opening week:
+ *
+ *   1. Fullbacks were grouped separately from running backs and then
+ *      relabelled, so a team could show two different "RB1"s — one the
+ *      actual back, one a blocking fullback.
+ *
+ *   2. Before any games are played nobody has scored, so ranking by
+ *      touchdowns ranks nothing. The order that survived was ESPN's roster
+ *      order, which is not a depth chart, and a fourth-string back was
+ *      confidently labelled RB1 and handed a starter's share.
+ *
+ * So: positions are folded to a base group first, and depth is only claimed
+ * when there is something real to rank on. Without that, every player in a
+ * group shares the group's expected touchdowns evenly. Less pointed, but
+ * true — and the UI says so rather than implying a depth chart exists.
+ */
+
+/** Share of a team's touchdowns by position group, used when depth is unknown. */
+export const GROUP_SHARE = { RB: 0.33, WR: 0.38, TE: 0.13, QB: 0.06 }
+
+const baseOf = (position) => (position === 'FB' ? 'RB' : position)
+
 export function assignRoles(players) {
-  const byPosition = {}
-  for (const p of players) (byPosition[p.position] ??= []).push(p)
+  const byGroup = {}
+  for (const p of players) (byGroup[baseOf(p.position)] ??= []).push(p)
 
   const out = []
-  for (const [position, list] of Object.entries(byPosition)) {
-    // Ranked by touchdowns where known, else left in roster order, which
-    // ESPN roughly sorts by depth already.
-    const ranked = list.every((p) => p.tds == null)
-      ? list
-      : [...list].sort((a, b) => (b.tds ?? 0) - (a.tds ?? 0))
+  for (const [group, list] of Object.entries(byGroup)) {
+    // Something to rank on means at least one player in the group has scored.
+    const signal = list.some((p) => (p.tds ?? 0) > 0)
 
+    if (!signal) {
+      // No basis for a depth chart. Split the group's share evenly rather
+      // than inventing an order, and mark it so the UI can be plain about it.
+      const share = (GROUP_SHARE[group] ?? 0.05) / Math.max(1, list.length)
+      for (const p of list) {
+        out.push({ ...p, role: group, flatShare: share, depthKnown: false, depth: null })
+      }
+      continue
+    }
+
+    const ranked = [...list].sort((a, b) => (b.tds ?? 0) - (a.tds ?? 0))
     ranked.forEach((p, i) => {
-      const base = position === 'FB' ? 'RB' : position
       const role =
-        base === 'QB' ? 'QB'
-          : i === 0 ? `${base}1`
-          : i === 1 ? `${base}2`
-          : i === 2 && base === 'WR' ? 'WR3'
-          : base
-      out.push({ ...p, role, depth: i + 1 })
+        group === 'QB' ? 'QB'
+          : i === 0 ? `${group}1`
+          : i === 1 ? `${group}2`
+          : i === 2 && group === 'WR' ? 'WR3'
+          : group
+      out.push({ ...p, role, depthKnown: true, depth: i + 1 })
     })
   }
   return out
@@ -134,9 +165,11 @@ export async function fetchGameRosters(game, { signal } = {}) {
     fetchRoster(game.home, { signal }),
     fetchRoster(game.away, { signal })
   ])
+  const players = [...assignRoles(home.players), ...assignRoles(away.players)]
   return {
-    players: [...assignRoles(home.players), ...assignRoles(away.players)],
+    players,
     hasTouchdownData: home.hasTouchdownData && away.hasTouchdownData,
+    depthKnown: players.some((p) => p.depthKnown),
     notes: [home.note, away.note].filter(Boolean)
   }
 }
