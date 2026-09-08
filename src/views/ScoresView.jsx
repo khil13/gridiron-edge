@@ -62,11 +62,32 @@ export default function ScoresView({ data }) {
         />
       </header>
 
-      {data.warnings?.map((w) => (
-        <div key={w} className="panel" style={{ padding: 'var(--s3) var(--s4)', marginBottom: 'var(--s4)', borderColor: 'rgba(242,193,78,0.35)' }}>
-          <span className="mono" style={{ fontSize: 12, color: 'var(--gold)' }}>{w}</span>
-        </div>
-      ))}
+      {data.warnings?.map((w) => {
+        // A stale slate is not a footnote: every number on the page is wrong
+        // about the present, so it gets the loud treatment.
+        const severe = /days ago/.test(w)
+        return (
+          <div
+            key={w}
+            className="panel"
+            style={{
+              padding: 'var(--s3) var(--s4)',
+              marginBottom: 'var(--s4)',
+              borderColor: severe ? 'rgba(255,90,71,0.5)' : 'rgba(242,193,78,0.35)'
+            }}
+          >
+            <span className="row gap-2" style={{ alignItems: 'flex-start' }}>
+              {severe && <Badge tone="live">Out of date</Badge>}
+              <span
+                className="mono grow"
+                style={{ fontSize: 12, color: severe ? 'var(--flare)' : 'var(--gold)', minWidth: 0 }}
+              >
+                {w}
+              </span>
+            </span>
+          </div>
+        )
+      })}
 
       {topEdges.length > 0 && (
         <section className="panel" style={{ marginBottom: 'var(--s5)' }}>

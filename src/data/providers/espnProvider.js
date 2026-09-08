@@ -76,6 +76,12 @@ export async function fetchSlate({ signal } = {}) {
 
   return {
     source: 'espn',
+    // The scoreboard already knows what week it is. Using its answer beats
+    // guessing from the calendar, which drifts with flex scheduling and the
+    // bye structure.
+    week: json.week?.number ?? null,
+    seasonType: json.season?.type ?? null,
+    seasonYear: json.season?.year ?? null,
     label: `Live · ESPN ${json.season?.year ?? ''} ${typeName} week ${json.week?.number ?? '—'}`
       .replace(/\s+/g, ' ')
       .trim(),

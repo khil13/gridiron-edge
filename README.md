@@ -103,6 +103,8 @@ VITE_ODDS_BOOKS=draftkings,fanduel,betmgm,pinnacle
 
 Odds API events are matched to the slate on the two teams plus a kickoff within 36 hours, since its event IDs will never line up with ESPN's. Any game that cannot be matched keeps simulated prices and is reported in a banner. Books that have not posted a given market are dropped from that market rather than filled in with a placeholder.
 
+**Back up your record.** Locked cards and graded results live in this browser only — Model lab has Export and Import. The export deliberately omits the API key.
+
 Live scores are on by default and need no configuration. The app polls ESPN every 45 seconds while a game is in progress and stops polling when nothing is live. Two ESPN hosts are tried in turn, because `site.api.espn.com` began refusing some callers in August 2026 and `site.web.api.espn.com` serves the same payload.
 
 Live sources are best-effort. If ESPN or The Odds API is unreachable the app falls back to the bundled slate and tells you why in a banner rather than showing an empty page. Odds API events are matched back to schedule games by team, so the two feeds do not have to agree on IDs.
@@ -180,6 +182,7 @@ src/
 │   ├── card.js             card-of-the-day selection, tiers, passes
 │   ├── ratings.js          replaying results onto the opening ratings
 │   ├── props.js            touchdown props: Poisson, field devig, priors
+│   ├── backup.js           export and import of cards, results and settings
 │   ├── grading.js          settling locked cards, record, significance
 │   ├── boxscore.js         grouping and parsing ESPN's flat stat dump
 ├── components/             shell, ticker, game card, Edge Rail, charts, slip

@@ -59,8 +59,16 @@ export function useSlate(oddsKey) {
 export function useDataset() {
   const { settings, oddsKey } = useStore()
   const slate = useSlate(oddsKey)
-  const season = new Date().getFullYear()
-  const current = useCurrentRatings(ratingsFile.ratings, settings, slate.source, season)
+  const season = slate.seasonYear || new Date().getFullYear()
+
+  // Regular-season week from the feed. During the postseason ESPN restarts
+  // the numbering, so those weeks are added on top of the eighteen.
+  const throughWeek =
+    slate.seasonType === 3 ? 18 + (slate.week ?? 1)
+      : slate.seasonType === 2 ? (slate.week ?? 1)
+      : 0
+
+  const current = useCurrentRatings(ratingsFile.ratings, settings, slate.source, season, throughWeek)
 
   return useMemo(() => {
     // Ratings with the season replayed onto them when results are available,
@@ -192,13 +200,15 @@ export function useGameSummary(game, source) {
  * it invalidates itself the moment a new result lands rather than relying on
  * a timer that is either too eager or too slow.
  */
-export function useCurrentRatings(opening, settings, source, season) {
+export function useCurrentRatings(opening, settings, source, season, throughWeek = 1) {
   const [state, setState] = useState({
     loading: false, ratings: opening, applied: 0, error: null, live: false
   })
 
   useEffect(() => {
-    if (source !== 'espn') {
+    if (source !== 'espn' || throughWeek < 1) {
+      // Preseason or before kickoff: there is nothing to replay, and asking
+      // would just be a round trip that returns nothing.
       setState({ loading: false, ratings: opening, applied: 0, error: null, live: false })
       return
     }
@@ -217,7 +227,12 @@ export function useCurrentRatings(opening, settings, source, season) {
       setState((s) => ({ ...s, loading: true }))
     }
 
-    fetchSeasonResults(season, { signal: controller.signal, throughWeek: 22 })
+    // Only ask for weeks that could already have been played. On opening
+    // weekend that is one request, not twenty-three: the old code fetched
+    // every week of the season plus the playoffs on every page load, which
+    // is both wasteful and a good way to get rate-limited on the one night
+    // the app matters most.
+    fetchSeasonResults(season, { signal: controller.signal, throughWeek })
       .then(({ games, failedWeeks }) => {
         if (!alive) return
         save(`results:${season}`, { games, fetchedAt: new Date().toISOString() })
@@ -244,7 +259,7 @@ export function useCurrentRatings(opening, settings, source, season) {
       })
 
     return () => { alive = false; controller.abort() }
-  }, [opening, settings, source, season])
+  }, [opening, settings, source, season, throughWeek])
 
   return state
 }

@@ -4,6 +4,7 @@ import { Slider, Segmented, Badge } from '../components/Controls.jsx'
 import { useStore } from '../lib/store.jsx'
 import { PRESETS, presetFor } from '../lib/model.js'
 import { americanToDecimal } from '../lib/odds.js'
+import { buildBackup, downloadBackup, restoreBackup, readBackupFile } from '../lib/backup.js'
 import { fmtSigned, fmtSpread, fmtMoney, fmtKickoff } from '../lib/format.js'
 import { href } from '../lib/router.js'
 
@@ -20,6 +21,7 @@ export default function ModelLabView({ data }) {
   const { settings, oddsKey, dispatch } = useStore()
   const [keyDraft, setKeyDraft] = useState(oddsKey || '')
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [backupNote, setBackupNote] = useState(null)
   const set = (key) => (value) => dispatch({ type: 'setting', key, value })
 
   const active = presetFor(settings)
@@ -304,6 +306,56 @@ export default function ModelLabView({ data }) {
             </div>
           </div>
         )}
+      </section>
+
+      <section className="panel" style={{ marginBottom: 'var(--s4)' }}>
+        <div className="panel-head">
+          <div>
+            <div className="eyebrow">Your record lives in this browser only</div>
+            <h2 style={{ fontSize: 'var(--t-base)', marginTop: 4 }}>Backup</h2>
+          </div>
+          <span className="eyebrow">{buildBackup().summary.lockedCards} cards saved</span>
+        </div>
+        <div style={{ padding: 'var(--s4)' }}>
+          <p className="dim" style={{ fontSize: 12, marginTop: 0, maxWidth: '75ch' }}>
+            Locked cards and graded results are stored in this browser and nowhere else.
+            Clearing site data or switching device loses them, and a season of grading is the
+            only evidence you will ever have about whether the model works. The export leaves
+            your API key out on purpose.
+          </p>
+          <div className="row gap-2" style={{ flexWrap: 'wrap', alignItems: 'center' }}>
+            <button
+              className="btn"
+              onClick={() => {
+                const summary = downloadBackup()
+                setBackupNote(`Exported ${summary.lockedCards} cards, ${summary.plays} plays.`)
+              }}
+            >
+              Export
+            </button>
+            <label className="btn" style={{ cursor: 'pointer' }}>
+              Import
+              <input
+                type="file"
+                accept="application/json,.json"
+                style={{ display: 'none' }}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  try {
+                    const parsed = await readBackupFile(file)
+                    const report = restoreBackup(parsed)
+                    setBackupNote(`Imported. Now holding ${report.lockedCards} cards — reload to see them.`)
+                  } catch (err) {
+                    setBackupNote(err.message)
+                  }
+                  e.target.value = ''
+                }}
+              />
+            </label>
+            {backupNote && <span className="dim mono" style={{ fontSize: 11 }}>{backupNote}</span>}
+          </div>
+        </div>
       </section>
 
       <div style={{ display: 'grid', gap: 'var(--s4)' }}>

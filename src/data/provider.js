@@ -79,5 +79,11 @@ export async function loadSlate({ signal, oddsKey: runtimeKey } = {}) {
     }
   }
 
+  if (slate.staleDays) {
+    warnings.push(
+      `These are bundled games from ${slate.staleDays} days ago, not the current slate. Live scores could not be reached, so nothing on this page reflects what is being played now.`
+    )
+  }
+
   return { ...slate, markets, oddsMeta, warnings }
 }
