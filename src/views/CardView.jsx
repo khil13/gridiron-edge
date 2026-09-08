@@ -163,10 +163,9 @@ export default function CardView({ data }) {
           <div>
             <div className="eyebrow">{fmtDay(day.kickoff)}</div>
             <h2 style={{ fontSize: 'var(--t-lg)', marginTop: 4 }}>
+              {reads.length} leg{reads.length === 1 ? '' : 's'} from{' '}
               {day.games.length} game{day.games.length === 1 ? '' : 's'} ·{' '}
-              {plays.length
-                ? `${plays.length} worth a stake`
-                : 'none worth a stake'}
+              {plays.length ? `${plays.length} worth a stake` : 'none worth a stake'}
             </h2>
           </div>
           {plays.length > 0 && (
@@ -225,6 +224,25 @@ export default function CardView({ data }) {
           under Results once the games go final. Re-locking replaces that snapshot — which is
           worth avoiding once kickoff has passed, since a card changed after the fact is not
           the card you would have bet.
+        </p>
+      )}
+
+      {stats.stackedGames > 0 && (
+        <p className="dim" style={{ fontSize: 12, marginTop: 'var(--s4)', maxWidth: '80ch' }}>
+          {stats.stackedGames} game{stats.stackedGames === 1 ? ' carries' : 's carry'} more than
+          one leg, holding {fmtMoney(stats.stackedRisk)} of the risk. Those legs move together:
+          a shootout that beats the total tends to beat both team totals with it. Four plays on
+          one game is one opinion at four times the stake, not four independent bets.
+        </p>
+      )}
+
+      {stats.shortfall > 0 && (
+        <p className="dim" style={{ fontSize: 12, marginTop: 'var(--s4)', maxWidth: '80ch' }}>
+          This card is {stats.shortfall} short of its {stats.target}-leg target. A game offers
+          five independent markets — spread, moneyline, total, and each side's team total — and
+          this slate has run out of distinct positions. The remaining legs would have to come
+          from touchdown props, on the Props tab of each game. Listing the same bet twice at
+          two different numbers would fill the count without adding anything.
         </p>
       )}
 
@@ -317,6 +335,11 @@ function PlayCard({ entry, dispatch }) {
               <Badge tone={tier.tone}>
                 {isLean ? 'Lean · no stake' : `${tier.units}u · ${tier.label}`}
               </Badge>
+              {entry.correlated && (
+                <Badge tone="quiet">
+                  Same game as leg {entry.sameGameIndex}
+                </Badge>
+              )}
               {best.sharp && <Badge tone="quiet">Sharp book</Badge>}
             </div>
             <h3 style={{ fontSize: 'var(--t-xl)' }}>{best.label}</h3>

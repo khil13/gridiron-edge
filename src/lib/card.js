@@ -85,53 +85,123 @@ export function leanReason(best) {
  * @param {object} settings   model settings (unit size derives from bankroll)
  * @returns {{ plays, passes, stats }}
  */
+/**
+ * How many legs a card should aim for.
+ *
+ * A one-game Thursday night slate produced a one-leg card, which is not a
+ * breakdown of anything. A full Sunday should be broader than a handful.
+ * These are targets, not quotas: the card fills up to them from genuinely
+ * distinct markets and stops when it runs out rather than padding.
+ */
+/** Independent markets a single game offers before props are considered. */
+export const MARKETS_PER_GAME = 5
+
+export function targetLegs(gameCount) {
+  if (gameCount <= 1) return 6
+  if (gameCount <= 2) return 8
+  if (gameCount <= 5) return 10
+  return 12
+}
+
+/**
+ * The axis a play sits on.
+ *
+ * Two plays share an axis when they are the same decision: home spread and
+ * away spread are one bet expressed two ways, and taking both sides is not
+ * diversification, it is paying the vig twice to guarantee a wash. Only one
+ * play per axis ever reaches the card.
+ */
+function axisOf(play) {
+  const g = play.gameId
+  switch (play.type) {
+    case 'spread': return `${g}:spread`
+    case 'moneyline': return `${g}:ml`
+    case 'total': return `${g}:total`
+    case 'teamTotal': return `${g}:tt:${play.side.split('-')[0]}`
+    default: return `${g}:${play.type}:${play.side}`
+  }
+}
+
 export function buildCard(games, settings) {
-  const unit = (settings.bankroll ?? 1000) * 0.01 // 1 unit = 1% of bankroll
+  const unit = (settings.bankroll ?? 1000) * 0.01
+  const target = targetLegs(games.length)
 
-  const entries = games.map((game) => {
-    // Best available price for each distinct market side, then the single
-    // strongest view on the game.
-    const bySide = new Map()
+  // Every distinct market position available anywhere on the slate, best
+  // price per axis, ranked by expected value.
+  const byAxis = new Map()
+  for (const game of games) {
     for (const p of game.allPlays ?? []) {
-      const k = `${p.type}:${p.side}`
-      const cur = bySide.get(k)
-      if (!cur || p.ev > cur.ev) bySide.set(k, p)
+      const axis = axisOf(p)
+      const current = byAxis.get(axis)
+      if (!current || p.ev > current.play.ev) byAxis.set(axis, { play: p, game })
     }
-    const ranked = [...bySide.values()].sort((a, b) => b.ev - a.ev)
-    const best = ranked[0] ?? null
-    const tier = tierFor(best)
+  }
 
-    // The runner-up is worth surfacing: if the second-best play is on the
-    // same game it is deliberately NOT on the card, and saying so explains
-    // the one-play-per-game rule without a footnote.
-    const alternate = ranked[1] ?? null
+  const ranked = [...byAxis.values()].sort((a, b) => b.play.ev - a.play.ev)
+
+  // Pass one: the strongest view on each game, so a full slate is covered
+  // before any game is doubled up on.
+  const chosen = []
+  const usedGames = new Set()
+  for (const entry of ranked) {
+    if (usedGames.has(entry.game.id)) continue
+    usedGames.add(entry.game.id)
+    chosen.push({ ...entry, sameGameIndex: 0 })
+  }
+
+  // Pass two: fill toward the target with second and third looks, taking
+  // the best remaining regardless of which game it belongs to.
+  const perGame = new Map(chosen.map((c) => [c.game.id, 1]))
+  if (chosen.length < target) {
+    for (const entry of ranked) {
+      if (chosen.length >= target) break
+      if (chosen.some((c) => c.play.id === entry.play.id)) continue
+      const n = perGame.get(entry.game.id) ?? 0
+      chosen.push({ ...entry, sameGameIndex: n })
+      perGame.set(entry.game.id, n + 1)
+    }
+  }
+
+  const entries = chosen.map(({ play, game, sameGameIndex }) => {
+    const tier = tierFor(play)
+    const alternates = (game.allPlays ?? [])
+      .filter((p) => axisOf(p) !== axisOf(play) && p.ev > 0)
+      .sort((a, b) => b.ev - a.ev)
 
     return {
       game,
-      best,
+      best: play,
       tier,
-      alternate,
-      reason: tier.lean ? leanReason(best) : null,
+      alternate: alternates[0] ?? null,
+      reason: tier.lean ? leanReason(play) : null,
       stake: tier.units * unit,
-      // Kelly is computed per play from the model's own probability; where it
-      // disagrees sharply with the flat tier stake, that is worth showing.
-      kellyStake: best?.stake ?? 0
+      kellyStake: play.stake ?? 0,
+      sameGameIndex,
+      // Legs from one game move together. Four plays on a shootout is one
+      // opinion at four times the stake, not four independent bets.
+      correlated: sameGameIndex > 0
     }
   })
 
-  // Everything the model has an opinion on, strongest first. Leans sink to
-  // the bottom because they carry no stake.
-  const reads = entries
-    .filter((e) => e.best)
-    .sort((a, b) => b.tier.units - a.tier.units || b.best.ev - a.best.ev)
-
+  const reads = entries.sort(
+    (a, b) => b.tier.units - a.tier.units || b.best.ev - a.best.ev
+  )
   const plays = reads.filter((e) => e.tier.units > 0)
   const leans = reads.filter((e) => e.tier.units === 0)
-  const passes = leans // kept for callers that still ask for passes
+  const passes = leans
 
   const suspicious = plays.filter((p) => p.tier.suspicious).length
   const risked = plays.reduce((s, p) => s + p.stake, 0)
   const expected = plays.reduce((s, p) => s + p.best.ev * p.stake, 0)
+
+  // How much of the risk sits on games carrying more than one leg.
+  const gameExposure = {}
+  for (const p of plays) {
+    gameExposure[p.game.id] = (gameExposure[p.game.id] ?? 0) + p.stake
+  }
+  const stacked = Object.entries(gameExposure).filter(
+    ([id]) => plays.filter((p) => p.game.id === id).length > 1
+  )
 
   return {
     reads,
@@ -140,19 +210,23 @@ export function buildCard(games, settings) {
     passes,
     stats: {
       unit,
+      target,
       count: plays.length,
       reads: reads.length,
       leanCount: leans.length,
       suspicious,
-      units: plays.reduce((s, p) => s + p.tier.units, 0),
       risked,
       expected,
       expectedPct: risked ? expected / risked : 0,
       bankrollPct: risked / (settings.bankroll || 1),
-      // Sum of win probabilities = the expected number of winners. Reporting
-      // this rather than a projected profit keeps the variance visible: a
-      // positive-EV card still loses money more often than people expect.
-      expectedWinners: plays.reduce((s, p) => s + p.best.modelProb, 0)
+      expectedWinners: plays.reduce((s, p) => s + p.best.modelProb, 0),
+      stackedGames: stacked.length,
+      stackedRisk: stacked.reduce((s, [, amount]) => s + amount, 0),
+      // A game carries five independent markets: spread, moneyline, total
+      // and each side's team total. Below the target means the slate has
+      // simply run out of distinct positions, and the honest response is to
+      // say so rather than list the same bet twice at different numbers.
+      shortfall: Math.max(0, target - reads.length)
     }
   }
 }
