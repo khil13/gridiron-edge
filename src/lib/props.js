@@ -258,5 +258,190 @@ export function expectedScorers(totalTds, contributors = 6.5) {
   return contributors * (1 - Math.exp(-totalTds / contributors))
 }
 
+
+/* ------------------------------------------------------------------ */
+/* Yardage, receptions and volume props                                */
+/* ------------------------------------------------------------------ */
+
+import { overProbabilityFor, VARIABILITY } from './distributions.js'
+
+/** Markets that can be projected from season rate data. */
+export const VOLUME_MARKETS = [
+  { key: 'receivingYards', label: 'Receiving yards', stat: 'receivingYards', positions: ['WR', 'TE', 'RB'] },
+  { key: 'receptions', label: 'Receptions', stat: 'receptions', positions: ['WR', 'TE', 'RB'] },
+  { key: 'rushingYards', label: 'Rushing yards', stat: 'rushingYards', positions: ['RB', 'QB', 'WR'] },
+  { key: 'rushingAttempts', label: 'Rush attempts', stat: 'rushingAttempts', positions: ['RB', 'QB'] },
+  { key: 'passingYards', label: 'Passing yards', stat: 'passingYards', positions: ['QB'] }
+]
+
+/**
+ * Project a player's volume statistic for one game.
+ *
+ * Two inputs, both real: the player's per-game rate this season, and how
+ * this game's environment compares with the games behind that rate. A
+ * receiver on a team projected for 30 points against a season average of 20
+ * gets scaled up, because more possessions and more scoring means more
+ * production to go around.
+ *
+ * The environment adjustment is deliberately damped. Game totals move more
+ * than any individual's share of them, so passing the full ratio through
+ * would overstate every projection in a shootout and understate it in a
+ * defensive game.
+ */
+export const ENVIRONMENT_DAMPING = 0.6
+
+export function projectVolume(player, market, { teamPoints, teamAverage }) {
+  const stats = player.stats
+  const games = stats?.games
+  const total = stats?.[market.stat]
+
+  // No rate, no projection. A positional prior is fine for a touchdown
+  // share, which is a proportion; it is not fine for a yardage line, where
+  // being wrong by twenty yards is the whole bet.
+  if (!games || games < 1 || total == null) return null
+
+  const perGame = total / games
+  if (perGame <= 0) return null
+
+  const ratio = teamAverage > 0 ? teamPoints / teamAverage : 1
+  const damped = 1 + (ratio - 1) * ENVIRONMENT_DAMPING
+  const mean = perGame * clampRatio(damped)
+
+  return {
+    market: market.key,
+    label: market.label,
+    perGame: round1(perGame),
+    games,
+    environment: round2(damped),
+    mean: round1(mean),
+    variability: VARIABILITY[market.key] ?? null,
+    /** @param {number} line */
+    over: (line) => overProbabilityFor(market.key, mean, line),
+    under: (line) => {
+      const o = overProbabilityFor(market.key, mean, line)
+      return o ? { win: o.lose, push: o.push, lose: o.win } : null
+    }
+  }
+}
+
+/** Keep the environment adjustment inside believable bounds. */
+const clampRatio = (r) => Math.max(0.65, Math.min(1.45, r))
+
+/**
+ * Which markets a player can actually be projected for.
+ *
+ * A player with no carries this season does not get a rushing line just
+ * because his position allows one.
+ */
+export function availableMarkets(player) {
+  const base = player.position === 'FB' ? 'RB' : player.position
+  return VOLUME_MARKETS.filter(
+    (m) => m.positions.includes(base) && (player.stats?.[m.stat] ?? 0) > 0 && player.stats?.games > 0
+  )
+}
+
+/* ---------- First quarter ---------- */
+
+/**
+ * Share of a game's points scored in the first quarter.
+ *
+ * Scoring builds through a game: opening drives are scripted and defences
+ * are fresh, and the fourth quarter carries catch-up scoring and two-minute
+ * drills. Roughly a fifth of the game's points land in the first quarter.
+ */
+export const FIRST_QUARTER_SHARE = 0.20
+
+/**
+ * First-quarter team and game totals.
+ *
+ * Only team-level markets are offered here. First-quarter PLAYER props need
+ * drive-level and snap-level data this app does not have — projecting them
+ * from a full-game rate would assume usage is spread evenly through a game,
+ * and it is not.
+ */
+export function projectFirstQuarter(homePoints, awayPoints) {
+  const home = homePoints * FIRST_QUARTER_SHARE
+  const away = awayPoints * FIRST_QUARTER_SHARE
+
+  const homeDist = quarterPointsDistribution(home)
+  const awayDist = quarterPointsDistribution(away)
+  const totalDist = convolve(homeDist, awayDist)
+
+  return {
+    homeMean: round1(home),
+    awayMean: round1(away),
+    totalMean: round1(home + away),
+    homeDist,
+    awayDist,
+    totalDist,
+    overTotal: (line) => tailAbove(totalDist, line),
+    pushTotal: (line) => (Number.isInteger(line) ? (totalDist[line] ?? 0) : 0),
+    homeOver: (line) => tailAbove(homeDist, line),
+    awayOver: (line) => tailAbove(awayDist, line)
+  }
+}
+
+/**
+ * Distribution over a team's first-quarter points.
+ *
+ * A first quarter is not a smooth curve. It is overwhelmingly 0, then 7,
+ * then 3, and the gaps between are genuinely unreachable — no team scores
+ * exactly 1, 2, 4 or 5 points in a quarter. Treating it as continuous
+ * returned identical probabilities for a 6.5 and a 9.5 line, which is
+ * useless for pricing.
+ *
+ * So scoring events are Poisson, each event is a touchdown or a field goal,
+ * and the possible totals are built by combining them.
+ */
+export const TOUCHDOWN_FRACTION = 0.58   // of scoring events, not of points
+
+export function quarterPointsDistribution(expectedPoints, maxScores = 4) {
+  // Average points per scoring event, from the touchdown/field-goal mix.
+  const perScore = TOUCHDOWN_FRACTION * 6.95 + (1 - TOUCHDOWN_FRACTION) * 3
+  const lambda = Math.max(0, expectedPoints / perScore)
+
+  const dist = {}
+  for (let scores = 0; scores <= maxScores; scores++) {
+    const pScores = poissonPmf(scores, lambda)
+    if (pScores < 1e-9) continue
+    // Within `scores` events, how many were touchdowns.
+    for (let tds = 0; tds <= scores; tds++) {
+      const pMix = binomialPmf(tds, scores, TOUCHDOWN_FRACTION)
+      const points = Math.round(tds * 6.95 + (scores - tds) * 3)
+      dist[points] = (dist[points] ?? 0) + pScores * pMix
+    }
+  }
+  return dist
+}
+
+function binomialPmf(k, n, p) {
+  if (k < 0 || k > n) return 0
+  let logC = 0
+  for (let i = 1; i <= k; i++) logC += Math.log((n - k + i) / i)
+  return Math.exp(logC + k * Math.log(p) + (n - k) * Math.log(1 - p))
+}
+
+/** Distribution of the sum of two independent point totals. */
+function convolve(a, b) {
+  const out = {}
+  for (const [x, px] of Object.entries(a)) {
+    for (const [y, py] of Object.entries(b)) {
+      const s = Number(x) + Number(y)
+      out[s] = (out[s] ?? 0) + px * py
+    }
+  }
+  return out
+}
+
+/** P(total > line) over a discrete distribution. */
+function tailAbove(dist, line) {
+  let p = 0
+  for (const [points, prob] of Object.entries(dist)) {
+    if (Number(points) > line) p += prob
+  }
+  return Math.min(1, Math.max(0, p))
+}
+
+const round1 = (v) => Math.round(v * 10) / 10
 const round2 = (v) => Math.round(v * 100) / 100
 const round3 = (v) => Math.round(v * 1000) / 1000

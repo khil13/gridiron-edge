@@ -1,14 +1,15 @@
 import { useState, useMemo } from 'react'
 import TeamMark from '../components/TeamMark.jsx'
-import { Badge, Empty } from '../components/Controls.jsx'
+import { Badge, Empty, Segmented } from '../components/Controls.jsx'
 import { useStore } from '../lib/store.jsx'
 import { fetchGameRosters } from '../data/providers/playerData.js'
 import { fetchGameProps, PROPS_CREDIT_COST } from '../data/providers/oddsApiProvider.js'
 import {
   expectedTouchdowns, expectedScorers, projectAnytimeTouchdowns, normaliseField,
-  projectPassingTouchdowns, devigField
+  projectPassingTouchdowns, devigField, projectVolume, availableMarkets,
+  projectFirstQuarter, VOLUME_MARKETS
 } from '../lib/props.js'
-import { impliedProb, expectedValue, kelly } from '../lib/odds.js'
+import { impliedProb, expectedValue, kelly, validPrice, PRICE_MAX } from '../lib/odds.js'
 import { fmtOdds, fmtPct, fmtMoney, fmtSigned } from '../lib/format.js'
 
 /**
@@ -41,6 +42,9 @@ export default function PropsTab({ game, data }) {
       setState({ status: 'error', error: err.message })
     }
   }
+
+  const onPrice = (key, price) =>
+    dispatch({ type: 'setManualPrice', gameId: game.id, key, price })
 
   const analysis = useMemo(() => {
     if (state.status !== 'ready' || !proj) return null
@@ -90,6 +94,8 @@ export default function PropsTab({ game, data }) {
   return (
     <div style={{ display: 'grid', gap: 'var(--s4)' }}>
       <Caveats analysis={analysis} game={game} rosters={state.rosters} />
+      <Volume analysis={analysis} entered={entered} onPrice={onPrice} />
+      <FirstQuarter analysis={analysis} game={game} entered={entered} onPrice={onPrice} />
       <Anytime
         analysis={analysis}
         game={game}
@@ -172,9 +178,9 @@ function analyse({ game, proj, settings, rosters, props, entered = {} }) {
     .map((p) => {
       const price = entered[normName(p.name)]
       const numeric = Number(price)
-      const valid = price != null && price !== '' && Number.isFinite(numeric) &&
-        Math.abs(numeric) >= 100
-      if (!valid) return { ...p, manualPrice: null }
+      const typed = price != null && price !== ''
+      const valid = typed && validPrice(numeric)
+      if (!valid) return { ...p, manualPrice: null, badPrice: typed }
 
       const ev = expectedValue(p.prob, numeric)
       // A twenty-five percent edge on a touchdown prop is not an edge, it is
@@ -229,8 +235,37 @@ function analyse({ game, proj, settings, rosters, props, entered = {} }) {
     }
   }
 
+  // Volume markets, per player, only where a real season rate exists.
+  const teamAverages = {
+    [game.home]: ratingFor(game.home),
+    [game.away]: ratingFor(game.away)
+  }
+  function ratingFor(team) {
+    // The team's own scoring rate is the baseline this game is compared to.
+    return teamStatsFor(team) ?? 22
+  }
+  function teamStatsFor(team) {
+    const r = settings.__ratings?.[team]
+    return r?.ppg ?? null
+  }
+
+  const volume = []
+  for (const p of rosters.players) {
+    const teamPoints = p.team === game.home ? proj.homeTeamTotal : proj.awayTeamTotal
+    const teamAverage = teamAverages[p.team] ?? 22
+    for (const market of availableMarkets(p)) {
+      const v = projectVolume(p, market, { teamPoints, teamAverage })
+      if (!v) continue
+      volume.push({ player: p, ...v, team: p.team, role: p.role, injury: p.injury })
+    }
+  }
+
+  const firstQuarter = projectFirstQuarter(proj.homeTeamTotal, proj.awayTeamTotal)
+
   return {
     anytime,
+    volume,
+    firstQuarter,
     unpriced: unpriced.slice(0, 8),
     passing: passing.sort((a, b) => (b.ev ?? -1) - (a.ev ?? -1)),
     devig: dv,
@@ -357,7 +392,9 @@ function Anytime({ analysis, game, entered, onPrice, onClear }) {
                     />
                   </td>
                   <td className="num dim" data-label="Implied">
-                    {p.impliedProb != null ? fmtPct(p.impliedProb, 1) : '—'}
+                    {p.badPrice
+                      ? <span className="neg">not a price</span>
+                      : p.impliedProb != null ? fmtPct(p.impliedProb, 1) : '—'}
                   </td>
                   <td
                     className={`num ${p.impliedProb == null ? 'dim' : p.prob > p.impliedProb ? 'pos' : 'neg'}`}
@@ -525,6 +562,224 @@ function Passing({ analysis, game }) {
           Taken from the projected team total, split to the passing share, and treated as
           Poisson. It assumes the starter takes nearly all of them — a quarterback pulled
           early, or a game that turns into a run script, is exactly what this cannot see.
+        </p>
+      </div>
+    </section>
+  )
+}
+
+/* ---------- Volume markets ---------- */
+
+/**
+ * Yardage, receptions and carries.
+ *
+ * Every row here is backed by an actual season rate. A player with no
+ * receptions this year gets no receiving line, because a positional average
+ * is fine for a touchdown share — a proportion — and useless for a yardage
+ * number, where being twenty yards wrong is the whole bet.
+ */
+function Volume({ analysis, entered, onPrice }) {
+  const [market, setMarket] = useState('receivingYards')
+  const rows = (analysis.volume ?? []).filter((v) => v.market === market)
+
+  if (!analysis.volume?.length) {
+    return (
+      <section className="panel">
+        <div className="panel-head">
+          <h2 style={{ fontSize: 'var(--t-base)' }}>Yardage and volume</h2>
+          <Badge tone="quiet">No season rates yet</Badge>
+        </div>
+        <p className="dim" style={{ fontSize: 12, padding: 'var(--s4)', margin: 0, maxWidth: '75ch' }}>
+          These markets need a real per-game rate — yards, catches, carries actually recorded
+          this season. Nobody has one yet, and a positional average is not a substitute: it is
+          adequate for a touchdown share, which is a proportion, and worthless for a yardage
+          line. They appear once games have been played.
+        </p>
+      </section>
+    )
+  }
+
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <div>
+          <div className="eyebrow">Backed by this season&apos;s rate, scaled to this game</div>
+          <h2 style={{ fontSize: 'var(--t-base)', marginTop: 4 }}>Yardage and volume</h2>
+        </div>
+      </div>
+
+      <div style={{ padding: 'var(--s3) var(--s4) 0' }}>
+        <Segmented
+          label="Market"
+          value={market}
+          onChange={setMarket}
+          options={VOLUME_MARKETS
+            .filter((m) => analysis.volume.some((v) => v.market === m.key))
+            .map((m) => ({ value: m.key, label: m.label.replace(' yards', '').replace('Rush attempts', 'Carries') }))}
+        />
+      </div>
+
+      <div className="tbl-scroll">
+        <table className="tbl responsive">
+          <thead>
+            <tr>
+              <th>Player</th><th>Rate</th><th>Projection</th>
+              <th>Line</th><th>Your price</th><th>Over</th><th>EV</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.sort((a, b) => b.mean - a.mean).map((v) => {
+              const lineKey = `${v.market}:${normName(v.player.name)}:line`
+              const priceKey = `${v.market}:${normName(v.player.name)}:price`
+              const line = Number(entered[lineKey])
+              const price = Number(entered[priceKey])
+              const hasLine = Number.isFinite(line) && line > 0
+              const hasPrice = validPrice(price)
+              const outcome = hasLine ? v.over(line) : null
+              const ev = outcome && hasPrice ? expectedValue(outcome.win, price, outcome.push) : null
+
+              return (
+                <tr key={`${v.market}-${v.player.id}`}>
+                  <td>
+                    <span className="row gap-2">
+                      <TeamMark abbr={v.team} size={16} />
+                      <span className="team-name">{v.player.name}</span>
+                      <span className="dim">{v.role}</span>
+                      {v.injury && !/active/i.test(v.injury) && <Badge tone="live">{v.injury}</Badge>}
+                    </span>
+                  </td>
+                  <td className="num dim" data-label="Rate">
+                    <span>{v.perGame}/g over {v.games}</span>
+                  </td>
+                  <td className="num" data-label="Projection">
+                    <span>{v.mean} {v.environment !== 1 && <span className="dim">×{v.environment}</span>}</span>
+                  </td>
+                  <td data-label="Line">
+                    <input
+                      type="text" inputMode="decimal" placeholder="54.5"
+                      value={entered[lineKey] ?? ''}
+                      onChange={(e) => onPrice(lineKey, e.target.value.trim())}
+                      style={{ width: 70, textAlign: 'right' }}
+                      aria-label={`Line for ${v.player.name}`}
+                    />
+                  </td>
+                  <td data-label="Your price">
+                    <input
+                      type="text" inputMode="numeric" placeholder="-110"
+                      value={entered[priceKey] ?? ''}
+                      onChange={(e) => onPrice(priceKey, e.target.value.trim())}
+                      style={{ width: 76, textAlign: 'right' }}
+                      aria-label={`Price for ${v.player.name}`}
+                    />
+                  </td>
+                  <td className="num" data-label="Over">
+                    {outcome ? fmtPct(outcome.win, 1) : '—'}
+                  </td>
+                  <td
+                    className={`num ${ev == null ? 'dim' : ev > 0 ? 'pos' : 'neg'}`}
+                    data-label="EV"
+                  >
+                    {ev == null ? '—' : `${ev > 0 ? '+' : ''}${(ev * 100).toFixed(1)}%`}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <p className="dim" style={{ fontSize: 11, padding: 'var(--s3) var(--s4)', margin: 0, maxWidth: '80ch' }}>
+        Yardage is modelled with a right-skewed distribution rather than a bell curve, because
+        that is how it behaves: a floor at zero and a long tail. A symmetric curve would put
+        real probability below zero yards and misprice both sides. The multiplier shown next to
+        a projection is how far this game&apos;s expected scoring sits from the team&apos;s
+        season average, damped — a shootout lifts everyone, but not proportionally.
+      </p>
+    </section>
+  )
+}
+
+/* ---------- First quarter ---------- */
+
+function FirstQuarter({ analysis, game, entered, onPrice }) {
+  const q = analysis.firstQuarter
+  if (!q) return null
+
+  const lineKey = 'q1:total:line'
+  const priceKey = 'q1:total:price'
+  const line = Number(entered[lineKey])
+  const price = Number(entered[priceKey])
+  const hasLine = Number.isFinite(line) && line > 0
+  const over = hasLine ? q.overTotal(line) : null
+  const push = hasLine ? q.pushTotal(line) : 0
+  const ev = over != null && validPrice(price) ? expectedValue(over, price, push) : null
+
+  const shutout = (q.totalDist[0] ?? 0)
+
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <div>
+          <div className="eyebrow">Team level only</div>
+          <h2 style={{ fontSize: 'var(--t-base)', marginTop: 4 }}>First quarter</h2>
+        </div>
+        <span className="eyebrow">{q.totalMean} projected</span>
+      </div>
+
+      <div style={{ padding: 'var(--s4)' }}>
+        <div className="row spread-between" style={{ padding: '3px 0' }}>
+          <span className="row gap-2"><TeamMark abbr={game.away} size={16} /><span className="dim">{game.away}</span></span>
+          <span className="mono">{q.awayMean}</span>
+        </div>
+        <div className="row spread-between" style={{ padding: '3px 0' }}>
+          <span className="row gap-2"><TeamMark abbr={game.home} size={16} /><span className="dim">{game.home}</span></span>
+          <span className="mono">{q.homeMean}</span>
+        </div>
+        <div className="row spread-between" style={{ padding: '3px 0' }}>
+          <span className="dim">Scoreless first quarter</span>
+          <span className="mono">{fmtPct(shutout, 1)}</span>
+        </div>
+
+        <div className="perf" />
+
+        <div className="row gap-2" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div className="field">
+            <label><span>1Q total line</span></label>
+            <input
+              type="text" inputMode="decimal" placeholder="9.5"
+              value={entered[lineKey] ?? ''}
+              onChange={(e) => onPrice(lineKey, e.target.value.trim())}
+              style={{ width: 80, textAlign: 'right' }}
+            />
+          </div>
+          <div className="field">
+            <label><span>Price</span></label>
+            <input
+              type="text" inputMode="numeric" placeholder="-115"
+              value={entered[priceKey] ?? ''}
+              onChange={(e) => onPrice(priceKey, e.target.value.trim())}
+              style={{ width: 88, textAlign: 'right' }}
+            />
+          </div>
+          <div>
+            <div className="eyebrow">Over</div>
+            <div className="mono" style={{ fontSize: 'var(--t-lg)' }}>
+              {over != null ? fmtPct(over, 1) : '—'}
+            </div>
+          </div>
+          <div>
+            <div className="eyebrow">EV</div>
+            <div className={`mono ${ev == null ? 'dim' : ev > 0 ? 'pos' : 'neg'}`} style={{ fontSize: 'var(--t-lg)' }}>
+              {ev == null ? '—' : `${ev > 0 ? '+' : ''}${(ev * 100).toFixed(1)}%`}
+            </div>
+          </div>
+        </div>
+
+        <p className="dim" style={{ fontSize: 11, marginBottom: 0, marginTop: 'var(--s3)', maxWidth: '80ch' }}>
+          A quarter&apos;s points land on 0, 3, 7, 10 — never 1, 2, 4 or 5 — so this is built
+          from scoring events rather than a smooth curve. First-quarter PLAYER props are not
+          offered: they need drive and snap data this app does not have, and deriving them from
+          a full-game rate would assume usage is spread evenly through a game, which it is not.
         </p>
       </div>
     </section>

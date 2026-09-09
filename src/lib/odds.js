@@ -8,6 +8,24 @@
 
 /* ---------- Format conversion ---------- */
 
+/**
+ * Is this a price a sportsbook could actually be offering?
+ *
+ * American odds below 100 in absolute terms are not valid at all, and books
+ * do not hang anything beyond about +/-20000. A typo like 22000 for +220
+ * otherwise sails through and reports a five-thousand percent edge, which is
+ * a data-entry error being presented as an opportunity.
+ */
+export const PRICE_MIN = 100
+export const PRICE_MAX = 20000
+
+export function validPrice(value) {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return false
+  const abs = Math.abs(n)
+  return abs >= PRICE_MIN && abs <= PRICE_MAX
+}
+
 export const americanToDecimal = (a) =>
   a > 0 ? 1 + a / 100 : 1 + 100 / Math.abs(a)
 

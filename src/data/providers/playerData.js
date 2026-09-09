@@ -56,19 +56,21 @@ export async function fetchRoster(teamAbbr, { signal } = {}) {
         // Injury status is the single biggest failure mode for these props:
         // an edge on a player who is not dressed is not an edge.
         injury: a.injuries?.[0]?.status || a.status?.name || null,
-        tds: touchdownsFrom(a)
+        stats: statsFrom(a),
+        tds: statsFrom(a)?.tds ?? null
       })
     }
   }
 
-  const withTds = players.filter((p) => p.tds != null).length
+  const withStats = players.filter((p) => p.stats?.games).length
   return {
     team: norm(teamAbbr),
     players,
-    hasTouchdownData: withTds > 0,
-    note: withTds > 0
+    hasTouchdownData: players.some((p) => p.tds != null),
+    hasSeasonStats: withStats > 0,
+    note: withStats > 0
       ? null
-      : 'No touchdown counts in this feed, so shares fall back to positional priors.'
+      : 'No per-player season statistics in this feed, so yardage markets cannot be projected.'
   }
 }
 
@@ -79,26 +81,47 @@ export async function fetchRoster(teamAbbr, { signal } = {}) {
  * time of year, so this looks in the places it is known to appear and gives
  * up quietly rather than guessing.
  */
-function touchdownsFrom(athlete) {
+function statsFrom(athlete) {
   const buckets = athlete?.statistics?.splits?.categories
     ?? athlete?.statistics?.categories
     ?? null
   if (!Array.isArray(buckets)) return null
 
-  let total = 0
-  let found = false
+  const found = {}
   for (const cat of buckets) {
     for (const stat of cat.stats ?? []) {
-      const name = String(stat.name || stat.abbreviation || '').toLowerCase()
-      // Receiving and rushing touchdowns count; passing touchdowns belong to
-      // the quarterback's arm, not his anytime-scorer chances.
-      if (name === 'rushingtouchdowns' || name === 'receivingtouchdowns') {
-        const v = Number(stat.value ?? stat.displayValue)
-        if (Number.isFinite(v)) { total += v; found = true }
-      }
+      const name = String(stat.name || stat.abbreviation || '')
+      const v = Number(stat.value ?? stat.displayValue)
+      if (Number.isFinite(v)) found[name] = v
     }
   }
-  return found ? total : null
+  if (!Object.keys(found).length) return null
+
+  const pick = (...names) => {
+    for (const n of names) if (found[n] != null) return found[n]
+    return null
+  }
+
+  const games = pick('gamesPlayed', 'GP')
+  return {
+    games,
+    // Receiving and rushing touchdowns count toward anytime scoring;
+    // passing touchdowns belong to the arm, not the scorer.
+    tds: sumDefined(pick('rushingTouchdowns'), pick('receivingTouchdowns')),
+    receivingYards: pick('receivingYards'),
+    receptions: pick('receptions'),
+    targets: pick('receivingTargets', 'targets'),
+    rushingYards: pick('rushingYards'),
+    rushingAttempts: pick('rushingAttempts'),
+    passingYards: pick('passingYards'),
+    passingTouchdowns: pick('passingTouchdowns'),
+    passingAttempts: pick('passingAttempts')
+  }
+}
+
+const sumDefined = (...xs) => {
+  const vals = xs.filter((v) => v != null)
+  return vals.length ? vals.reduce((a, b) => a + b, 0) : null
 }
 
 /**
@@ -147,12 +170,17 @@ export function assignRoles(players, depthRanks = null) {
       continue
     }
 
+    // Depth ranks are published per listed position, so the first fullback
+    // and the first running back both come back as rank 1. Folding them into
+    // one group without adjusting for that lets a blocking fullback outrank
+    // the starting back and inherit his share.
+    const rankOf = (p) => {
+      const raw = depthRanks?.get(String(p.id)) ?? 99
+      return p.position === 'FB' ? raw + 50 : raw
+    }
+
     const ranked = charted
-      ? [...list].sort((a, b) => {
-          const ra = depthRanks.get(String(a.id)) ?? 99
-          const rb = depthRanks.get(String(b.id)) ?? 99
-          return ra - rb || (b.tds ?? 0) - (a.tds ?? 0)
-        })
+      ? [...list].sort((a, b) => rankOf(a) - rankOf(b) || (b.tds ?? 0) - (a.tds ?? 0))
       : [...list].sort((a, b) => (b.tds ?? 0) - (a.tds ?? 0))
 
     ranked.forEach((p, i) => {
@@ -187,6 +215,7 @@ export async function fetchGameRosters(game, { signal } = {}) {
     hasTouchdownData: home.hasTouchdownData && away.hasTouchdownData,
     depthKnown: players.some((p) => p.depthKnown),
     depthSource: players.find((p) => p.depthSource)?.depthSource ?? null,
+    hasSeasonStats: home.hasSeasonStats || away.hasSeasonStats,
     notes: [home.note, away.note].filter(Boolean)
   }
 }
