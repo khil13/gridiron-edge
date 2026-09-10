@@ -272,7 +272,9 @@ function analyse({ game, proj, settings, rosters, props, entered = {} }) {
     teamCtx,
     hasPrices: entries.length > 0,
     hasTouchdownData: rosters.hasTouchdownData,
-    depthKnown: rosters.depthKnown
+    depthKnown: rosters.depthKnown,
+    statsSeason: rosters.statsSeason,
+    usedPriorSeason: rosters.usedPriorSeason
   }
 }
 
@@ -590,10 +592,10 @@ function Volume({ analysis, entered, onPrice }) {
           <Badge tone="quiet">No season rates yet</Badge>
         </div>
         <p className="dim" style={{ fontSize: 12, padding: 'var(--s4)', margin: 0, maxWidth: '75ch' }}>
-          These markets need a real per-game rate — yards, catches, carries actually recorded
-          this season. Nobody has one yet, and a positional average is not a substitute: it is
-          adequate for a touchdown share, which is a proportion, and worthless for a yardage
-          line. They appear once games have been played.
+          These markets need a real per-game rate — yards, catches or carries actually recorded.
+          Neither this season nor last returned any for these rosters. A positional average is
+          not a substitute: it is adequate for a touchdown share, which is a proportion, and
+          worthless for a yardage line where being twenty yards out is the whole bet.
         </p>
       </section>
     )
@@ -603,9 +605,14 @@ function Volume({ analysis, entered, onPrice }) {
     <section className="panel">
       <div className="panel-head">
         <div>
-          <div className="eyebrow">Backed by this season&apos;s rate, scaled to this game</div>
+          <div className="eyebrow">
+            {analysis.usedPriorSeason
+              ? `${analysis.statsSeason} rates, scaled to this game`
+              : 'This season\u2019s rate, scaled to this game'}
+          </div>
           <h2 style={{ fontSize: 'var(--t-base)', marginTop: 4 }}>Yardage and volume</h2>
         </div>
+        {analysis.usedPriorSeason && <Badge tone="chalk">Last season</Badge>}
       </div>
 
       <div style={{ padding: 'var(--s3) var(--s4) 0' }}>
@@ -687,6 +694,16 @@ function Volume({ analysis, entered, onPrice }) {
           </tbody>
         </table>
       </div>
+
+      {analysis.usedPriorSeason && (
+        <p className="dim" style={{ fontSize: 11, padding: 'var(--s3) var(--s4) 0', margin: 0, maxWidth: '80ch' }}>
+          <span className="market">No games have been played this season, so these rates are
+          from {analysis.statsSeason}.</span> That is real data rather than a guess, but an
+          offseason sits between: players changed teams, roles moved, and a rookie has no line
+          here at all because he has no history to project from. Treat them as a starting point
+          that gets replaced as this season is played.
+        </p>
+      )}
 
       <p className="dim" style={{ fontSize: 11, padding: 'var(--s3) var(--s4)', margin: 0, maxWidth: '80ch' }}>
         Yardage is modelled with a right-skewed distribution rather than a bell curve, because

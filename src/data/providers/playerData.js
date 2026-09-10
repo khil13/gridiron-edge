@@ -23,14 +23,15 @@ const norm = (a) => ABBR[a] || a
 /** Positions that can plausibly score. Everyone else is noise on this board. */
 const SCORING_POSITIONS = new Set(['QB', 'RB', 'FB', 'WR', 'TE'])
 
-export async function fetchRoster(teamAbbr, { signal } = {}) {
+export async function fetchRoster(teamAbbr, { signal, season } = {}) {
   const slug = teamAbbr === 'LA' ? 'lar' : teamAbbr === 'WAS' ? 'wsh' : teamAbbr === 'JAC' ? 'jax' : teamAbbr.toLowerCase()
 
   let json = null
   let lastError
   for (const host of HOSTS) {
     try {
-      const res = await fetch(`${host}/teams/${slug}/roster?enable=stats`, { signal })
+      const query = season ? `?season=${season}&enable=stats` : '?enable=stats'
+      const res = await fetch(`${host}/teams/${slug}/roster${query}`, { signal })
       if (!res.ok) throw new Error(`returned ${res.status}`)
       json = await res.json()
       break
@@ -66,6 +67,7 @@ export async function fetchRoster(teamAbbr, { signal } = {}) {
   return {
     team: norm(teamAbbr),
     players,
+    season: season ?? null,
     hasTouchdownData: players.some((p) => p.tds != null),
     hasSeasonStats: withStats > 0,
     note: withStats > 0
@@ -197,15 +199,36 @@ export function assignRoles(players, depthRanks = null) {
 }
 
 /** Both rosters for a game, with roles assigned. */
-export async function fetchGameRosters(game, { signal } = {}) {
+export async function fetchGameRosters(game, { signal, season } = {}) {
   // Depth charts are best-effort: a failure there degrades the ranking, it
   // does not break the page.
-  const [home, away, homeDepth, awayDepth] = await Promise.all([
+  let [home, away, homeDepth, awayDepth] = await Promise.all([
     fetchRoster(game.home, { signal }),
     fetchRoster(game.away, { signal }),
     fetchDepthChart(game.home, { signal }).catch(() => null),
     fetchDepthChart(game.away, { signal }).catch(() => null)
   ])
+
+  // Before week one nobody has a rate this season, which would leave every
+  // yardage market empty. Last season is real data and a far better starting
+  // point than nothing — as long as it is labelled as last season, because
+  // players change teams and roles over an offseason.
+  let statsSeason = season ?? new Date().getFullYear()
+  let usedPriorSeason = false
+
+  if (!home.hasSeasonStats && !away.hasSeasonStats) {
+    const prior = statsSeason - 1
+    const [homePrior, awayPrior] = await Promise.all([
+      fetchRoster(game.home, { signal, season: prior }).catch(() => null),
+      fetchRoster(game.away, { signal, season: prior }).catch(() => null)
+    ])
+    if (homePrior?.hasSeasonStats || awayPrior?.hasSeasonStats) {
+      home = homePrior ?? home
+      away = awayPrior ?? away
+      statsSeason = prior
+      usedPriorSeason = true
+    }
+  }
   const players = [
     ...assignRoles(home.players, homeDepth),
     ...assignRoles(away.players, awayDepth)
@@ -216,6 +239,8 @@ export async function fetchGameRosters(game, { signal } = {}) {
     depthKnown: players.some((p) => p.depthKnown),
     depthSource: players.find((p) => p.depthSource)?.depthSource ?? null,
     hasSeasonStats: home.hasSeasonStats || away.hasSeasonStats,
+    statsSeason,
+    usedPriorSeason,
     notes: [home.note, away.note].filter(Boolean)
   }
 }

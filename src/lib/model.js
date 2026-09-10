@@ -8,7 +8,7 @@
  * setting so you can refit it against your own data.
  */
 
-import { winProbFromMargin, clamp } from './odds.js'
+import { winProbFromMargin, clamp, normalCdf } from './odds.js'
 
 export const ELO_BASE = 1500
 export const ELO_PER_POINT = 25
@@ -234,5 +234,59 @@ export function mulberry32(seed) {
     let t = Math.imul(a ^ (a >>> 15), 1 | a)
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* In-game win probability                                             */
+/* ------------------------------------------------------------------ */
+
+/** Minutes left in regulation, from the quarter and the game clock. */
+export function minutesRemaining(period, clock) {
+  if (!period) return 60
+  const [m, s] = String(clock ?? '15:00').split(':').map(Number)
+  const inQuarter = Number.isFinite(m) ? m + (Number.isFinite(s) ? s / 60 : 0) : 15
+  // Overtime: whatever is left on the clock is all there is.
+  if (period > 4) return Math.max(0, inQuarter)
+  return Math.max(0, (4 - period) * 15 + inQuarter)
+}
+
+/**
+ * Live win probability from the score and the clock.
+ *
+ * The pregame number stops being true the moment a game kicks off, and
+ * leaving it on screen while a team leads by ten is worse than showing
+ * nothing — it reads as a current estimate.
+ *
+ * The model is deliberately simple and says what it assumes: the remaining
+ * game is the pregame projection scaled to the time left, and the spread of
+ * outcomes narrows with the square root of that time. A ten-point lead is
+ * worth far more with five minutes left than with fifty, and the square root
+ * is what encodes that.
+ *
+ * It does not know about possession, timeouts, or field position, so it is
+ * least reliable in exactly the situations people care most about — a
+ * one-score game inside two minutes.
+ */
+export function liveWinProbability(homeScore, awayScore, period, clock, pregameMargin, s = DEFAULT_SETTINGS) {
+  const left = minutesRemaining(period, clock)
+  const fraction = Math.max(0, Math.min(1, left / 60))
+  const current = (homeScore ?? 0) - (awayScore ?? 0)
+
+  // What is still to come, if the teams play to their projection.
+  const expectedRest = pregameMargin * fraction
+
+  // Uncertainty shrinks with the square root of time left, with a floor so
+  // a tied game at the whistle reads as a coin flip rather than a certainty.
+  const sigma = Math.max(1.5, s.marginSigma * Math.sqrt(fraction))
+
+  const p = normalCdf(current + expectedRest, 0, sigma)
+  return {
+    home: Math.min(0.999, Math.max(0.001, p)),
+    away: Math.min(0.999, Math.max(0.001, 1 - p)),
+    minutesLeft: Math.round(left * 10) / 10,
+    // A game inside two minutes and one score turns on things this cannot
+    // see, so the UI can soften the claim.
+    lowConfidence: left < 2 && Math.abs(current) <= 8
   }
 }

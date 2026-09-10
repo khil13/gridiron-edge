@@ -11,7 +11,7 @@ import { useGameSummary } from '../lib/useDataset.js'
 import { groupTeamStats } from '../lib/boxscore.js'
 import PropsTab from './PropsTab.jsx'
 import { toSlipLeg } from '../lib/edges.js'
-import { winProbabilityPath } from '../lib/model.js'
+import { winProbabilityPath, liveWinProbability } from '../lib/model.js'
 import {
   fmtOdds, fmtSpread, fmtPct, fmtSigned, fmtKickoff, fmtDay, fmtTime, fmtMoney, readable
 } from '../lib/format.js'
@@ -19,11 +19,21 @@ import { href } from '../lib/router.js'
 
 export default function GameView({ game, data }) {
   const [tab, setTab] = useState('overview')
+  const { settings } = useStore()
   const home = getTeam(game.home)
   const away = getTeam(game.away)
   const isFinal = game.status === 'final'
   const isLive = game.status === 'live'
   const proj = game.projection
+
+  // A pregame probability left on screen during a live game reads as a
+  // current estimate, which is worse than showing nothing.
+  const live = useMemo(() => {
+    if (!isLive || !proj) return null
+    return liveWinProbability(
+      game.homeScore, game.awayScore, game.period, game.clock, proj.margin, settings
+    )
+  }, [isLive, proj, game.homeScore, game.awayScore, game.period, game.clock, settings])
 
   const path = useMemo(() => {
     if (!isFinal || !proj) return null
@@ -56,29 +66,48 @@ export default function GameView({ game, data }) {
         </div>
 
         <div className="row spread-between gap-4 gh-grid">
-          <Side team={away} score={game.awayScore} show={isFinal} align="left" />
+          <Side team={away} score={game.awayScore} show={isFinal || isLive} align="left" />
           <div className="gh-middle" style={{ textAlign: 'center', flex: '0 0 auto' }}>
-            <div className="eyebrow">{isFinal ? 'Final' : 'Kickoff'}</div>
+            <div className="eyebrow row gap-2" style={{ justifyContent: 'center' }}>
+              {isLive && <span className="live-dot" />}
+              {isFinal ? 'Final' : isLive ? 'Live' : 'Kickoff'}
+            </div>
             <div className="mono" style={{ fontSize: 'var(--t-lg)', marginTop: 4 }}>
-              {isFinal ? `${game.awayScore}–${game.homeScore}` : fmtTime(game.kickoff)}
+              {isFinal
+                ? `${game.awayScore}–${game.homeScore}`
+                : isLive
+                  ? `Q${game.period ?? 1} ${game.clock ?? ''}`.trim()
+                  : fmtTime(game.kickoff)}
             </div>
           </div>
-          <Side team={home} score={game.homeScore} show={isFinal} align="right" />
+          <Side team={home} score={game.homeScore} show={isFinal || isLive} align="right" />
         </div>
 
         {proj && (
           <div style={{ marginTop: 'var(--s5)' }}>
             <div className="row spread-between mono" style={{ fontSize: 11, marginBottom: 6 }}>
-              <span style={{ color: readable(away.primary) }}>{away.abbr} {fmtPct(proj.awayWinProb, 0)}</span>
-              <span className="eyebrow">Model win probability</span>
-              <span style={{ color: readable(home.primary) }}>{fmtPct(proj.homeWinProb, 0)} {home.abbr}</span>
+              <span style={{ color: readable(away.primary) }}>
+                {away.abbr} {fmtPct(live ? live.away : proj.awayWinProb, 0)}
+              </span>
+              <span className="eyebrow">
+                {live ? `Live · ${live.minutesLeft} min left` : isFinal ? 'Pregame model' : 'Model win probability'}
+              </span>
+              <span style={{ color: readable(home.primary) }}>
+                {fmtPct(live ? live.home : proj.homeWinProb, 0)} {home.abbr}
+              </span>
             </div>
             <ProbBar
-              home={proj.homeWinProb}
-              away={proj.awayWinProb}
+              home={live ? live.home : proj.homeWinProb}
+              away={live ? live.away : proj.awayWinProb}
               homeColor={home.primary}
               awayColor={away.primary}
             />
+            {live?.lowConfidence && (
+              <p className="dim" style={{ fontSize: 11, marginBottom: 0, marginTop: 6 }}>
+                One score inside two minutes turns on possession, timeouts and field position,
+                none of which this sees. Treat the number loosely.
+              </p>
+            )}
           </div>
         )}
       </header>
