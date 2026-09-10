@@ -197,7 +197,10 @@ function parseSituation(json) {
     downDistance: src?.shortDownDistanceText || src?.downDistanceText || null,
     fieldPosition: src?.possessionText || null,
     possession: possessing ? norm(possessing.team?.abbreviation) : null,
-    isRedZone: !!src?.isRedZone
+    isRedZone: !!src?.isRedZone,
+    down: numberOrNull(src?.down),
+    distance: numberOrNull(src?.distance),
+    yardLine: numberOrNull(src?.yardLine)
   }
 }
 
@@ -301,3 +304,7 @@ async function fetchWeek(year, seasontype, week, signal) {
   }
   throw lastError ?? new Error('week unavailable')
 }
+
+/** Numeric fields arrive as numbers, numeric strings, or empty. */
+const numberOrNull = (v) =>
+  v == null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v)

@@ -274,7 +274,8 @@ function analyse({ game, proj, settings, rosters, props, entered = {} }) {
     hasTouchdownData: rosters.hasTouchdownData,
     depthKnown: rosters.depthKnown,
     statsSeason: rosters.statsSeason,
-    usedPriorSeason: rosters.usedPriorSeason
+    usedPriorSeason: rosters.usedPriorSeason,
+    statsNote: rosters.statsNote
   }
 }
 
@@ -593,9 +594,10 @@ function Volume({ analysis, entered, onPrice }) {
         </div>
         <p className="dim" style={{ fontSize: 12, padding: 'var(--s4)', margin: 0, maxWidth: '75ch' }}>
           These markets need a real per-game rate — yards, catches or carries actually recorded.
-          Neither this season nor last returned any for these rosters. A positional average is
-          not a substitute: it is adequate for a touchdown share, which is a proportion, and
-          worthless for a yardage line where being twenty yards out is the whole bet.
+          {analysis.statsNote ? ` ${analysis.statsNote}` : ' Neither this season nor last returned any for these rosters.'}
+          {' '}A positional average is not a substitute: it is adequate for a touchdown share,
+          which is a proportion, and worthless for a yardage line where being twenty yards out
+          is the whole bet.
         </p>
       </section>
     )

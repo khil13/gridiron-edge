@@ -209,24 +209,32 @@ export async function fetchGameRosters(game, { signal, season } = {}) {
     fetchDepthChart(game.away, { signal }).catch(() => null)
   ])
 
-  // Before week one nobody has a rate this season, which would leave every
-  // yardage market empty. Last season is real data and a far better starting
-  // point than nothing — as long as it is labelled as last season, because
-  // players change teams and roles over an offseason.
+  // Whether anyone has a rate worth projecting from, not merely whether the
+  // feed returned a statistics object. A roster full of zeros satisfied the
+  // old check and still produced nothing.
+  const usable = (roster) => roster.players.some((p) => (p.stats?.games ?? 0) >= 1)
+
   let statsSeason = season ?? new Date().getFullYear()
   let usedPriorSeason = false
+  let statsNote = null
 
-  if (!home.hasSeasonStats && !away.hasSeasonStats) {
-    const prior = statsSeason - 1
-    const [homePrior, awayPrior] = await Promise.all([
-      fetchRoster(game.home, { signal, season: prior }).catch(() => null),
-      fetchRoster(game.away, { signal, season: prior }).catch(() => null)
-    ])
-    if (homePrior?.hasSeasonStats || awayPrior?.hasSeasonStats) {
-      home = homePrior ?? home
-      away = awayPrior ?? away
-      statsSeason = prior
-      usedPriorSeason = true
+  if (!usable(home) && !usable(away)) {
+    // Try this season league-wide first, then last season. The roster
+    // endpoint ignores a season parameter; this one does not.
+    for (const candidate of [statsSeason, statsSeason - 1]) {
+      const { index, ok } = await fetchSeasonStatIndex(candidate, { signal }).catch(() => ({ index: new Map(), ok: false }))
+      if (!ok) continue
+
+      const applied = applyIndex([home, away], index)
+      if (applied > 0) {
+        statsSeason = candidate
+        usedPriorSeason = candidate !== (season ?? new Date().getFullYear())
+        statsNote = `${applied} players matched from ${candidate} season statistics.`
+        break
+      }
+    }
+    if (!statsNote) {
+      statsNote = 'No season statistics could be loaded for either roster, so yardage markets are unavailable.'
     }
   }
   const players = [
@@ -238,9 +246,10 @@ export async function fetchGameRosters(game, { signal, season } = {}) {
     hasTouchdownData: home.hasTouchdownData && away.hasTouchdownData,
     depthKnown: players.some((p) => p.depthKnown),
     depthSource: players.find((p) => p.depthSource)?.depthSource ?? null,
-    hasSeasonStats: home.hasSeasonStats || away.hasSeasonStats,
+    hasSeasonStats: players.some((p) => (p.stats?.games ?? 0) >= 1),
     statsSeason,
     usedPriorSeason,
+    statsNote,
     notes: [home.note, away.note].filter(Boolean)
   }
 }
@@ -307,4 +316,134 @@ const idFromRef = (ref) => {
   if (!ref) return null
   const m = String(ref).match(/athletes\/(\d+)/)
   return m ? m[1] : null
+}
+
+/* ------------------------------------------------------------------ */
+/* League-wide season statistics                                       */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Season statistics for every player, in one request.
+ *
+ * The roster endpoint quietly ignores a season parameter, so asking it for
+ * last year returns this year — which is why yardage markets stayed empty on
+ * opening weekend even after a "fall back to last season" fix. This endpoint
+ * actually honours the season, and returns the whole league at once rather
+ * than one athlete at a time.
+ *
+ * The response shape is undocumented and varies by category, so parsing is
+ * defensive throughout and an unrecognised payload yields an empty index
+ * rather than a confidently wrong one.
+ */
+const BYATHLETE = 'https://site.web.api.espn.com/apis/common/v3/sports/football/nfl/statistics/byathlete'
+
+/** Categories worth pulling. Each is a separate request. */
+const STAT_CATEGORIES = ['passing', 'rushing', 'receiving']
+
+export async function fetchSeasonStatIndex(season, { signal, seasontype = 2 } = {}) {
+  const index = new Map()
+  let anySucceeded = false
+
+  const results = await Promise.allSettled(
+    STAT_CATEGORIES.map(async (category) => {
+      const url = `${BYATHLETE}?season=${season}&seasontype=${seasontype}&category=${category}&limit=300`
+      const res = await fetch(url, { signal })
+      if (!res.ok) throw new Error(`${category} returned ${res.status}`)
+      return { category, json: await res.json() }
+    })
+  )
+
+  for (const result of results) {
+    if (result.status !== 'fulfilled') continue
+    anySucceeded = true
+    absorb(index, result.value.json)
+  }
+
+  return { index, ok: anySucceeded && index.size > 0, season }
+}
+
+/** Merge one category payload into the athlete index. */
+function absorb(index, json) {
+  const rows = json?.athletes ?? json?.items ?? []
+  if (!Array.isArray(rows)) return
+
+  for (const row of rows) {
+    const athlete = row?.athlete ?? row
+    const id = String(athlete?.id ?? '')
+    if (!id) continue
+
+    const entry = index.get(id) ?? { id, name: athlete?.displayName ?? '', stats: {} }
+
+    // Stats arrive either as labelled categories or as parallel
+    // names/values arrays, depending on the category.
+    for (const cat of row?.categories ?? []) {
+      const names = cat?.names ?? cat?.labels ?? []
+      const values = cat?.values ?? cat?.displayValues ?? []
+      names.forEach((name, i) => {
+        const v = Number(values[i])
+        if (Number.isFinite(v)) entry.stats[name] = v
+      })
+      for (const s of cat?.stats ?? []) {
+        const v = Number(s?.value ?? s?.displayValue)
+        if (s?.name && Number.isFinite(v)) entry.stats[s.name] = v
+      }
+    }
+    for (const s of row?.stats ?? []) {
+      const v = Number(s?.value ?? s?.displayValue ?? s)
+      const name = s?.name ?? s?.abbreviation
+      if (name && Number.isFinite(v)) entry.stats[name] = v
+    }
+
+    index.set(id, entry)
+  }
+}
+
+/** Map an index entry onto the shape the props model expects. */
+export function statsFromIndex(entry) {
+  if (!entry) return null
+  const s = entry.stats
+  const pick = (...names) => {
+    for (const n of names) {
+      if (s[n] != null) return s[n]
+      // Feeds mix camelCase and abbreviations.
+      const lower = Object.keys(s).find((k) => k.toLowerCase() === n.toLowerCase())
+      if (lower) return s[lower]
+    }
+    return null
+  }
+
+  const games = pick('gamesPlayed', 'GP')
+  if (!games) return null
+
+  const rushTd = pick('rushingTouchdowns', 'rushTD') ?? 0
+  const recTd = pick('receivingTouchdowns', 'recTD') ?? 0
+
+  return {
+    games,
+    tds: rushTd + recTd,
+    receivingYards: pick('receivingYards', 'recYds'),
+    receptions: pick('receptions', 'rec'),
+    targets: pick('receivingTargets', 'targets'),
+    rushingYards: pick('rushingYards', 'rushYds'),
+    rushingAttempts: pick('rushingAttempts', 'rushAtt', 'carries'),
+    passingYards: pick('passingYards', 'passYds'),
+    passingTouchdowns: pick('passingTouchdowns', 'passTD'),
+    passingAttempts: pick('passingAttempts', 'passAtt')
+  }
+}
+
+/** Attach league-wide stats onto rostered players. Returns how many matched. */
+function applyIndex(rosters, index) {
+  let applied = 0
+  for (const roster of rosters) {
+    for (const player of roster.players) {
+      const entry = index.get(String(player.id))
+      const stats = statsFromIndex(entry)
+      if (!stats) continue
+      player.stats = stats
+      player.tds = stats.tds ?? player.tds
+      applied++
+    }
+  }
+  return applied
 }

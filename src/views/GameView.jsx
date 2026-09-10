@@ -9,6 +9,7 @@ import { recordOf } from '../data/season2025.js'
 import { useStore } from '../lib/store.jsx'
 import { useGameSummary } from '../lib/useDataset.js'
 import { groupTeamStats } from '../lib/boxscore.js'
+import FieldGraphic from '../components/FieldGraphic.jsx'
 import PropsTab from './PropsTab.jsx'
 import { toSlipLeg } from '../lib/edges.js'
 import { winProbabilityPath, liveWinProbability } from '../lib/model.js'
@@ -521,18 +522,17 @@ function StatsTab({ game, data }) {
             {situation.isRedZone && <Badge tone="live">Red zone</Badge>}
           </div>
           <div style={{ padding: 'var(--s4)' }}>
-            <div className="row gap-4" style={{ flexWrap: 'wrap' }}>
+            <div className="row gap-4" style={{ flexWrap: 'wrap', marginBottom: 'var(--s2)' }}>
               {situation.possession && (
                 <div className="row gap-2">
                   <TeamMark abbr={situation.possession} size={22} />
                   <span className="team-name">{situation.possession} ball</span>
                 </div>
               )}
-              {situation.downDistance && (
-                <span className="mono" style={{ fontSize: 'var(--t-lg)' }}>{situation.downDistance}</span>
-              )}
-              {situation.fieldPosition && <span className="dim mono">{situation.fieldPosition}</span>}
             </div>
+
+            <FieldGraphic situation={situation} home={game.home} away={game.away} />
+
             {lastPlay && (
               <p className="dim" style={{ fontSize: 12, marginBottom: 0, marginTop: 'var(--s3)' }}>
                 {lastPlay}
