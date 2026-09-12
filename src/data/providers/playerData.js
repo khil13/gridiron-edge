@@ -221,11 +221,15 @@ export async function fetchGameRosters(game, { signal, season } = {}) {
   if (!usable(home) && !usable(away)) {
     // Try this season league-wide first, then last season. The roster
     // endpoint ignores a season parameter; this one does not.
+    const attempts = []
     for (const candidate of [statsSeason, statsSeason - 1]) {
-      const { index, ok } = await fetchSeasonStatIndex(candidate, { signal }).catch(() => ({ index: new Map(), ok: false }))
-      if (!ok) continue
+      const result = await fetchSeasonStatIndex(candidate, { signal }).catch((err) => ({
+        index: new Map(), ok: false, season: candidate, failed: [err.message], rowsSeen: 0
+      }))
+      attempts.push(result)
+      if (!result.ok) continue
 
-      const applied = applyIndex([home, away], index)
+      const applied = applyIndex([home, away], result.index)
       if (applied > 0) {
         statsSeason = candidate
         usedPriorSeason = candidate !== (season ?? new Date().getFullYear())
@@ -234,7 +238,21 @@ export async function fetchGameRosters(game, { signal, season } = {}) {
       }
     }
     if (!statsNote) {
-      statsNote = 'No season statistics could be loaded for either roster, so yardage markets are unavailable.'
+      // Three genuinely different failures were collapsing into one silent
+      // "no data" message: the feed being unreachable, answering with
+      // nothing, or answering with plenty of rows that just never matched
+      // a rostered player's ID. Telling those apart is the difference
+      // between "ESPN is down" and "our two feeds use different IDs".
+      const reached = attempts.some((a) => a.ok)
+      const rowsSeen = attempts.reduce((s, a) => s + (a.rowsSeen ?? 0), 0)
+      if (!reached) {
+        const reasons = [...new Set(attempts.flatMap((a) => a.failed ?? []))]
+        statsNote = reasons.length
+          ? `ESPN's season-stats feed errored (${reasons.slice(0, 2).join('; ')}), so yardage markets are unavailable.`
+          : "ESPN's season-stats feed returned no rows for this season or last, so yardage markets are unavailable."
+      } else {
+        statsNote = `ESPN's season-stats feed returned ${rowsSeen} player-rows league-wide, but none matched either roster by ID, so yardage markets are unavailable.`
+      }
     }
   }
   const players = [
@@ -340,32 +358,43 @@ const BYATHLETE = 'https://site.web.api.espn.com/apis/common/v3/sports/football/
 /** Categories worth pulling. Each is a separate request. */
 const STAT_CATEGORIES = ['passing', 'rushing', 'receiving']
 
+/**
+ * @returns {{index: Map, ok: boolean, season: number, failed: string[], rowsSeen: number}}
+ *   `failed` names any category whose request itself errored, so a caller
+ *   can tell "the feed is unreachable" apart from "it answered but had
+ *   nothing in it" apart from "it had rows, they just didn't match anyone" —
+ *   three very different problems that used to collapse into one silent
+ *   empty index.
+ */
 export async function fetchSeasonStatIndex(season, { signal, seasontype = 2 } = {}) {
   const index = new Map()
-  let anySucceeded = false
+  const failed = []
+  let rowsSeen = 0
 
   const results = await Promise.allSettled(
     STAT_CATEGORIES.map(async (category) => {
       const url = `${BYATHLETE}?season=${season}&seasontype=${seasontype}&category=${category}&limit=300`
       const res = await fetch(url, { signal })
-      if (!res.ok) throw new Error(`${category} returned ${res.status}`)
+      if (!res.ok) throw new Error(String(res.status))
       return { category, json: await res.json() }
     })
   )
 
-  for (const result of results) {
-    if (result.status !== 'fulfilled') continue
-    anySucceeded = true
-    absorb(index, result.value.json)
+  for (const [i, result] of results.entries()) {
+    if (result.status !== 'fulfilled') {
+      failed.push(`${STAT_CATEGORIES[i]}: ${result.reason?.message ?? 'failed'}`)
+      continue
+    }
+    rowsSeen += absorb(index, result.value.json)
   }
 
-  return { index, ok: anySucceeded && index.size > 0, season }
+  return { index, ok: failed.length < STAT_CATEGORIES.length && index.size > 0, season, failed, rowsSeen }
 }
 
-/** Merge one category payload into the athlete index. */
+/** Merge one category payload into the athlete index. Returns rows seen. */
 function absorb(index, json) {
   const rows = json?.athletes ?? json?.items ?? []
-  if (!Array.isArray(rows)) return
+  if (!Array.isArray(rows)) return 0
 
   for (const row of rows) {
     const athlete = row?.athlete ?? row
@@ -396,6 +425,7 @@ function absorb(index, json) {
 
     index.set(id, entry)
   }
+  return rows.length
 }
 
 /** Map an index entry onto the shape the props model expects. */
