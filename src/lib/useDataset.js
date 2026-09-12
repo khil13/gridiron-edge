@@ -201,15 +201,20 @@ export function useGameSummary(game, source) {
  * a timer that is either too eager or too slow.
  */
 export function useCurrentRatings(opening, settings, source, season, throughWeek = 1) {
-  const [state, setState] = useState({
-    loading: false, ratings: opening, applied: 0, error: null, live: false
+  // Only the fetch itself is state: the games actually played this season.
+  // Replaying them onto `opening` is pure arithmetic (a few hundred games,
+  // per the design note in ratings.js) and depends on `settings`, so it is
+  // redone in the useMemo below rather than re-fetched here — otherwise
+  // every drag of a Model Lab slider would re-hit ESPN for the whole season.
+  const [fetchState, setFetchState] = useState({
+    loading: false, games: null, error: null, live: false, asOf: null
   })
 
   useEffect(() => {
     if (source !== 'espn' || throughWeek < 1) {
       // Preseason or before kickoff: there is nothing to replay, and asking
       // would just be a round trip that returns nothing.
-      setState({ loading: false, ratings: opening, applied: 0, error: null, live: false })
+      setFetchState({ loading: false, games: null, error: null, live: false, asOf: null })
       return
     }
 
@@ -218,13 +223,11 @@ export function useCurrentRatings(opening, settings, source, season, throughWeek
 
     const cached = load(`results:${season}`, null)
     if (cached?.games?.length) {
-      const replayed = applyResults(opening, cached.games, settings)
-      setState({
-        loading: true, ratings: replayed.ratings, applied: replayed.applied,
-        error: null, live: true, asOf: cached.fetchedAt
+      setFetchState({
+        loading: true, games: cached.games, error: null, live: true, asOf: cached.fetchedAt
       })
     } else {
-      setState((s) => ({ ...s, loading: true }))
+      setFetchState((s) => ({ ...s, loading: true }))
     }
 
     // Only ask for weeks that could already have been played. On opening
@@ -236,12 +239,9 @@ export function useCurrentRatings(opening, settings, source, season, throughWeek
       .then(({ games, failedWeeks }) => {
         if (!alive) return
         save(`results:${season}`, { games, fetchedAt: new Date().toISOString() })
-        const replayed = applyResults(opening, games, settings)
-        setState({
+        setFetchState({
           loading: false,
-          ratings: replayed.ratings,
-          applied: replayed.applied,
-          history: replayed.history,
+          games,
           error: failedWeeks ? `${failedWeeks} week(s) could not be loaded` : null,
           live: true,
           asOf: new Date().toISOString()
@@ -251,7 +251,7 @@ export function useCurrentRatings(opening, settings, source, season, throughWeek
         if (!alive) return
         // Falling back to opening ratings is correct but must be visible:
         // silently projecting off stale ratings is worse than saying so.
-        setState((s) => ({
+        setFetchState((s) => ({
           ...s,
           loading: false,
           error: `Could not load season results (${err.message}). Using opening ratings.`
@@ -259,7 +259,24 @@ export function useCurrentRatings(opening, settings, source, season, throughWeek
       })
 
     return () => { alive = false; controller.abort() }
-  }, [opening, settings, source, season, throughWeek])
+  }, [source, season, throughWeek])
 
-  return state
+  return useMemo(() => {
+    if (!fetchState.games) {
+      return {
+        loading: fetchState.loading, ratings: opening, applied: 0,
+        error: fetchState.error, live: fetchState.live, asOf: fetchState.asOf
+      }
+    }
+    const replayed = applyResults(opening, fetchState.games, settings)
+    return {
+      loading: fetchState.loading,
+      ratings: replayed.ratings,
+      applied: replayed.applied,
+      history: replayed.history,
+      error: fetchState.error,
+      live: fetchState.live,
+      asOf: fetchState.asOf
+    }
+  }, [opening, settings, fetchState])
 }

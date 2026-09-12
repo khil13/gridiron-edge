@@ -55,6 +55,8 @@ Other scripts:
 npm run ratings      # rebuild power ratings from 2025 results
 npm run build        # production build to dist/
 npm run preview      # serve the production build
+npm test             # unit tests for the pure math (lib/odds.js, lib/model.js)
+npm run lint         # ESLint
 ```
 
 ---
