@@ -90,31 +90,24 @@ export default function ScoresView({ data }) {
       })}
 
       {topEdges.length > 0 && (
-        <section className="panel" style={{ marginBottom: 'var(--s5)' }}>
-          <div className="panel-head">
+        <section style={{ marginBottom: 'var(--s6)' }}>
+          <div className="row spread-between" style={{ marginBottom: 'var(--s3)' }}>
             <div>
               <div className="eyebrow">Where the model disagrees most</div>
               <h2 style={{ fontSize: 'var(--t-lg)', marginTop: 4 }}>Today&apos;s biggest edges</h2>
             </div>
             <a className="btn ghost" href={href('odds')}>Full board</a>
           </div>
-          <div className="edge-strip" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
-            {topEdges.map((p, i) => (
-              <a
-                key={p.id}
-                href={href(`game/${p.gameId}`)}
-                style={{
-                  padding: 'var(--s4)',
-                  borderRight: i < topEdges.length - 1 ? '1px solid var(--line)' : 'none'
-                }}
-              >
-                <div className="mono dim" style={{ fontSize: 11, marginBottom: 6 }}>{p.matchup}</div>
-                <div className="team-name" style={{ fontSize: 'var(--t-lg)', marginBottom: 4 }}>{p.label}</div>
+          <div className="edge-strip" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--s4)' }}>
+            {topEdges.map((p) => (
+              <a key={p.id} className="edge-hero" href={href(`game/${p.gameId}`)}>
+                <div className="mono dim" style={{ fontSize: 11, marginBottom: 8 }}>{p.matchup}</div>
+                <div className="team-name" style={{ fontSize: 'var(--t-xl)', marginBottom: 6, letterSpacing: '-0.01em' }}>{p.label}</div>
                 <div className="row gap-2">
                   <span className="mono market">{fmtOdds(p.price)}</span>
                   <span className="dim mono" style={{ fontSize: 11 }}>{p.book}</span>
                 </div>
-                <div style={{ marginTop: 'var(--s2)' }}>
+                <div style={{ marginTop: 'var(--s3)' }}>
                   <Badge tone="edge">+{(p.ev * 100).toFixed(1)}% EV</Badge>
                 </div>
               </a>
