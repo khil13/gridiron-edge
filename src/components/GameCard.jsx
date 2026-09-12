@@ -3,7 +3,7 @@ import EdgeRail from './EdgeRail.jsx'
 import { Badge } from './Controls.jsx'
 import { getTeam } from '../data/teams.js'
 import { recordOf } from '../data/season2025.js'
-import { fmtSpread, fmtOdds, fmtKickoff, fmtPct, relativeDay } from '../lib/format.js'
+import { fmtSpread, fmtOdds, fmtKickoff, fmtPct, relativeDay, tint, readable } from '../lib/format.js'
 import { href } from '../lib/router.js'
 
 /**
@@ -15,6 +15,8 @@ export default function GameCard({ game }) {
   const isFinal = status === 'final'
   const isLive = status === 'live'
   const consensus = market?.books?.find((b) => b.sharp) || market?.books?.[0]
+  const homeTeam = getTeam(home)
+  const awayTeam = getTeam(away)
 
   const homeWon = isFinal && game.homeScore > game.awayScore
   const awayWon = isFinal && game.awayScore > game.homeScore
@@ -26,7 +28,16 @@ export default function GameCard({ game }) {
       : `${relativeDay(game.kickoff) ?? ''} ${fmtKickoff(game.kickoff)}`.trim()
 
   return (
-    <a className="gcard" href={href(`game/${game.id}`)}>
+    <a
+      className="gcard"
+      href={href(`game/${game.id}`)}
+      style={{
+        '--gcard-away': readable(awayTeam.primary),
+        '--gcard-home': readable(homeTeam.primary),
+        background: `linear-gradient(165deg, ${tint(awayTeam.primary, 0.1)}, var(--slab) 40%, var(--slab) 60%, ${tint(homeTeam.primary, 0.1)})`
+      }}
+    >
+      <div className="gcard-accent" />
       <div className="gcard-strap">
         <span className="row gap-2">
           {isLive && <span className="live-dot" />}

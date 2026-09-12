@@ -57,8 +57,8 @@
   --t-base:  0.9375rem;   /* 15px */
   --t-lg:    1.125rem;
   --t-xl:    1.5rem;
-  --t-2xl:   2rem;
-  --t-score: 2.25rem;
+  --t-2xl:   2.25rem;
+  --t-score: 2.5rem;
 
   /* Space */
   --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px;
@@ -75,19 +75,20 @@
 
   /* Elevation. Dark surfaces don't read shadows the way light ones do, so
      each level pairs a soft ambient shadow with a hairline top highlight —
-     the light-catches-an-edge cue that actually sells "raised" at night. */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.35);
-  --shadow-sm: 0 1px 0 var(--edge) inset, 0 4px 14px rgba(0, 0, 0, 0.38);
-  --shadow-md: 0 1px 0 var(--edge) inset, 0 10px 28px rgba(0, 0, 0, 0.46);
-  --shadow-lg: 0 1px 0 var(--edge-hi) inset, 0 20px 56px rgba(0, 0, 0, 0.55);
+     the light-catches-an-edge cue that actually sells "raised" at night.
+     Sized to actually be seen at a glance, not just measurable in devtools. */
+  --shadow-xs: 0 2px 6px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 1px 0 var(--edge) inset, 0 8px 22px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 1px 0 var(--edge) inset, 0 18px 44px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 1px 0 var(--edge-hi) inset, 0 32px 80px rgba(0, 0, 0, 0.65);
   --shadow-lift: var(--shadow-md); /* kept as an alias — used before this pass */
 
   /* Semantic glows — a thin tinted ring plus a soft bloom, for the handful
      of elements whose whole job is to draw the eye (primary actions, a live
      badge, a qualified play). Everything else stays quiet by contrast. */
-  --glow-gold:  0 0 0 1px rgba(242, 193, 78, 0.35), 0 8px 24px rgba(242, 193, 78, 0.16);
-  --glow-mint:  0 0 0 1px rgba(63, 217, 164, 0.32), 0 8px 22px rgba(63, 217, 164, 0.14);
-  --glow-flare: 0 0 0 1px rgba(255, 90, 71, 0.38), 0 6px 18px rgba(255, 90, 71, 0.2);
+  --glow-gold:  0 0 0 1px rgba(242, 193, 78, 0.45), 0 0 32px rgba(242, 193, 78, 0.35);
+  --glow-mint:  0 0 0 1px rgba(63, 217, 164, 0.4),  0 0 30px rgba(63, 217, 164, 0.3);
+  --glow-flare: 0 0 0 1px rgba(255, 90, 71, 0.45),  0 0 26px rgba(255, 90, 71, 0.35);
 
   /* Motion. One easing curve, three durations — used everywhere instead of
      one-off values so hovers, tabs and the slip all move at the same tempo. */

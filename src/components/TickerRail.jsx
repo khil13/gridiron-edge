@@ -1,5 +1,6 @@
 import TeamMark from './TeamMark.jsx'
-import { fmtShortDay, fmtTime, fmtSpread } from '../lib/format.js'
+import { getTeam } from '../data/teams.js'
+import { fmtShortDay, fmtTime, fmtSpread, readable } from '../lib/format.js'
 import { href } from '../lib/router.js'
 
 /**
@@ -20,7 +21,16 @@ export default function TickerRail({ games }) {
           const line = g.market?.books?.[0]?.spread?.home?.line
 
           return (
-            <a className="tick" key={g.id} href={href(`game/${g.id}`)} role="listitem">
+            <a
+              className="tick"
+              key={g.id}
+              href={href(`game/${g.id}`)}
+              role="listitem"
+              style={{
+                '--tick-away': readable(getTeam(g.away).primary),
+                '--tick-home': readable(getTeam(g.home).primary)
+              }}
+            >
               <div className="tick-meta">
                 {live && <span className="live-dot" />}
                 {live ? `Q${g.period ?? 1} ${g.clock ?? ''}` : final ? 'Final' : `${fmtShortDay(g.kickoff)} ${fmtTime(g.kickoff)}`}
