@@ -18,6 +18,8 @@ export default function AppShell({ route, games, children, footNote }) {
 
   return (
     <div className="shell">
+      <a className="skip-link" href="#main-content">Skip to content</a>
+
       <nav className="rail" aria-label="Primary">
         <a className="rail-mark" href={href('scores')} aria-label="Gridiron Edge home">GE</a>
         {NAV.map(({ view, label, Icon }) => (
@@ -35,7 +37,9 @@ export default function AppShell({ route, games, children, footNote }) {
 
       <div className="main">
         <TickerRail games={games} />
-        {children}
+        <main id="main-content" tabIndex={-1}>
+          {children}
+        </main>
         <footer className="foot">
           <p style={{ marginTop: 0 }}>
             <strong style={{ color: 'var(--bone-dim)' }}>Gridiron Edge</strong> — an open-source NFL scores
