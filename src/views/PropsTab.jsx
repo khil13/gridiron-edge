@@ -132,9 +132,16 @@ export default function PropsTab({ game, data }) {
 /* ---------- the maths, in one place ---------- */
 
 function analyse({ game, proj, settings, ratings, rosters, props, entered = {} }) {
+  // touchdownShare() blends a player's observed share of his team's
+  // touchdowns against the positional prior — but only once it actually
+  // has a team's real touchdown count and games played. Those were never
+  // wired up here, so every player fell back to the prior alone, no matter
+  // how much real season data existed for them.
+  const homeGames = teamGameData(rosters.players, game.home)
+  const awayGames = teamGameData(rosters.players, game.away)
   const teamCtx = {
-    [game.home]: { expectedTds: expectedTouchdowns(proj.homeTeamTotal), teamTds: null, games: 0 },
-    [game.away]: { expectedTds: expectedTouchdowns(proj.awayTeamTotal), teamTds: null, games: 0 }
+    [game.home]: { expectedTds: expectedTouchdowns(proj.homeTeamTotal), ...homeGames },
+    [game.away]: { expectedTds: expectedTouchdowns(proj.awayTeamTotal), ...awayGames }
   }
 
   // Model side: every rostered scorer, normalised so each team's projected
@@ -314,6 +321,14 @@ function fairTwoWay(offers, side, outcome) {
 
 const normName = (n) =>
   String(n || '').toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+/g, ' ').trim()
+
+/** A team's total tracked touchdowns and games played, from its own roster. */
+function teamGameData(players, team) {
+  const teamPlayers = players.filter((p) => p.team === team)
+  const teamTds = teamPlayers.reduce((s, p) => s + (p.tds ?? 0), 0)
+  const games = teamPlayers.reduce((m, p) => Math.max(m, p.stats?.games ?? 0), 0)
+  return { teamTds, games }
+}
 
 /* ---------- UI ---------- */
 
