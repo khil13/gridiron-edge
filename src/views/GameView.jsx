@@ -473,6 +473,23 @@ function StatsTab({ game, data }) {
   const home = getTeam(game.home)
   const away = getTeam(game.away)
 
+  // Hooks must run in the same order on every render, so these run before
+  // any of the early returns below even though they have nothing to do
+  // until a summary has actually loaded — otherwise React sees a different
+  // number of hooks on the render where the box score first arrives.
+  const teamStatsRaw = summary?.teamStats ?? null
+  // The feed lists boxscore teams in its own order; the rest of this app
+  // always reads away-then-home, so flip when they disagree.
+  const oriented = useMemo(() => {
+    if (!teamStatsRaw) return null
+    if (teamStatsRaw.teams[0] === game.away) return teamStatsRaw
+    return {
+      teams: [teamStatsRaw.teams[1], teamStatsRaw.teams[0]],
+      rows: teamStatsRaw.rows.map((r) => ({ ...r, values: [r.values[1], r.values[0]] }))
+    }
+  }, [teamStatsRaw, game.away])
+  const statGroups = useMemo(() => groupTeamStats(oriented), [oriented])
+
   if (data.source !== 'espn') {
     return (
       <Empty title="Box scores need the live feed">
@@ -495,20 +512,7 @@ function StatsTab({ game, data }) {
   }
   if (!summary) return <Empty title="No stats posted yet">Nothing has been recorded for this game.</Empty>
 
-  const { situation, linescores, teamStats, lastPlay, leaders } = summary
-
-  // The feed lists boxscore teams in its own order; the rest of this app
-  // always reads away-then-home, so flip when they disagree.
-  const oriented = useMemo(() => {
-    if (!teamStats) return null
-    if (teamStats.teams[0] === game.away) return teamStats
-    return {
-      teams: [teamStats.teams[1], teamStats.teams[0]],
-      rows: teamStats.rows.map((r) => ({ ...r, values: [r.values[1], r.values[0]] }))
-    }
-  }, [teamStats, game.away])
-
-  const statGroups = useMemo(() => groupTeamStats(oriented), [oriented])
+  const { situation, linescores, lastPlay, leaders } = summary
 
   return (
     <div style={{ display: 'grid', gap: 'var(--s4)' }}>

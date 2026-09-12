@@ -21,11 +21,14 @@
   --line:       #232F3A;
   --line-hi:    #33434F;
 
-  /* Type — warm bone, never pure white. Reads as newsprint under stage light. */
+  /* Type — warm bone, never pure white. Reads as newsprint under stage light.
+     --muted and --faint are tuned to clear WCAG AA's 4.5:1 text contrast
+     against every surface they actually sit on in this app (down to
+     --slab-lift, the lightest panel), not just against --ink. */
   --bone:       #ECE7DC;
   --bone-dim:   #B7BEC6;
-  --muted:      #7F8D9A;
-  --faint:      #5A6672;
+  --muted:      #8996A3;
+  --faint:      #7F8D9A;
 
   /* Semantic accents */
   --gold:       #F2C14E;   /* market price, favorites, "chalk" */

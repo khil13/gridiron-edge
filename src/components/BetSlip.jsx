@@ -1,8 +1,10 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useStore } from '../lib/store.jsx'
 import { parlayPrice, expectedValue, payout } from '../lib/odds.js'
 import { fmtOdds, fmtMoney, fmtPct } from '../lib/format.js'
 import { Segmented, Empty } from './Controls.jsx'
+
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
 /**
  * The slip is a stack of paper tickets. Straight mode grades each leg on its
@@ -11,6 +13,8 @@ import { Segmented, Empty } from './Controls.jsx'
  */
 export default function BetSlip() {
   const { slip, slipOpen, mode, settings, tickets, dispatch } = useStore()
+  const panelRef = useRef(null)
+  const closeBtnRef = useRef(null)
 
   const summary = useMemo(() => {
     if (!slip.length) return null
@@ -34,6 +38,42 @@ export default function BetSlip() {
     return { stake, ev, toWin, evPct: ev / (stake || 1) }
   }, [slip, mode])
 
+  // The slip is a modal overlay, so while it's open: move focus into it,
+  // trap Tab/Shift+Tab so keyboard users cannot tab into the page behind
+  // it, close on Escape, and hand focus back to whatever opened it once
+  // it's gone.
+  useEffect(() => {
+    if (!slipOpen) return
+    const previouslyFocused = document.activeElement
+    const raf = requestAnimationFrame(() => closeBtnRef.current?.focus())
+
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        dispatch({ type: 'toggleSlip', open: false })
+        return
+      }
+      if (e.key !== 'Tab' || !panelRef.current) return
+      const focusable = Array.from(panelRef.current.querySelectorAll(FOCUSABLE))
+      if (!focusable.length) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      cancelAnimationFrame(raf)
+      document.removeEventListener('keydown', onKeyDown)
+      if (previouslyFocused instanceof HTMLElement) previouslyFocused.focus()
+    }
+  }, [slipOpen, dispatch])
+
   if (!slipOpen) return null
 
   const place = () => {
@@ -47,11 +87,11 @@ export default function BetSlip() {
 
   return (
     <>
-      <div className="slip-scrim" onClick={() => dispatch({ type: 'toggleSlip', open: false })} />
-      <aside className="slip" aria-label="Bet slip">
+      <div className="slip-scrim" aria-hidden="true" onClick={() => dispatch({ type: 'toggleSlip', open: false })} />
+      <aside className="slip" role="dialog" aria-modal="true" aria-label="Bet slip" ref={panelRef}>
         <div className="row spread-between" style={{ padding: 'var(--s4)', borderBottom: '1px solid var(--line)' }}>
           <h2 style={{ fontSize: 'var(--t-lg)' }}>Slip</h2>
-          <button className="btn ghost" onClick={() => dispatch({ type: 'toggleSlip', open: false })}>Close</button>
+          <button ref={closeBtnRef} className="btn ghost" onClick={() => dispatch({ type: 'toggleSlip', open: false })}>Close</button>
         </div>
 
         <div style={{ padding: 'var(--s4)', overflowY: 'auto', flex: 1 }}>
