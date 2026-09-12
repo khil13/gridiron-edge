@@ -356,8 +356,24 @@ input, select { font: inherit; color: inherit; }
 
 /* ---------- Tabs ---------- */
 
+.tabs-wrap { position: relative; }
 .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
 .tabs::-webkit-scrollbar { display: none; }
+
+/* A tab pushed past the edge by the scroll strip is otherwise invisible —
+   there is no scrollbar to hint at it. Fade in on whichever side still has
+   more to scroll to; hidden entirely once everything already fits. */
+.tabs-wrap::before, .tabs-wrap::after {
+  content: '';
+  position: absolute; top: 0; bottom: 1px; width: 28px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+.tabs-wrap::before { left: 0; background: linear-gradient(90deg, var(--ink), transparent); }
+.tabs-wrap::after { right: 0; background: linear-gradient(270deg, var(--ink), transparent); }
+.tabs-wrap.can-scroll-left::before { opacity: 1; }
+.tabs-wrap.can-scroll-right::after { opacity: 1; }
 .tab {
   padding: 9px var(--s3);
   font-family: var(--font-mono);
