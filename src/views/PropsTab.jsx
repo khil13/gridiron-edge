@@ -33,11 +33,23 @@ export default function PropsTab({ game, data }) {
   const load = async () => {
     setState({ status: 'loading' })
     try {
-      const [rosters, props] = await Promise.all([
-        fetchGameRosters(game),
-        oddsKey ? fetchGameProps({ apiKey: oddsKey, game }) : Promise.resolve(null)
-      ])
-      setState({ status: 'ready', rosters, props })
+      // Rosters need no key and should basically always work; the Odds API
+      // call needs one and is the thing most likely to fail (an exhausted
+      // free-tier quota is the documented common case). Fetching them
+      // independently means a dead odds key degrades to the model's own
+      // numbers with manual pricing rather than taking the whole tab down —
+      // which is the point of that fallback existing at all.
+      const rosters = await fetchGameRosters(game)
+      let props = null
+      let propsError = null
+      if (oddsKey) {
+        try {
+          props = await fetchGameProps({ apiKey: oddsKey, game })
+        } catch (err) {
+          propsError = err.message
+        }
+      }
+      setState({ status: 'ready', rosters, props, propsError })
     } catch (err) {
       setState({ status: 'error', error: err.message })
     }
@@ -48,8 +60,11 @@ export default function PropsTab({ game, data }) {
 
   const analysis = useMemo(() => {
     if (state.status !== 'ready' || !proj) return null
-    return analyse({ game, proj, settings, rosters: state.rosters, props: state.props, entered })
-  }, [state, game, proj, settings, entered])
+    return analyse({
+      game, proj, settings, ratings: data.ratings,
+      rosters: state.rosters, props: state.props, entered
+    })
+  }, [state, game, proj, settings, data.ratings, entered])
 
   if (!proj) {
     return <Empty title="No projection">This game has teams the rating file does not cover.</Empty>
@@ -93,6 +108,12 @@ export default function PropsTab({ game, data }) {
 
   return (
     <div style={{ display: 'grid', gap: 'var(--s4)' }}>
+      {state.propsError && (
+        <p className="dim" style={{ fontSize: 12, margin: 0 }}>
+          Live prices unavailable ({state.propsError}). Showing the model&apos;s own numbers —
+          type in your book&apos;s price below to get EV against it.
+        </p>
+      )}
       <Caveats analysis={analysis} game={game} rosters={state.rosters} />
       <Volume analysis={analysis} entered={entered} onPrice={onPrice} />
       <FirstQuarter analysis={analysis} game={game} entered={entered} onPrice={onPrice} />
@@ -110,7 +131,7 @@ export default function PropsTab({ game, data }) {
 
 /* ---------- the maths, in one place ---------- */
 
-function analyse({ game, proj, settings, rosters, props, entered = {} }) {
+function analyse({ game, proj, settings, ratings, rosters, props, entered = {} }) {
   const teamCtx = {
     [game.home]: { expectedTds: expectedTouchdowns(proj.homeTeamTotal), teamTds: null, games: 0 },
     [game.away]: { expectedTds: expectedTouchdowns(proj.awayTeamTotal), teamTds: null, games: 0 }
@@ -245,7 +266,7 @@ function analyse({ game, proj, settings, rosters, props, entered = {} }) {
     return teamStatsFor(team) ?? 22
   }
   function teamStatsFor(team) {
-    const r = settings.__ratings?.[team]
+    const r = ratings?.[team]
     return r?.ppg ?? null
   }
 
