@@ -1,0 +1,19 @@
+name: Probe live situation payload
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch summary for event 401872928
+        run: |
+          curl -sS "https://site.web.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=401872928" -o summary.json
+          echo "--- top-level keys ---"
+          jq 'keys' summary.json
+          echo "--- situation ---"
+          jq '.situation' summary.json
+          echo "--- header.competitions[0].situation ---"
+          jq '.header.competitions[0].situation' summary.json
+          echo "--- header.competitions[0] keys ---"
+          jq '.header.competitions[0] | keys' summary.json
+          echo "--- status ---"
+          jq '.header.competitions[0].status' summary.json
