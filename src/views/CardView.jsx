@@ -16,6 +16,13 @@ import {
 } from '../lib/format.js'
 import { href } from '../lib/router.js'
 
+/** How many offers/candidates fall under each volume market key — rushingYards, receivingYards. */
+const byMarket = (list) =>
+  (list ?? []).reduce((acc, item) => {
+    acc[item.market] = (acc[item.market] ?? 0) + 1
+    return acc
+  }, {})
+
 /**
  * Card of the Day.
  *
@@ -106,6 +113,14 @@ export default function CardView({ data }) {
         return {
           game: g, anytime, volume,
           volumeOffers: props?.volume?.length ?? 0,
+          // Rushing and receiving are two different odds-feed markets that
+          // books post independently of each other — a slate can have
+          // plenty of one and none of the other. Counting them separately
+          // is the only way to tell "the feed just isn't offering rushing
+          // yet" apart from "rushing offers exist but lost to a better
+          // pick on the same game," which look identical in a combined total.
+          volumeOffersByMarket: byMarket(props?.volume),
+          volumeCandidatesByMarket: byMarket(volume),
           // fetchGameRosters() already knows whether the bundled stats
           // snapshot (or the roster feed's own embedded stats) produced a
           // single real rate — reusing that beats re-deriving it, and
@@ -116,6 +131,11 @@ export default function CardView({ data }) {
       })
     )
     const perGame = settled.filter((r) => r.status === 'fulfilled').map((r) => r.value)
+    const sumByMarket = (key) =>
+      perGame.reduce((acc, g) => {
+        for (const [market, count] of Object.entries(g[key])) acc[market] = (acc[market] ?? 0) + count
+        return acc
+      }, {})
     setPropState({
       status: 'ready',
       dayKey: day.key,
@@ -130,6 +150,8 @@ export default function CardView({ data }) {
       // in the name matching is broken" — without needing the network tab.
       volumeOffersSeen: perGame.reduce((s, g) => s + g.volumeOffers, 0),
       volumeCandidatesPriced: perGame.reduce((s, g) => s + g.volume.length, 0),
+      volumeOffersByMarket: sumByMarket('volumeOffersByMarket'),
+      volumeCandidatesByMarket: sumByMarket('volumeCandidatesByMarket'),
       anyRealStats: perGame.some((g) => g.hasSeasonStats),
       statsNote: perGame.find((g) => g.statsNote)?.statsNote ?? null,
       checked: targets.length,
@@ -397,6 +419,14 @@ export default function CardView({ data }) {
                   just none with enough edge to clear the bar this time.
                 </>
               )}
+            </p>
+          )}
+          {oddsKey && propsReady && (
+            <p className="dim" style={{ fontSize: 10, marginTop: 'var(--s2)', marginBottom: 0 }}>
+              Receiving-yard lines: {propState.volumeOffersByMarket.receivingYards ?? 0} seen,{' '}
+              {propState.volumeCandidatesByMarket.receivingYards ?? 0} priced against a real rate.
+              {' '}Rushing-yard lines: {propState.volumeOffersByMarket.rushingYards ?? 0} seen,{' '}
+              {propState.volumeCandidatesByMarket.rushingYards ?? 0} priced against a real rate.
             </p>
           )}
         </div>
