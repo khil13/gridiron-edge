@@ -17,3 +17,11 @@ jobs:
           jq '.header.competitions[0] | keys' summary.json
           echo "--- status ---"
           jq '.header.competitions[0].status' summary.json
+          echo "--- drives keys ---"
+          jq '.drives | keys' summary.json
+          echo "--- drives.current ---"
+          jq '.drives.current | del(.plays)' summary.json
+          echo "--- drives.current last play ---"
+          jq '.drives.current.plays[-1]' summary.json
+          echo "--- pickcenter[0] ---"
+          jq '.pickcenter[0]' summary.json
