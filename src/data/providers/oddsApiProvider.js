@@ -176,6 +176,15 @@ const EVENTS_BASE = 'https://api.the-odds-api.com/v4/sports/americanfootball_nfl
 export const PROPS_MARKETS = ['player_anytime_td', 'player_pass_tds']
 export const PROPS_CREDIT_COST = PROPS_MARKETS.length * 10
 
+/**
+ * Anytime touchdown only, no passing. Used by the Card of the day, which
+ * checks an entire slate rather than one game a user opened — half the
+ * per-game cost of the Props tab's full fetch, still real money against a
+ * free-tier quota once multiplied across a Sunday.
+ */
+export const ANYTIME_TD_MARKETS = ['player_anytime_td']
+export const ANYTIME_TD_CREDIT_COST = ANYTIME_TD_MARKETS.length * 10
+
 /** Find the Odds API event id for one of our games. */
 export async function findEventId({ apiKey, game, signal }) {
   const res = await fetch(`${EVENTS_BASE}?apiKey=${encodeURIComponent(apiKey)}`, { signal })
@@ -201,7 +210,7 @@ export async function findEventId({ apiKey, game, signal }) {
  * Outcomes carry the player in `description` and the side in `name`, which
  * is the opposite of what the game-line markets do.
  */
-export async function fetchGameProps({ apiKey, game, eventId, books, signal }) {
+export async function fetchGameProps({ apiKey, game, eventId, books, markets = PROPS_MARKETS, signal }) {
   if (!apiKey) return null
 
   const id = eventId || (await findEventId({ apiKey, game, signal }))
@@ -210,7 +219,7 @@ export async function fetchGameProps({ apiKey, game, eventId, books, signal }) {
   const params = new URLSearchParams({
     apiKey,
     regions: 'us',
-    markets: PROPS_MARKETS.join(','),
+    markets: markets.join(','),
     oddsFormat: 'american'
   })
   if (books) params.set('bookmakers', books)

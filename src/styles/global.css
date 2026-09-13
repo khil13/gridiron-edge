@@ -336,6 +336,19 @@ input, select { font: inherit; color: inherit; }
   text-align: right;
 }
 
+/* ---------- Card of the day: play tickets ---------- */
+/* Each play is a ticket, not just another panel — a team-colour accent bar
+   names the game at a glance, and the top tier gets a glow so the single
+   best thing on the slate is not visually identical to a 1-unit lean. */
+
+.play-card { position: relative; overflow: hidden; }
+.play-card-accent {
+  height: 3px;
+  background: linear-gradient(90deg, var(--gcard-away), var(--gcard-home));
+}
+.play-card--best { border-color: rgba(63, 217, 164, 0.32); box-shadow: var(--glow-mint), var(--shadow-sm); }
+.play-card--suspicious { border-color: rgba(255, 90, 71, 0.35); box-shadow: var(--glow-flare), var(--shadow-sm); }
+
 /* ---------- Signature: the Edge Rail ---------- */
 /* A spread number line. Gold pin above the axis = market. Sky pin below =
    model. The band between them is the disagreement, and its width is the

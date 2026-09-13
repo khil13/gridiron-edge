@@ -4,10 +4,14 @@ import EdgeRail from '../components/EdgeRail.jsx'
 import { Badge, Empty, Tabs } from '../components/Controls.jsx'
 import { useStore } from '../lib/store.jsx'
 import { toSlipLeg } from '../lib/edges.js'
-import { buildCard, daysFrom, confidenceOf, lockCard } from '../lib/card.js'
+import { buildCard, daysFrom, confidenceOf, lockCard, tierForProp } from '../lib/card.js'
+import { analyseAnytimeTouchdowns } from '../lib/props.js'
+import { fetchGameRosters } from '../data/providers/playerData.js'
+import { fetchGameProps, ANYTIME_TD_MARKETS, ANYTIME_TD_CREDIT_COST } from '../data/providers/oddsApiProvider.js'
+import { getTeam } from '../data/teams.js'
 import ResultsView from './ResultsView.jsx'
 import {
-  fmtOdds, fmtPct, fmtMoney, fmtSigned, fmtDay, fmtTime, relativeDay
+  fmtOdds, fmtPct, fmtMoney, fmtSigned, fmtDay, fmtTime, relativeDay, fmtRecord, readable
 } from '../lib/format.js'
 import { href } from '../lib/router.js'
 
@@ -20,8 +24,9 @@ import { href } from '../lib/router.js'
  * thing separating this from a list of games.
  */
 export default function CardView({ data }) {
-  const { settings, lockedCards, dispatch } = useStore()
+  const { settings, lockedCards, oddsKey, dispatch } = useStore()
   const [tab, setTab] = useState('today')
+  const [propState, setPropState] = useState({ status: 'idle', dayKey: null })
   const days = useMemo(() => daysFrom(data.games), [data.games])
 
   // Default to the first day that still has games to bet, else the last day.
@@ -51,6 +56,50 @@ export default function CardView({ data }) {
     () => confidenceOf(day?.games ?? [], settings),
     [day, settings]
   )
+
+  // Touchdown props for the whole slate — opt-in, because checking every
+  // game costs API credits the same way the Props tab's per-game fetch does.
+  // Fetched fresh per day: yesterday's props on today's card would be a lie.
+  const propsReady = propState.status === 'ready' && propState.dayKey === day?.key
+  const propsLoading = propState.status === 'loading' && propState.dayKey === day?.key
+
+  const propPlays = useMemo(() => {
+    if (!propsReady) return []
+    const unit = (settings.bankroll ?? 1000) * 0.01
+    const picks = []
+    for (const { game, anytime } of propState.perGame) {
+      // One prop leg per game, same discipline as the game-line card: the
+      // best-EV entry is already first, since analyseAnytimeTouchdowns sorts.
+      const best = anytime.find((e) => e.devigged && e.ev != null)
+      if (!best) continue
+      const tier = tierForProp(best)
+      if (tier.units === 0) continue
+      picks.push({ game, entry: best, tier, stake: tier.units * unit })
+    }
+    return picks.sort((a, b) => b.entry.ev - a.entry.ev).slice(0, 6)
+  }, [propsReady, propState, settings])
+
+  const loadProps = async () => {
+    if (!day) return
+    const targets = day.games.filter((g) => g.projection && g.status !== 'final')
+    setPropState({ status: 'loading', dayKey: day.key })
+    const settled = await Promise.allSettled(
+      targets.map(async (g) => {
+        const rosters = await fetchGameRosters(g)
+        const props = await fetchGameProps({ apiKey: oddsKey, game: g, markets: ANYTIME_TD_MARKETS })
+        const { anytime } = analyseAnytimeTouchdowns({ game: g, proj: g.projection, rosters, props })
+        return { game: g, anytime }
+      })
+    )
+    const perGame = settled.filter((r) => r.status === 'fulfilled').map((r) => r.value)
+    setPropState({
+      status: 'ready',
+      dayKey: day.key,
+      perGame,
+      checked: targets.length,
+      failed: settled.length - perGame.length
+    })
+  }
 
   if (!days.length) {
     return (
@@ -213,10 +262,67 @@ export default function CardView({ data }) {
       {reads.length > 0 && (
         <div style={{ display: 'grid', gap: 'var(--s4)', marginBottom: 'var(--s6)' }}>
           {reads.map((entry) => (
-            <PlayCard key={entry.best.id} entry={entry} dispatch={dispatch} />
+            <PlayCard key={entry.best.id} entry={entry} dispatch={dispatch} ratings={data.ratings} />
           ))}
         </div>
       )}
+
+      {/* Touchdown props — never fetched automatically, same reasoning as
+          the Props tab: checking a whole slate costs real API credits. */}
+      <section className="panel" style={{ marginBottom: 'var(--s6)' }}>
+        <div className="panel-head">
+          <div>
+            <div className="eyebrow">Anytime touchdown · opt-in, costs API credits</div>
+            <h2 style={{ fontSize: 'var(--t-lg)', marginTop: 4 }}>Prop plays</h2>
+          </div>
+          {oddsKey && !propsLoading && (
+            <button className="btn" onClick={loadProps}>
+              {propsReady
+                ? 'Re-check props'
+                : `Check this slate (~${day.games.length * ANYTIME_TD_CREDIT_COST} credits)`}
+            </button>
+          )}
+        </div>
+        <div style={{ padding: 'var(--s4)' }}>
+          {!oddsKey && (
+            <p className="dim" style={{ fontSize: 12, margin: 0, maxWidth: '78ch' }}>
+              Connect an odds API key in Settings to check the slate for touchdown prop value.
+              Without live prices there is nothing to compare the model's own numbers against, so
+              this is not something the card can do automatically.
+            </p>
+          )}
+          {oddsKey && propsLoading && (
+            <p className="dim" style={{ fontSize: 12, margin: 0 }}>
+              Pulling rosters and anytime-touchdown prices for {day.games.filter((g) => g.projection && g.status !== 'final').length} game
+              {day.games.length === 1 ? '' : 's'}…
+            </p>
+          )}
+          {oddsKey && propsReady && propPlays.length === 0 && (
+            <p className="dim" style={{ fontSize: 12, margin: 0, maxWidth: '78ch' }}>
+              {propState.checked} game{propState.checked === 1 ? '' : 's'} checked
+              {propState.failed ? `, ${propState.failed} could not be priced` : ''} — nothing cleared
+              the bar. These markets carry a fifteen-to-twenty-five percent hold on top of a depth
+              chart the model is often guessing at, so most days that is the correct answer, not a
+              bug.
+            </p>
+          )}
+          {oddsKey && propsReady && propPlays.length > 0 && (
+            <>
+              <div style={{ display: 'grid', gap: 'var(--s4)' }}>
+                {propPlays.map((pick) => (
+                  <PropPlayCard key={`${pick.game.id}:${pick.entry.key}`} pick={pick} dispatch={dispatch} />
+                ))}
+              </div>
+              <p className="dim" style={{ fontSize: 11, marginTop: 'var(--s4)', marginBottom: 0, maxWidth: '80ch' }}>
+                Touchdown props are the market this app trusts least: the hold is triple a
+                spread's, and early in a season every player at a position can show the same
+                number because there is no depth chart to rank yet. Capped at 2 units even at the
+                top tier, and treated as a lean worth checking rather than a lock.
+              </p>
+            </>
+          )}
+        </div>
+      </section>
 
       {locked && (
         <p className="dim" style={{ fontSize: 12, marginTop: 'var(--s4)', maxWidth: '80ch' }}>
@@ -263,12 +369,17 @@ export default function CardView({ data }) {
 
 /* ---------- One play, as a ticket ---------- */
 
-function PlayCard({ entry, dispatch }) {
+function PlayCard({ entry, dispatch, ratings }) {
   const { game, best, tier, alternate, stake, kellyStake, reason } = entry
   const isLean = tier.units === 0
   const consensus = game.market?.books?.find((b) => b.sharp) || game.market?.books?.[0]
   // Guard the divide: a lean has no flat stake to compare Kelly against.
   const kellyGap = stake > 0 && kellyStake > 0 ? kellyStake / stake : 0
+
+  const homeTeam = getTeam(game.home)
+  const awayTeam = getTeam(game.away)
+  const hr = ratings?.[game.home]
+  const ar = ratings?.[game.away]
 
   // The rail must argue for the play on the card. Showing a spread number
   // line under a totals play compares two things that have nothing to do
@@ -313,9 +424,14 @@ function PlayCard({ entry, dispatch }) {
 
   return (
     <article
-      className="panel"
-      style={{ overflow: 'hidden', opacity: isLean ? 0.72 : 1 }}
+      className={`panel play-card${tier.units >= 3 ? ' play-card--best' : ''}${tier.suspicious ? ' play-card--suspicious' : ''}`}
+      style={{
+        opacity: isLean ? 0.72 : 1,
+        '--gcard-away': readable(awayTeam.primary),
+        '--gcard-home': readable(homeTeam.primary)
+      }}
     >
+      <div className="play-card-accent" />
       <div className="gcard-strap">
         <span className="row gap-2">
           <TeamMark abbr={game.away} size={16} />
@@ -324,6 +440,27 @@ function PlayCard({ entry, dispatch }) {
         </span>
         <span>{fmtTime(game.kickoff)}{game.venue ? ` · ${game.venue}` : ''}</span>
       </div>
+
+      {hr && ar && (
+        <div
+          className="row spread-between gap-3"
+          style={{
+            padding: '7px var(--s4)',
+            borderBottom: '1px solid var(--edge)',
+            flexWrap: 'wrap'
+          }}
+        >
+          <span className="dim mono" style={{ fontSize: 11 }}>
+            {game.away} {fmtSigned(ar.pointsVsAverage)} pts vs avg{recordFor(ar) ? ` (${recordFor(ar)})` : ''} ·{' '}
+            {game.home} {fmtSigned(hr.pointsVsAverage)} pts vs avg{recordFor(hr) ? ` (${recordFor(hr)})` : ''}
+          </span>
+          {game.projection && (
+            <span className="dim mono" style={{ fontSize: 11 }}>
+              Model projects {game.away} {game.projection.awayTeamTotal} – {game.home} {game.projection.homeTeamTotal}
+            </span>
+          )}
+        </div>
+      )}
 
       <div style={{ padding: 'var(--s4)' }}>
         <div
@@ -423,6 +560,124 @@ function PlayCard({ entry, dispatch }) {
       </div>
     </article>
   )
+}
+
+/* ---------- One touchdown prop, as a ticket ---------- */
+
+function PropPlayCard({ pick, dispatch }) {
+  const { game, entry, tier, stake } = pick
+  const homeTeam = getTeam(game.home)
+  const awayTeam = getTeam(game.away)
+
+  const add = () =>
+    dispatch({
+      type: 'addLeg',
+      leg: {
+        id: `${game.id}:td:${entry.key}`,
+        label: `${entry.player} anytime TD`,
+        matchup: `${game.away} @ ${game.home}`,
+        gameId: game.id,
+        book: entry.book,
+        price: entry.price,
+        modelProb: entry.model.prob,
+        marketProb: entry.fair,
+        pushProb: 0,
+        ev: entry.ev,
+        suggestedStake: stake,
+        stake: Math.max(1, Math.round(stake))
+      }
+    })
+
+  return (
+    <article
+      className={`panel play-card${tier.units >= 2 ? ' play-card--best' : ''}${tier.suspicious ? ' play-card--suspicious' : ''}`}
+      style={{
+        '--gcard-away': readable(awayTeam.primary),
+        '--gcard-home': readable(homeTeam.primary)
+      }}
+    >
+      <div className="play-card-accent" />
+      <div className="gcard-strap">
+        <span className="row gap-2">
+          <TeamMark abbr={game.away} size={16} />
+          <TeamMark abbr={game.home} size={16} />
+          {game.away} @ {game.home}
+        </span>
+        <span>{fmtTime(game.kickoff)}</span>
+      </div>
+
+      <div style={{ padding: 'var(--s4)' }}>
+        <div
+          className="row spread-between gap-4"
+          style={{ flexWrap: 'wrap', marginBottom: 'var(--s4)' }}
+        >
+          <div style={{ minWidth: 200 }}>
+            <div className="row gap-3" style={{ marginBottom: 6 }}>
+              <Badge tone={tier.tone}>{`${tier.units}u · ${tier.label}`}</Badge>
+              <Badge tone="quiet">TD prop</Badge>
+            </div>
+            <h3 style={{ fontSize: 'var(--t-xl)' }}>
+              <span className="row gap-2">
+                <TeamMark abbr={entry.team} size={18} />
+                {entry.player} anytime TD
+              </span>
+            </h3>
+            <div className="row gap-3" style={{ marginTop: 4 }}>
+              <span className="mono market" style={{ fontSize: 'var(--t-lg)' }}>
+                {fmtOdds(entry.price)}
+              </span>
+              <span className="dim mono" style={{ fontSize: 12 }}>{entry.book}</span>
+            </div>
+          </div>
+
+          <div className="row gap-5" style={{ flexWrap: 'wrap' }}>
+            <Metric label="Model" value={fmtPct(entry.model.prob)} />
+            <Metric label="Fair" value={fmtPct(entry.fair)} dim />
+            <Metric label="Edge" value={`${fmtSigned((entry.edge ?? 0) * 100)}pp`} />
+            <Metric
+              label="EV"
+              value={`${entry.ev >= 0 ? '+' : ''}${(entry.ev * 100).toFixed(1)}%`}
+              tone={entry.ev > 0 ? 'pos' : 'neg'}
+            />
+            <Metric label="Stake" value={fmtMoney(stake)} />
+          </div>
+        </div>
+
+        <div className="perf" />
+
+        <div className="row spread-between gap-3" style={{ flexWrap: 'wrap' }}>
+          <p className="dim grow" style={{ fontSize: 11, margin: 0, minWidth: 240 }}>
+            {tier.suspicious && (
+              <span className="neg">
+                An edge this large on a touchdown prop is far more likely to be a bad depth
+                chart than free money — check who is actually active before betting it.{' '}
+              </span>
+            )}
+            Anytime touchdown markets hold 15–25% and rely on a guessed depth chart; treat this
+            as a lean worth a second look, not a lock.
+          </p>
+          <div className="row gap-2">
+            <a className="btn ghost" href={href(`game/${game.id}`)}>Game</a>
+            <button className="btn" onClick={add}>Add</button>
+          </div>
+        </div>
+      </div>
+    </article>
+  )
+}
+
+/**
+ * A team's record, from whichever ratings shape is on hand: the season
+ * replay adds live `w`/`l`/`t` once results exist, but before any games are
+ * played (or if that replay failed) ratings fall back to the opening file,
+ * which only carries last season's final `wins`/`losses`. Shown either way,
+ * never invented — a record this can't find is simply left off the line.
+ */
+function recordFor(r) {
+  if (!r) return null
+  if (r.w != null && r.l != null) return fmtRecord(r.w, r.l, r.t ?? 0)
+  if (r.wins != null && r.losses != null) return fmtRecord(r.wins, r.losses)
+  return null
 }
 
 /** "A", "A and B", "A, B and C" — Intl handles the awkward cases. */
