@@ -13,6 +13,7 @@
  */
 
 import { normPropName } from '../../lib/props.js'
+import PLAYER_STATS_META from '../generated/player-stats-meta.json'
 
 // Loaded lazily and cached: the snapshot is a few hundred KB and only ever
 // needed once a game's rosters are actually being fetched, not on every
@@ -265,7 +266,15 @@ export async function fetchGameRosters(game, { signal, season } = {}) {
   // old check and still produced nothing.
   const usable = (roster) => roster.players.some((p) => (p.stats?.games ?? 0) >= 1)
 
-  const statsSeason = season ?? new Date().getFullYear()
+  // The wall-clock year is the wrong default here: nflverse's release lags
+  // real time by however long its own pipeline takes, and the app's build
+  // can be older than the browser loading it. Anchoring to the newest
+  // season the bundled snapshot actually has keeps this correct regardless
+  // of any clock skew — confirmed live: with the clock year instead, every
+  // player on every roster missed the snapshot outright (bug, not a real
+  // name-matching gap), since neither the current nor the prior wall-clock
+  // year existed as a key at all.
+  const statsSeason = season ?? PLAYER_STATS_META.latestSeason ?? new Date().getFullYear()
   let usedPriorSeason = false
   let statsNote = null
 
