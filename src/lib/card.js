@@ -142,16 +142,38 @@ export function tierForVolume(play) {
  * @param {Array<{tier, entry}>} candidates  every priced candidate for one game
  * @returns {object|null} the winning candidate, or null if none qualify
  */
+const qualifyingProps = (candidates) => candidates.filter((c) => c.tier.units > 0 && !c.tier.suspicious)
+
 export function pickBestProp(candidates) {
-  const qualifying = candidates.filter((c) => c.tier.units > 0 && !c.tier.suspicious)
+  const qualifying = qualifyingProps(candidates)
   if (!qualifying.length) return null
   return [...qualifying].sort((a, b) => b.entry.ev - a.entry.ev)[0]
 }
 
 /**
- * Sort a slate's picks by EV. pickBestProp() already excludes flagged
- * candidates, so this never sees one — the ordering here exists purely so
- * a caller doesn't have to remember which field to sort on.
+ * Every qualifying prop leg for one game, not just the single best.
+ *
+ * "One play per game" (see the top of this file) exists to stop a spread
+ * and a total on the SAME game line being staked as if they were two
+ * independent opinions when they are really one, expressed twice. That
+ * reasoning doesn't carry over here: a touchdown lean on one player and a
+ * yardage lean on a different one are genuinely separate signals, not the
+ * same bet said twice, and there is no principled reason to compute a real,
+ * unflagged edge and then throw it away unseen just because a different
+ * player on the same field also cleared the bar. Capped at maxPerGame so a
+ * single high-scoring game can't fill the whole card by itself.
+ *
+ * The exclusions are unchanged from pickBestProp(): a flagged "Check model"
+ * candidate is still never shown, at any rank.
+ */
+export function pickPropsForGame(candidates, maxPerGame = 2) {
+  return [...qualifyingProps(candidates)].sort((a, b) => b.entry.ev - a.entry.ev).slice(0, maxPerGame)
+}
+
+/**
+ * Sort a slate's picks by EV. pickBestProp()/pickPropsForGame() already
+ * exclude flagged candidates, so this never sees one — the ordering here
+ * exists purely so a caller doesn't have to remember which field to sort on.
  */
 export function sortPropPicks(picks) {
   return [...picks].sort((a, b) => b.entry.ev - a.entry.ev)
