@@ -24,6 +24,17 @@ const HOSTS = [
 
 const ATHLETE_STATS = /^\/athletes\/(\d+)\/stats\/?$/
 
+// ESPN returns 403 to a request with no User-Agent — confirmed live, a
+// Cloudflare Worker's default outbound fetch sends none. This is not
+// working around a login wall or a paywall: the feed is the same public,
+// unauthenticated data a browser gets for free, just gated on looking like
+// one. A real browser's User-Agent is enough; nothing else about the
+// request needs to change.
+const BROWSER_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  Accept: 'application/json'
+}
+
 function corsHeaders(env) {
   return {
     'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',
@@ -55,6 +66,7 @@ export default {
     for (const host of HOSTS) {
       try {
         const res = await fetch(`${host}/athletes/${athleteId}/stats`, {
+          headers: BROWSER_HEADERS,
           // Cloudflare's edge cache. A player's season stats change at most
           // once a week, so an hour of caching cuts repeat load on ESPN's
           // feed (and on this worker's own request quota) without ever

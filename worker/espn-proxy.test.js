@@ -50,6 +50,17 @@ describe('espn-proxy worker', () => {
     )
   })
 
+  it('sends a browser User-Agent to ESPN, which 403s a request with none', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ categories: [] }), { status: 200 })
+    )
+
+    await worker.fetch(new Request('https://proxy.example/athletes/1/stats'), env)
+
+    const [, init] = fetchSpy.mock.calls[0]
+    expect(init.headers['User-Agent']).toMatch(/Mozilla/)
+  })
+
   it('falls back to the second ESPN host when the first fails', async () => {
     const payload = { categories: [] }
     vi.spyOn(globalThis, 'fetch')
