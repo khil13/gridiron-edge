@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import TeamMark from '../components/TeamMark.jsx'
 import EdgeRail from '../components/EdgeRail.jsx'
 import { Badge, Empty, Tabs } from '../components/Controls.jsx'
@@ -22,6 +22,40 @@ const byMarket = (list) =>
     acc[item.market] = (acc[item.market] ?? 0) + 1
     return acc
   }, {})
+
+/**
+ * A game the odds feed hasn't posted anything for yet — neither anytime
+ * touchdown nor any yardage market. That is the one case worth re-checking
+ * automatically later: a real, priced offer that just didn't clear the bar
+ * isn't going to change on its own, but a market that hasn't been posted at
+ * all often shows up within the hour as kickoff for a later slate gets
+ * closer. A game already final never needs re-checking regardless.
+ */
+const needsRecheck = (g) =>
+  g.game.status !== 'final' && (g.anytimeOffers ?? 0) === 0 && (g.volumeOffers ?? 0) === 0
+
+/** How often to look again for games that had nothing posted last time. */
+const AUTO_RECHECK_MS = 20 * 60 * 1000
+
+/** Sum a per-market breakdown (volumeOffersByMarket, volumeCandidatesByMarket) across every game. */
+const sumByMarket = (perGame, key) =>
+  perGame.reduce((acc, g) => {
+    for (const [market, count] of Object.entries(g[key])) acc[market] = (acc[market] ?? 0) + count
+    return acc
+  }, {})
+
+/** The aggregate diagnostic fields shown under the picks, rebuilt from whatever perGame currently holds. */
+function summarizeProps(perGame) {
+  return {
+    perGame,
+    volumeOffersSeen: perGame.reduce((s, g) => s + g.volumeOffers, 0),
+    volumeCandidatesPriced: perGame.reduce((s, g) => s + g.volume.length, 0),
+    volumeOffersByMarket: sumByMarket(perGame, 'volumeOffersByMarket'),
+    volumeCandidatesByMarket: sumByMarket(perGame, 'volumeCandidatesByMarket'),
+    anyRealStats: perGame.some((g) => g.hasSeasonStats),
+    statsNote: perGame.find((g) => g.statsNote)?.statsNote ?? null
+  }
+}
 
 /**
  * Card of the Day.
@@ -107,25 +141,25 @@ export default function CardView({ data }) {
   }, [propsReady, propState, settings])
   const { picks: propPlays, flaggedOnly: flaggedOnlyGames } = propResult
 
-  const loadProps = async () => {
-    if (!day) return
-    const targets = day.games.filter((g) => g.projection && g.status !== 'final')
-    setPropState({ status: 'loading', dayKey: day.key })
+  // Shared by the manual "Check this slate" button and the auto-recheck
+  // effect below, so a game is only ever priced through this one path.
+  const checkGames = async (games) => {
     const settled = await Promise.allSettled(
-      targets.map(async (g) => {
+      games.map(async (g) => {
         const rosters = await fetchGameRosters(g)
         const props = await fetchGameProps({ apiKey: oddsKey, game: g, markets: CARD_PROP_MARKETS })
         const { anytime } = analyseAnytimeTouchdowns({ game: g, proj: g.projection, rosters, props })
         const volume = volumePlaysForGame({ game: g, proj: g.projection, rosters, offers: props?.volume, ratings: data.ratings })
         return {
           game: g, anytime, volume,
-          volumeOffers: props?.volume?.length ?? 0,
           // Rushing and receiving are two different odds-feed markets that
           // books post independently of each other — a slate can have
           // plenty of one and none of the other. Counting them separately
           // is the only way to tell "the feed just isn't offering rushing
           // yet" apart from "rushing offers exist but lost to a better
           // pick on the same game," which look identical in a combined total.
+          anytimeOffers: props?.anytime?.length ?? 0,
+          volumeOffers: props?.volume?.length ?? 0,
           volumeOffersByMarket: byMarket(props?.volume),
           volumeCandidatesByMarket: byMarket(volume),
           // fetchGameRosters() already knows whether the bundled stats
@@ -137,16 +171,17 @@ export default function CardView({ data }) {
         }
       })
     )
-    const perGame = settled.filter((r) => r.status === 'fulfilled').map((r) => r.value)
-    const sumByMarket = (key) =>
-      perGame.reduce((acc, g) => {
-        for (const [market, count] of Object.entries(g[key])) acc[market] = (acc[market] ?? 0) + count
-        return acc
-      }, {})
+    return settled.filter((r) => r.status === 'fulfilled').map((r) => r.value)
+  }
+
+  const loadProps = async () => {
+    if (!day) return
+    const targets = day.games.filter((g) => g.projection && g.status !== 'final')
+    setPropState({ status: 'loading', dayKey: day.key })
+    const perGame = await checkGames(targets)
     setPropState({
       status: 'ready',
       dayKey: day.key,
-      perGame,
       // Diagnostic breakdown, not shown unless nothing qualifies: how many
       // raw yardage offers the odds feed actually returned for this slate,
       // how many of those matched a real per-player rate at all (before any
@@ -155,16 +190,45 @@ export default function CardView({ data }) {
       // feed hasn't posted these lines yet," "the stats proxy isn't
       // actually delivering data despite being connected," and "something
       // in the name matching is broken" — without needing the network tab.
-      volumeOffersSeen: perGame.reduce((s, g) => s + g.volumeOffers, 0),
-      volumeCandidatesPriced: perGame.reduce((s, g) => s + g.volume.length, 0),
-      volumeOffersByMarket: sumByMarket('volumeOffersByMarket'),
-      volumeCandidatesByMarket: sumByMarket('volumeCandidatesByMarket'),
-      anyRealStats: perGame.some((g) => g.hasSeasonStats),
-      statsNote: perGame.find((g) => g.statsNote)?.statsNote ?? null,
+      ...summarizeProps(perGame),
       checked: targets.length,
-      failed: settled.length - perGame.length
+      failed: targets.length - perGame.length
     })
   }
+
+  // Auto-recheck: a later slate's books often haven't posted anything yet
+  // when the day is first checked (see CardView's props-tab caveats). This
+  // looks again, every twenty minutes, only at games with nothing posted
+  // for either market last time — never a game that already returned a
+  // real, priced offer that simply didn't clear the bar, since re-asking
+  // for the same answer would just spend API credits for nothing. Stops
+  // scheduling entirely once every remaining game either has something or
+  // has gone final, and never runs at all until the slate has been checked
+  // once — this only extends an opt-in that already happened, it doesn't
+  // create a new one.
+  useEffect(() => {
+    if (propState.status !== 'ready' || propState.dayKey !== day?.key) return
+    const stale = propState.perGame.filter(needsRecheck)
+    if (!stale.length) return
+
+    let alive = true
+    const timer = setTimeout(async () => {
+      const refreshed = await checkGames(stale.map((g) => g.game))
+      if (!alive) return
+      setPropState((prev) => {
+        if (prev.status !== 'ready' || prev.dayKey !== day?.key) return prev
+        const byId = new Map(refreshed.map((g) => [g.game.id, g]))
+        const perGame = prev.perGame.map((g) => byId.get(g.game.id) ?? g)
+        return { ...prev, ...summarizeProps(perGame) }
+      })
+    }, AUTO_RECHECK_MS)
+
+    return () => {
+      alive = false
+      clearTimeout(timer)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [propState, day?.key])
 
   if (!days.length) {
     return (
