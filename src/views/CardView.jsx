@@ -102,7 +102,16 @@ export default function CardView({ data }) {
         const props = await fetchGameProps({ apiKey: oddsKey, game: g, markets: CARD_PROP_MARKETS })
         const { anytime } = analyseAnytimeTouchdowns({ game: g, proj: g.projection, rosters, props })
         const volume = volumePlaysForGame({ game: g, proj: g.projection, rosters, offers: props?.volume, ratings: data.ratings })
-        return { game: g, anytime, volume, volumeOffers: props?.volume?.length ?? 0 }
+        return {
+          game: g, anytime, volume,
+          volumeOffers: props?.volume?.length ?? 0,
+          // fetchGameRosters() already knows whether the stats proxy (or the
+          // roster feed's own embedded stats) produced a single real rate —
+          // reusing that beats re-deriving it, and rosters.statsNote already
+          // explains why when it didn't.
+          hasSeasonStats: rosters.hasSeasonStats,
+          statsNote: rosters.statsNote
+        }
       })
     )
     const perGame = settled.filter((r) => r.status === 'fulfilled').map((r) => r.value)
@@ -112,12 +121,16 @@ export default function CardView({ data }) {
       perGame,
       // Diagnostic breakdown, not shown unless nothing qualifies: how many
       // raw yardage offers the odds feed actually returned for this slate,
-      // and how many of those matched a real per-player rate at all (before
-      // any EV/edge threshold). Tells apart "the feed hasn't posted these
-      // lines yet" from "something in the matching is broken" without
-      // needing to read the network tab.
+      // how many of those matched a real per-player rate at all (before any
+      // EV/edge threshold), and whether any roster on the slate ended up
+      // with real per-player stats in the first place. Tells apart "the
+      // feed hasn't posted these lines yet," "the stats proxy isn't
+      // actually delivering data despite being connected," and "something
+      // in the name matching is broken" — without needing the network tab.
       volumeOffersSeen: perGame.reduce((s, g) => s + g.volumeOffers, 0),
       volumeCandidatesPriced: perGame.reduce((s, g) => s + g.volume.length, 0),
+      anyRealStats: perGame.some((g) => g.hasSeasonStats),
+      statsNote: perGame.find((g) => g.statsNote)?.statsNote ?? null,
       checked: targets.length,
       failed: settled.length - perGame.length
     })
@@ -362,12 +375,20 @@ export default function CardView({ data }) {
                   slate — books often post that market later than anytime touchdown, so try again
                   closer to kickoff before assuming something's broken.
                 </>
+              ) : propState.volumeCandidatesPriced === 0 && !propState.anyRealStats ? (
+                <>
+                  Yardage: the odds feed returned {propState.volumeOffersSeen} line
+                  {propState.volumeOffersSeen === 1 ? '' : 's'}, but not one roster on this slate
+                  came back with a real per-player rate at all — the stats proxy isn't actually
+                  delivering data, whatever Model Lab's badge says.
+                  {propState.statsNote && <> {propState.statsNote}</>}
+                </>
               ) : propState.volumeCandidatesPriced === 0 ? (
                 <>
                   Yardage: the odds feed returned {propState.volumeOffersSeen} line
-                  {propState.volumeOffersSeen === 1 ? '' : 's'}, but none matched a real
-                  per-player rate on either roster — check that Model Lab's stats proxy is
-                  returning data for these players specifically.
+                  {propState.volumeOffersSeen === 1 ? '' : 's'}, and at least one roster had real
+                  per-player rates, but none of those specific players matched a priced line —
+                  likely a name-matching gap between the odds feed and the roster.
                 </>
               ) : (
                 <>
