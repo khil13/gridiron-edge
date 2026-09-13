@@ -7,6 +7,7 @@ import { americanToDecimal } from '../lib/odds.js'
 import { buildBackup, downloadBackup, restoreBackup, readBackupFile } from '../lib/backup.js'
 import { fmtSigned, fmtSpread, fmtMoney, fmtKickoff } from '../lib/format.js'
 import { href } from '../lib/router.js'
+import PLAYER_STATS_META from '../data/generated/player-stats-meta.json'
 
 /**
  * Model Lab.
@@ -18,9 +19,8 @@ import { href } from '../lib/router.js'
  * the app, so they live behind a toggle and stay shut by default.
  */
 export default function ModelLabView({ data }) {
-  const { settings, oddsKey, statsProxyUrl, dispatch } = useStore()
+  const { settings, oddsKey, dispatch } = useStore()
   const [keyDraft, setKeyDraft] = useState(oddsKey || '')
-  const [proxyDraft, setProxyDraft] = useState(statsProxyUrl || '')
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [backupNote, setBackupNote] = useState(null)
   const set = (key) => (value) => dispatch({ type: 'setting', key, value })
@@ -162,56 +162,21 @@ export default function ModelLabView({ data }) {
           <div>
             <div className="eyebrow">Real per-player yardage rates</div>
             <h2 style={{ fontSize: 'var(--t-lg)', marginTop: 4 }}>
-              {statsProxyUrl ? 'Stats proxy connected' : 'Yardage props are estimated'}
+              {PLAYER_STATS_META.latestSeason ? `Season stats bundled (${PLAYER_STATS_META.latestSeason})` : 'Season stats bundled'}
             </h2>
           </div>
-          {statsProxyUrl ? <Badge tone="edge">Connected</Badge> : <Badge tone="quiet">Estimated</Badge>}
+          <Badge tone="edge">Automatic</Badge>
         </div>
 
         <div style={{ padding: 'var(--s4)' }}>
           <p className="dim" style={{ fontSize: 12, marginTop: 0, maxWidth: '75ch' }}>
-            ESPN's per-player stats feed has real receiving/rushing rates, but refuses to
-            answer this app's own requests directly (a CORS policy on ESPN's side, not
-            something fixable from here). Without a proxy, yardage and volume props fall back
-            to a league-average estimate for each role — honest, but not these players' own
-            numbers. Deploying{' '}
-            <code>worker/espn-proxy.js</code> (a few minutes, free — see{' '}
-            <code>worker/README.md</code>) and pasting its URL below replaces that estimate
-            with real per-player rates.
-          </p>
-
-          <div className="row gap-2" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
-            <div className="field grow" style={{ minWidth: 240 }}>
-              <label><span>Proxy URL</span></label>
-              <input
-                type="text"
-                autoComplete="off"
-                spellCheck="false"
-                placeholder="https://gridiron-edge-espn-proxy.your-name.workers.dev"
-                value={proxyDraft}
-                onChange={(e) => setProxyDraft(e.target.value.trim())}
-              />
-            </div>
-            <button
-              className="btn primary"
-              onClick={() => dispatch({ type: 'setStatsProxyUrl', url: proxyDraft })}
-              disabled={proxyDraft === (statsProxyUrl || '')}
-            >
-              {statsProxyUrl ? 'Update' : 'Connect'}
-            </button>
-            {statsProxyUrl && (
-              <button
-                className="btn"
-                onClick={() => { setProxyDraft(''); dispatch({ type: 'setStatsProxyUrl', url: '' }) }}
-              >
-                Disconnect
-              </button>
-            )}
-          </div>
-
-          <p className="dim" style={{ fontSize: 11, marginBottom: 0, marginTop: 'var(--s3)' }}>
-            The URL is stored in this browser only, same as the odds API key above. It points
-            at infrastructure you deploy and own — this app never runs one for you.
+            Receiving and rushing yardage props are priced against each player's own real
+            per-game rate, not a league average, whenever one is available. That data comes
+            from <a href="https://github.com/nflverse/nflverse-data" target="_blank" rel="noreferrer"
+                     style={{ color: 'var(--gold)' }}>nflverse</a>'s public play-by-play stats
+            and ships with the app itself, refreshed on its own schedule — there is nothing to
+            configure here. A player still falls back to a positional estimate when he has no
+            games on record yet (a rookie, or a very recent call-up).
           </p>
         </div>
       </section>

@@ -1,0 +1,42 @@
+name: Update player stats snapshot
+
+# Keeps src/data/generated/player-stats.json current with nflverse's public
+# release, which updates after each week's games. Committing straight to
+# main (no PR) because this is a data refresh, not a code change, and it's
+# idempotent — a no-op week produces no diff and no commit. The push to
+# main triggers the existing deploy workflow, so the site picks up fresh
+# rates on its next rebuild automatically.
+on:
+  schedule:
+    # Tuesday and Friday mornings UTC — after Monday Night Football and
+    # again before the weekend slate, comfortably past nflverse's own
+    # post-game processing window.
+    - cron: '0 12 * * 2,5'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run player-stats
+
+      - name: Commit if the snapshot changed
+        run: |
+          if git diff --quiet -- src/data/generated/player-stats.json src/data/generated/player-stats-meta.json; then
+            echo "No change in player stats this run."
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add src/data/generated/player-stats.json src/data/generated/player-stats-meta.json
+          git commit -m 'Update player stats snapshot'
+          git push

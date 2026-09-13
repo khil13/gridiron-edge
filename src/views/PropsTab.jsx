@@ -23,7 +23,7 @@ import { fmtOdds, fmtPct, fmtMoney, fmtSigned } from '../lib/format.js'
  * than in a footnote.
  */
 export default function PropsTab({ game, data }) {
-  const { settings, oddsKey, statsProxyUrl, manualPrices, dispatch } = useStore()
+  const { settings, oddsKey, manualPrices, dispatch } = useStore()
   const [state, setState] = useState({ status: 'idle' })
   const entered = manualPrices[game.id] || {}
 
@@ -38,7 +38,7 @@ export default function PropsTab({ game, data }) {
       // independently means a dead odds key degrades to the model's own
       // numbers with manual pricing rather than taking the whole tab down —
       // which is the point of that fallback existing at all.
-      const rosters = await fetchGameRosters(game, { statsProxyUrl: statsProxyUrl || undefined })
+      const rosters = await fetchGameRosters(game)
       let props = null
       let propsError = null
       if (oddsKey) {
@@ -700,11 +700,10 @@ function Volume({ analysis, entered, onPrice }) {
       {anySynthetic && (
         <p className="dim" style={{ fontSize: 11, padding: 'var(--s3) var(--s4) 0', margin: 0, maxWidth: '80ch' }}>
           <span className="neg">Rows marked &quot;Est.&quot; are a league-average rate for that
-          role, not this player&apos;s own numbers</span> — his own per-game data could not be
-          loaded (ESPN blocks this app's own requests for it; a stats proxy in Model Lab
-          replaces the estimate with real rates once one is connected). Being twenty yards off
-          is the whole bet on a yardage line, so treat these as a rough placeholder, not a real
-          edge.
+          role, not this player&apos;s own numbers</span> — his own per-game data wasn't in the
+          bundled season-stats snapshot (usually a rookie or a very recent call-up with no games
+          on record yet). Being twenty yards off is the whole bet on a yardage line, so treat
+          these as a rough placeholder, not a real edge.
         </p>
       )}
 

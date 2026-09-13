@@ -12,6 +12,15 @@
  * Nothing is invented to fill the gap.
  */
 
+import { normPropName } from '../../lib/props.js'
+
+// Loaded lazily and cached: the snapshot is a few hundred KB and only ever
+// needed once a game's rosters are actually being fetched, not on every
+// page load (scores, standings, etc. never touch it).
+let playerStatsPromise = null
+const loadPlayerStats = () =>
+  (playerStatsPromise ??= import('../generated/player-stats.json').then((m) => m.default))
+
 const HOSTS = [
   'https://site.web.api.espn.com/apis/site/v2/sports/football/nfl',
   'https://site.api.espn.com/apis/site/v2/sports/football/nfl'
@@ -220,8 +229,28 @@ export function assignRoles(players, depthRanks = null) {
   return out
 }
 
+/**
+ * A player's real season rate from the bundled nflverse snapshot (see
+ * scripts/fetch-player-stats.mjs), keyed by name and position since two
+ * different players occasionally share a name.
+ *
+ * Tries the requested season first, then the one before it for a player
+ * with nothing yet this year (opening weeks, or a rookie's first snap) —
+ * real data from a year ago is a better starting point than a league-wide
+ * average, provided it is labelled honestly, which is what the returned
+ * `priorSeason` flag is for.
+ */
+async function staticStats(name, position, season) {
+  const playerStats = await loadPlayerStats()
+  const key = `${normPropName(name)}|${position === 'FB' ? 'RB' : position}`
+  const current = playerStats.seasons?.[season]?.[key]
+  if (current) return { stats: current, priorSeason: false }
+  const prior = playerStats.seasons?.[season - 1]?.[key]
+  return prior ? { stats: prior, priorSeason: true } : null
+}
+
 /** Both rosters for a game, with roles assigned. */
-export async function fetchGameRosters(game, { signal, season, statsProxyUrl } = {}) {
+export async function fetchGameRosters(game, { signal, season } = {}) {
   // Depth charts are best-effort: a failure there degrades the ranking, it
   // does not break the page.
   let [home, away, homeDepth, awayDepth] = await Promise.all([
@@ -240,35 +269,25 @@ export async function fetchGameRosters(game, { signal, season, statsProxyUrl } =
   let usedPriorSeason = false
   let statsNote = null
 
-  if (statsProxyUrl) {
-    // fetchAthleteStats() has real per-player data and a parser verified
-    // against it, but is confirmed CORS-blocked when called directly from
-    // the browser (live-tested: 88/88 requests rejected, "no Access-
-    // Control-Allow-Origin header"). A configured proxy runs the same
-    // request server-side, where that policy does not apply. Only a
-    // roster that does not already carry usable stats pays for this — the
-    // ESPN roster feed itself sometimes embeds season stats, and re-asking
-    // per player when it already has would just be the same answer slower.
-    const [homeFetched, awayFetched] = await Promise.all([
-      usable(home) ? { players: home.players, merged: 0, priorSeason: false } : proxyStats(home.players, statsProxyUrl, statsSeason, signal),
-      usable(away) ? { players: away.players, merged: 0, priorSeason: false } : proxyStats(away.players, statsProxyUrl, statsSeason, signal)
-    ])
-    home = { ...home, players: homeFetched.players }
-    away = { ...away, players: awayFetched.players }
-    usedPriorSeason = homeFetched.priorSeason || awayFetched.priorSeason
+  // The ESPN roster feed itself sometimes embeds season stats already; the
+  // bundled snapshot only needs to fill in players who don't have any.
+  const withStatic = async (roster) => {
+    if (usable(roster)) return roster
+    let priorSeason = false
+    const players = await Promise.all(roster.players.map(async (p) => {
+      const found = await staticStats(p.name, p.position, statsSeason)
+      if (!found) return p
+      if (found.priorSeason) priorSeason = true
+      return { ...p, stats: found.stats, tds: found.stats.tds }
+    }))
+    if (priorSeason) usedPriorSeason = true
+    return { ...roster, players }
+  }
+  ;[home, away] = await Promise.all([withStatic(home), withStatic(away)])
 
-    if (!usable(home) && !usable(away)) {
-      statsNote = `The stats proxy at ${statsProxyUrl} returned no usable data for either roster, ` +
-        'so yardage markets use a positional average instead of real per-game rates.'
-    }
-  } else if (!usable(home) && !usable(away)) {
-    // No proxy configured, so this goes straight to the positional-average
-    // fallback in props.js rather than attempting the doomed direct fetch —
-    // that cost every Props load ~80 requests' worth of latency for no
-    // benefit the last time it was tried. See fetchAthleteStats() above.
-    statsNote = "ESPN's per-athlete stats feed is unreachable from the browser (blocked by its CORS policy), " +
-      'so yardage markets use a positional average instead of real per-game rates. ' +
-      'Configure a stats proxy in Model Lab to use real rates instead (see worker/README.md).'
+  if (!usable(home) && !usable(away)) {
+    statsNote = "No player in either roster matched this season's bundled stats snapshot, " +
+      'so yardage markets use a positional average instead of real per-game rates.'
   }
 
   const players = [
@@ -286,39 +305,6 @@ export async function fetchGameRosters(game, { signal, season, statsProxyUrl } =
     statsNote,
     notes: [home.note, away.note].filter(Boolean)
   }
-}
-
-/**
- * Fetch and merge real per-player season rates through a stats proxy.
- *
- * Tries the current season first, then last season for a player with
- * nothing yet this year (opening weeks, or a rookie's first snap) — real
- * data from a year ago is a better starting point than a league-wide
- * average, provided it is labelled honestly, which is what `priorSeason`
- * on the return value is for.
- *
- * A player who fails or comes back empty simply keeps no stats: props.js
- * already treats that as "fall back to the positional prior," so nothing
- * needs to be invented here.
- */
-async function proxyStats(players, proxyUrl, season, signal) {
-  const results = await Promise.allSettled(
-    players.map((p) => fetchAthleteStats(p.id, { signal, proxyUrl }))
-  )
-
-  let merged = 0
-  let priorSeason = false
-  const withStats = results.map((r, i) => {
-    if (r.status !== 'fulfilled') return players[i]
-    const current = statsForSeason(r.value, season)
-    const stats = current ?? statsForSeason(r.value, season - 1)
-    if (!stats) return players[i]
-    merged++
-    if (!current) priorSeason = true
-    return { ...players[i], stats, tds: stats.tds }
-  })
-
-  return { players: withStats, merged, priorSeason }
 }
 
 /* ------------------------------------------------------------------ */
@@ -401,117 +387,4 @@ const idFromRef = (ref) => {
   if (!ref) return null
   const m = String(ref).match(/athletes\/(\d+)/)
   return m ? m[1] : null
-}
-
-/* ------------------------------------------------------------------ */
-/* Per-athlete season statistics                                       */
-/* ------------------------------------------------------------------ */
-
-/**
- * One athlete's full career stat history, broken out by season and
- * category (passing/rushing/receiving/scoring/...).
- *
- * This has real per-player data and a parser (statsForSeason, below)
- * verified against it — but is confirmed CORS-blocked when called
- * directly from a browser (live-tested: 88/88 requests rejected, no
- * Access-Control-Allow-Origin header). Visiting the URL directly works
- * fine; a fetch() from a different origin does not, and that is a static
- * server-side policy on ESPN's end, not a flaky per-request failure, so
- * it will not start working without either ESPN changing it or the
- * request running somewhere CORS does not apply.
- *
- * Passing `proxyUrl` (a deployed instance of worker/espn-proxy.js — see
- * worker/README.md) routes the request through there instead: the worker
- * makes the same call server-side and re-serves it with the header the
- * browser needs. Without one, this falls back to asking ESPN directly,
- * which is known to fail from the browser but is kept for completeness —
- * a Node script, a test, or a future environment without that restriction
- * can still use it. fetchGameRosters() only ever calls this when a proxy
- * is configured, precisely to avoid repeating the doomed direct attempt on
- * every Props load — that cost ~80 requests' worth of latency for no
- * benefit the last time it was tried.
- *
- * This replaces an even earlier approach that asked for the whole
- * league's stats in one request
- * (`.../statistics/byathlete?season=Y&category=passing`). ESPN rejects
- * that with a 400 — confirmed live: the category parameter no longer
- * accepts a category name at all, and the error it returns names an
- * internal path shaped like `.../statistics/{id}/byathlete`, implying
- * category is now expected to be a numeric id it doesn't document
- * anywhere. Dropping the parameter avoids the 400, but "succeeds" by
- * silently returning a tiny, unrelated 4-player leaderboard instead of
- * the league.
- */
-export async function fetchAthleteStats(athleteId, { signal, proxyUrl } = {}) {
-  if (proxyUrl) {
-    const res = await fetch(`${proxyUrl.replace(/\/+$/, '')}/athletes/${athleteId}/stats`, { signal })
-    if (!res.ok) throw new Error(`Stats proxy returned ${res.status}`)
-    return res.json()
-  }
-
-  let json = null
-  let lastError
-  for (const host of HOSTS) {
-    try {
-      const res = await fetch(`${host}/athletes/${athleteId}/stats`, { signal })
-      if (!res.ok) throw new Error(`returned ${res.status}`)
-      json = await res.json()
-      break
-    } catch (err) {
-      if (signal?.aborted) throw err
-      lastError = err
-    }
-  }
-  if (!json) throw new Error(`Athlete stats unavailable (${lastError?.message ?? 'unknown'})`)
-  return json
-}
-
-/**
- * Pull one season's stats out of an athlete's full history, in the shape
- * the props model expects.
- *
- * Each category ('passing', 'rushing', ...) lists its field names once in
- * `names` and then one row per season played in `statistics`, with that
- * season's values as a parallel array of display strings ("1,374", "-").
- * A player who has never done something (a QB with no receptions) simply
- * has no `receiving` category at all, so every lookup here is optional —
- * a missing category or season yields null rather than a confident zero.
- */
-export function statsForSeason(json, year) {
-  const categories = json?.categories
-  if (!Array.isArray(categories)) return null
-
-  const pick = (categoryName, fieldName) => {
-    const cat = categories.find((c) => c.name === categoryName)
-    const row = cat?.statistics?.find((s) => s.season?.year === year)
-    const idx = cat?.names?.indexOf(fieldName)
-    if (row == null || idx == null || idx < 0) return null
-    const raw = row.stats?.[idx]
-    if (raw == null || raw === '-') return null
-    const n = Number(String(raw).replace(/,/g, ''))
-    return Number.isFinite(n) ? n : null
-  }
-
-  const games = pick('passing', 'gamesPlayed') ?? pick('rushing', 'gamesPlayed')
-    ?? pick('receiving', 'gamesPlayed') ?? pick('scoring', 'gamesPlayed')
-  if (!games) return null
-
-  // The scoring category already totals rushing/receiving touchdowns in
-  // one place, so anytime-scoring TDs don't have to be summed across two
-  // categories that might not even carry matching season rows.
-  const rushTd = pick('scoring', 'rushingTouchdowns') ?? pick('rushing', 'rushingTouchdowns') ?? 0
-  const recTd = pick('scoring', 'receivingTouchdowns') ?? pick('receiving', 'receivingTouchdowns') ?? 0
-
-  return {
-    games,
-    tds: rushTd + recTd,
-    receivingYards: pick('receiving', 'receivingYards'),
-    receptions: pick('receiving', 'receptions'),
-    targets: pick('receiving', 'receivingTargets'),
-    rushingYards: pick('rushing', 'rushingYards'),
-    rushingAttempts: pick('rushing', 'rushingAttempts'),
-    passingYards: pick('passing', 'passingYards'),
-    passingTouchdowns: pick('passing', 'passingTouchdowns'),
-    passingAttempts: pick('passing', 'passingAttempts')
-  }
 }
