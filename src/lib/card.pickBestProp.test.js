@@ -23,31 +23,27 @@ describe('pickBestProp', () => {
     expect(best.tier.suspicious).toBe(false)
   })
 
-  it('falls back to the flagged candidate when it is the only thing that qualifies', () => {
-    const best = pickBestProp([flagged(2.5), noPlay()])
-    expect(best.tier.suspicious).toBe(true)
+  it('returns null rather than a flagged candidate when nothing else qualifies', () => {
+    // Also confirmed live: every game with a flagged candidate had nothing
+    // else, so treating it as a fallback meant the card showed nothing but
+    // flagged longshots. A flagged candidate is excluded outright instead.
+    expect(pickBestProp([flagged(2.5), noPlay()])).toBeNull()
   })
 
-  it('picks the highest-EV flagged candidate when only flagged ones qualify', () => {
-    const best = pickBestProp([flagged(1.5), flagged(2.5)])
-    expect(best.entry.ev).toBe(2.5)
+  it('returns null when every qualifying candidate is flagged', () => {
+    expect(pickBestProp([flagged(1.5), flagged(2.5)])).toBeNull()
   })
 })
 
 describe('sortPropPicks', () => {
-  it('sorts every clean pick ahead of every flagged pick regardless of EV', () => {
-    const picks = [flagged(2.5), clean(0.02), flagged(1.0), clean(0.06)]
+  it('sorts picks by EV descending', () => {
+    const picks = [clean(0.02), clean(0.08), clean(0.05)]
     const sorted = sortPropPicks(picks)
-    expect(sorted.map((p) => p.tier.suspicious)).toEqual([false, false, true, true])
-    // Clean picks still rank by EV among themselves, same for flagged.
-    expect(sorted[0].entry.ev).toBe(0.06)
-    expect(sorted[1].entry.ev).toBe(0.02)
-    expect(sorted[2].entry.ev).toBe(2.5)
-    expect(sorted[3].entry.ev).toBe(1.0)
+    expect(sorted.map((p) => p.entry.ev)).toEqual([0.08, 0.05, 0.02])
   })
 
   it('does not mutate the input array', () => {
-    const picks = [flagged(2.5), clean(0.02)]
+    const picks = [clean(0.08), clean(0.02)]
     const copy = [...picks]
     sortPropPicks(picks)
     expect(picks).toEqual(copy)

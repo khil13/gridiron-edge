@@ -63,15 +63,16 @@ export default function CardView({ data }) {
   const propsReady = propState.status === 'ready' && propState.dayKey === day?.key
   const propsLoading = propState.status === 'loading' && propState.dayKey === day?.key
 
-  const propPlays = useMemo(() => {
-    if (!propsReady) return []
+  const propResult = useMemo(() => {
+    if (!propsReady) return { picks: [], flaggedOnly: 0 }
     const unit = (settings.bankroll ?? 1000) * 0.01
     const picks = []
+    let flaggedOnly = 0
     for (const { game, anytime, volume } of propState.perGame) {
       // Every qualifying candidate for this game, touchdown and yardage
       // alike — one leg per game, same discipline as the game-line card.
-      // pickBestProp() prefers an unflagged edge over a flagged longshot
-      // even at a lower raw EV; see its doc comment for why that matters.
+      // pickBestProp() excludes a flagged "Check model" candidate outright
+      // rather than using it as a fallback; see its doc comment for why.
       const candidates = []
       for (const e of anytime) {
         if (!e.devigged || e.ev == null) continue
@@ -81,11 +82,15 @@ export default function CardView({ data }) {
         candidates.push({ kind: 'volume', entry: v, tier: tierForVolume(v) })
       }
       const best = pickBestProp(candidates)
-      if (!best) continue
+      if (!best) {
+        if (candidates.some((c) => c.tier.units > 0)) flaggedOnly++
+        continue
+      }
       picks.push({ game, kind: best.kind, entry: best.entry, tier: best.tier, stake: best.tier.units * unit })
     }
-    return sortPropPicks(picks).slice(0, 6)
+    return { picks: sortPropPicks(picks).slice(0, 6), flaggedOnly }
   }, [propsReady, propState, settings])
+  const { picks: propPlays, flaggedOnly: flaggedOnlyGames } = propResult
 
   const loadProps = async () => {
     if (!day) return
@@ -310,7 +315,15 @@ export default function CardView({ data }) {
             <p className="dim" style={{ fontSize: 12, margin: 0, maxWidth: '78ch' }}>
               {propState.checked} game{propState.checked === 1 ? '' : 's'} checked
               {propState.failed ? `, ${propState.failed} could not be priced` : ''} — nothing cleared
-              the bar. Touchdown props carry a fifteen-to-twenty-five percent hold on top of a
+              the bar.{' '}
+              {flaggedOnlyGames > 0 && (
+                <>
+                  {flaggedOnlyGames} game{flaggedOnlyGames === 1 ? '' : 's'} had only a "Check
+                  model" candidate — an edge so large it's more likely a bad depth chart than real
+                  value — and those are left off rather than shown as a pick.{' '}
+                </>
+              )}
+              Touchdown props carry a fifteen-to-twenty-five percent hold on top of a
               depth chart the model is often guessing at, and a yardage line only qualifies against
               a player's own real per-game rate (see Model Lab's stats proxy) — so most days that is
               the correct answer, not a bug.
