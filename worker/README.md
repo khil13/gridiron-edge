@@ -1,4 +1,24 @@
-# ESPN stats proxy
+# ESPN stats proxy (superseded)
+
+**No longer used by the app.** This CORS proxy turned out to solve only
+half the problem: ESPN's bot protection also 403s the worker's own
+server-side request (confirmed live, even with a matching browser
+User-Agent/Referer/Origin), and a GitHub Actions runner gets the same
+treatment (404 there). That's consistent with ESPN blocking by IP/ASN
+reputation for recognised cloud infrastructure generally, not something a
+worker or a proxy of any kind can fix.
+
+The app now gets real per-player rates from a source that isn't blocked —
+see `scripts/fetch-player-stats.mjs`, which pulls the same shape of data
+from [nflverse](https://github.com/nflverse)'s public GitHub release and
+bundles it into the app at build time. No proxy, no configuration, no
+per-request network call at all.
+
+This directory is left in place for reference. If you already deployed
+this worker, it's harmless to leave running or to delete — the app no
+longer calls it either way.
+
+---
 
 Un-blocks one endpoint for the browser: ESPN's `/athletes/{id}/stats` feed,
 which has real per-player season rates (receiving yards, carries, targets,

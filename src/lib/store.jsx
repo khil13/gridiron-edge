@@ -18,11 +18,6 @@ const initial = () => ({
   // Stored separately from settings so it is never bundled into an export
   // or a shared card snapshot.
   oddsKey: load('oddsKey', ''),
-  // A deployed instance of worker/espn-proxy.js, used to reach ESPN's
-  // per-athlete stats feed — CORS-blocked when called directly from the
-  // browser. Optional: without one, yardage markets fall back to a
-  // positional average.
-  statsProxyUrl: load('statsProxyUrl', ''),
   // Prices typed in by hand from a sportsbook, keyed gameId -> player -> price.
   // Kept so a page reload does not throw away a slate's worth of typing.
   manualPrices: load('manualPrices', {}),
@@ -67,8 +62,6 @@ function reducer(state, action) {
     }
     case 'setOddsKey':
       return { ...state, oddsKey: action.key }
-    case 'setStatsProxyUrl':
-      return { ...state, statsProxyUrl: action.url }
     case 'lockCard': {
       // One lock per slate date. Re-locking replaces it, so a day cannot be
       // quietly logged twice with different numbers.
@@ -94,7 +87,6 @@ export function StoreProvider({ children }) {
   useEffect(() => { save('tickets', state.tickets) }, [state.tickets])
   useEffect(() => { save('lockedCards', state.lockedCards) }, [state.lockedCards])
   useEffect(() => { save('oddsKey', state.oddsKey) }, [state.oddsKey])
-  useEffect(() => { save('statsProxyUrl', state.statsProxyUrl) }, [state.statsProxyUrl])
   useEffect(() => { save('manualPrices', state.manualPrices) }, [state.manualPrices])
   useEffect(() => { save('mode', state.mode) }, [state.mode])
 

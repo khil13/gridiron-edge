@@ -24,7 +24,7 @@ import { href } from '../lib/router.js'
  * thing separating this from a list of games.
  */
 export default function CardView({ data }) {
-  const { settings, lockedCards, oddsKey, statsProxyUrl, dispatch } = useStore()
+  const { settings, lockedCards, oddsKey, dispatch } = useStore()
   const [tab, setTab] = useState('today')
   const [propState, setPropState] = useState({ status: 'idle', dayKey: null })
   const days = useMemo(() => daysFrom(data.games), [data.games])
@@ -98,17 +98,17 @@ export default function CardView({ data }) {
     setPropState({ status: 'loading', dayKey: day.key })
     const settled = await Promise.allSettled(
       targets.map(async (g) => {
-        const rosters = await fetchGameRosters(g, { statsProxyUrl: statsProxyUrl || undefined })
+        const rosters = await fetchGameRosters(g)
         const props = await fetchGameProps({ apiKey: oddsKey, game: g, markets: CARD_PROP_MARKETS })
         const { anytime } = analyseAnytimeTouchdowns({ game: g, proj: g.projection, rosters, props })
         const volume = volumePlaysForGame({ game: g, proj: g.projection, rosters, offers: props?.volume, ratings: data.ratings })
         return {
           game: g, anytime, volume,
           volumeOffers: props?.volume?.length ?? 0,
-          // fetchGameRosters() already knows whether the stats proxy (or the
-          // roster feed's own embedded stats) produced a single real rate —
-          // reusing that beats re-deriving it, and rosters.statsNote already
-          // explains why when it didn't.
+          // fetchGameRosters() already knows whether the bundled stats
+          // snapshot (or the roster feed's own embedded stats) produced a
+          // single real rate — reusing that beats re-deriving it, and
+          // rosters.statsNote already explains why when it didn't.
           hasSeasonStats: rosters.hasSeasonStats,
           statsNote: rosters.statsNote
         }
@@ -346,8 +346,7 @@ export default function CardView({ data }) {
               )}
               Touchdown props carry a fifteen-to-twenty-five percent hold on top of a
               depth chart the model is often guessing at, and a yardage line only qualifies against
-              a player's own real per-game rate (see Model Lab's stats proxy) — so most days that is
-              the correct answer, not a bug.
+              a player's own real per-game rate — so most days that is the correct answer, not a bug.
             </p>
           )}
           {oddsKey && propsReady && propPlays.length > 0 && (
@@ -378,9 +377,9 @@ export default function CardView({ data }) {
               ) : propState.volumeCandidatesPriced === 0 && !propState.anyRealStats ? (
                 <>
                   Yardage: the odds feed returned {propState.volumeOffersSeen} line
-                  {propState.volumeOffersSeen === 1 ? '' : 's'}, but not one roster on this slate
-                  came back with a real per-player rate at all — the stats proxy isn't actually
-                  delivering data, whatever Model Lab's badge says.
+                  {propState.volumeOffersSeen === 1 ? '' : 's'}, but not one player on either
+                  roster matched this season's bundled stats snapshot — likely a name-matching
+                  gap between the roster feed and the snapshot, not a missing data source.
                   {propState.statsNote && <> {propState.statsNote}</>}
                 </>
               ) : propState.volumeCandidatesPriced === 0 ? (

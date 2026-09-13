@@ -1,5 +1,25 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { fetchGameRosters, fetchAthleteStats } from './playerData.js'
+
+const CURRENT_YEAR = new Date().getFullYear()
+
+vi.mock('../generated/player-stats.json', () => ({
+  default: {
+    generatedAt: '2026-01-01T00:00:00.000Z',
+    latestSeason: CURRENT_YEAR,
+    seasons: {
+      [CURRENT_YEAR]: {
+        'cin star wr|WR': { games: 8, tds: 6, receivingYards: 900, receptions: 60, targets: 90, rushingYards: 0, rushingAttempts: 0, passingYards: 0, passingAttempts: 0, passingTouchdowns: 0 },
+        'det star wr|WR': { games: 8, tds: 3, receivingYards: 500, receptions: 40, targets: 60, rushingYards: 0, rushingAttempts: 0, passingYards: 0, passingAttempts: 0, passingTouchdowns: 0 }
+      },
+      [CURRENT_YEAR - 1]: {
+        'cin star wr|WR': { games: 17, tds: 9, receivingYards: 1200, receptions: 95, targets: 140, rushingYards: 0, rushingAttempts: 0, passingYards: 0, passingAttempts: 0, passingTouchdowns: 0 },
+        'det star wr|WR': { games: 17, tds: 5, receivingYards: 800, receptions: 70, targets: 100, rushingYards: 0, rushingAttempts: 0, passingYards: 0, passingAttempts: 0, passingTouchdowns: 0 }
+      }
+    }
+  }
+}))
+
+const { fetchGameRosters } = await import('./playerData.js')
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -17,25 +37,6 @@ const rosterJson = (players) => ({
   }]
 })
 
-const athleteStatsJson = (year, overrides = {}) => ({
-  categories: [
-    {
-      name: 'receiving',
-      names: ['gamesPlayed', 'receivingYards', 'receptions', 'receivingTargets', 'receivingTouchdowns'],
-      statistics: [{
-        season: { year },
-        stats: [
-          String(overrides.games ?? 8),
-          String(overrides.receivingYards ?? 640),
-          String(overrides.receptions ?? 48),
-          String(overrides.targets ?? 70),
-          String(overrides.tds ?? 4)
-        ]
-      }]
-    }
-  ]
-})
-
 function mockFetchRouter(routes) {
   return vi.fn(async (url) => {
     for (const [pattern, respond] of routes) {
@@ -45,39 +46,18 @@ function mockFetchRouter(routes) {
   })
 }
 
-describe('fetchAthleteStats', () => {
-  it('calls the configured proxy instead of ESPN directly', async () => {
-    const fetchMock = vi.fn(async (url) => {
-      expect(url).toBe('https://my-proxy.example/athletes/999/stats')
-      return { ok: true, json: async () => ({ categories: [] }) }
-    })
-    vi.stubGlobal('fetch', fetchMock)
-
-    await fetchAthleteStats('999', { proxyUrl: 'https://my-proxy.example' })
-    expect(fetchMock).toHaveBeenCalledTimes(1)
-  })
-
-  it('throws when the proxy responds with an error status', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 503 })))
-    await expect(fetchAthleteStats('1', { proxyUrl: 'https://my-proxy.example' }))
-      .rejects.toThrow(/503/)
-  })
-})
-
-describe('fetchGameRosters with a stats proxy', () => {
+describe('fetchGameRosters with the bundled stats snapshot', () => {
   const game = { id: 'g1', home: 'CIN', away: 'DET' }
 
-  it('merges real per-player stats fetched through the proxy', async () => {
+  it('merges real per-player stats from the bundled snapshot', async () => {
     const fetchMock = mockFetchRouter([
       [/\/teams\/cin\/roster/, async () => ({ ok: true, json: async () => rosterJson([{ id: 10, name: 'Cin Star WR' }]) })],
       [/\/teams\/det\/roster/, async () => ({ ok: true, json: async () => rosterJson([{ id: 20, name: 'Det Star WR' }]) })],
-      [/depthcharts/, async () => ({ ok: false, status: 404 })],
-      [/\/athletes\/10\/stats/, async () => ({ ok: true, json: async () => athleteStatsJson(new Date().getFullYear(), { receivingYards: 900 }) })],
-      [/\/athletes\/20\/stats/, async () => ({ ok: true, json: async () => athleteStatsJson(new Date().getFullYear(), { receivingYards: 500 }) })]
+      [/depthcharts/, async () => ({ ok: false, status: 404 })]
     ])
     vi.stubGlobal('fetch', fetchMock)
 
-    const result = await fetchGameRosters(game, { statsProxyUrl: 'https://my-proxy.example' })
+    const result = await fetchGameRosters(game)
 
     expect(result.hasSeasonStats).toBe(true)
     expect(result.usedPriorSeason).toBe(false)
@@ -87,23 +67,21 @@ describe('fetchGameRosters with a stats proxy', () => {
   })
 
   it('falls back to last season for a player with nothing yet this year', async () => {
-    const thisYear = new Date().getFullYear()
-    const fetchMock = mockFetchRouter([
-      [/\/teams\/cin\/roster/, async () => ({ ok: true, json: async () => rosterJson([{ id: 10, name: 'Cin Star WR' }]) })],
-      [/\/teams\/det\/roster/, async () => ({ ok: true, json: async () => rosterJson([{ id: 20, name: 'Det Star WR' }]) })],
-      [/depthcharts/, async () => ({ ok: false, status: 404 })],
-      // Only a prior-season row exists for either player.
-      [/\/athletes\/(10|20)\/stats/, async () => ({ ok: true, json: async () => athleteStatsJson(thisYear - 1) })]
-    ])
-    vi.stubGlobal('fetch', fetchMock)
+    vi.doMock('../generated/player-stats.json', () => ({
+      default: {
+        latestSeason: CURRENT_YEAR,
+        seasons: {
+          // Only a prior-season row exists for either player.
+          [CURRENT_YEAR - 1]: {
+            'cin star wr|WR': { games: 17, tds: 9, receivingYards: 1200, receptions: 95, targets: 140, rushingYards: 0, rushingAttempts: 0, passingYards: 0, passingAttempts: 0, passingTouchdowns: 0 },
+            'det star wr|WR': { games: 17, tds: 5, receivingYards: 800, receptions: 70, targets: 100, rushingYards: 0, rushingAttempts: 0, passingYards: 0, passingAttempts: 0, passingTouchdowns: 0 }
+          }
+        }
+      }
+    }))
+    vi.resetModules()
+    const { fetchGameRosters: fetchGameRostersFresh } = await import('./playerData.js')
 
-    const result = await fetchGameRosters(game, { statsProxyUrl: 'https://my-proxy.example' })
-
-    expect(result.usedPriorSeason).toBe(true)
-    expect(result.players.every((p) => p.stats?.games)).toBe(true)
-  })
-
-  it('notes the CORS block when no proxy is configured', async () => {
     const fetchMock = mockFetchRouter([
       [/\/teams\/cin\/roster/, async () => ({ ok: true, json: async () => rosterJson([{ id: 10, name: 'Cin Star WR' }]) })],
       [/\/teams\/det\/roster/, async () => ({ ok: true, json: async () => rosterJson([{ id: 20, name: 'Det Star WR' }]) })],
@@ -111,15 +89,27 @@ describe('fetchGameRosters with a stats proxy', () => {
     ])
     vi.stubGlobal('fetch', fetchMock)
 
-    const result = await fetchGameRosters(game, {})
+    const result = await fetchGameRostersFresh(game)
 
-    expect(result.hasSeasonStats).toBe(false)
-    expect(result.statsNote).toMatch(/CORS/)
-    // Never even attempted the per-athlete endpoint without a proxy.
-    expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/athletes/'))).toBe(false)
+    expect(result.usedPriorSeason).toBe(true)
+    expect(result.players.every((p) => p.stats?.games)).toBe(true)
   })
 
-  it('skips the proxy fetch for a roster that already has usable embedded stats', async () => {
+  it('notes the coverage gap when no roster matches the snapshot', async () => {
+    const fetchMock = mockFetchRouter([
+      [/\/teams\/cin\/roster/, async () => ({ ok: true, json: async () => rosterJson([{ id: 10, name: 'Nobody On File' }]) })],
+      [/\/teams\/det\/roster/, async () => ({ ok: true, json: async () => rosterJson([{ id: 20, name: 'Also Unlisted' }]) })],
+      [/depthcharts/, async () => ({ ok: false, status: 404 })]
+    ])
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await fetchGameRosters(game)
+
+    expect(result.hasSeasonStats).toBe(false)
+    expect(result.statsNote).toMatch(/bundled stats snapshot/)
+  })
+
+  it('skips the snapshot lookup for a roster that already has usable embedded stats', async () => {
     const withStats = {
       athletes: [{
         items: [{
@@ -136,15 +126,16 @@ describe('fetchGameRosters with a stats proxy', () => {
     const fetchMock = mockFetchRouter([
       [/\/teams\/cin\/roster/, async () => ({ ok: true, json: async () => withStats })],
       [/\/teams\/det\/roster/, async () => ({ ok: true, json: async () => rosterJson([{ id: 20, name: 'Det Star WR' }]) })],
-      [/depthcharts/, async () => ({ ok: false, status: 404 })],
-      [/\/athletes\/20\/stats/, async () => ({ ok: true, json: async () => athleteStatsJson(new Date().getFullYear()) })]
+      [/depthcharts/, async () => ({ ok: false, status: 404 })]
     ])
     vi.stubGlobal('fetch', fetchMock)
 
-    await fetchGameRosters(game, { statsProxyUrl: 'https://my-proxy.example' })
+    const result = await fetchGameRosters(game)
 
-    // CIN already had usable stats embedded, so athlete 10 should never be proxied.
-    expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/athletes/10/'))).toBe(false)
-    expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/athletes/20/'))).toBe(true)
+    // CIN's embedded stats should win rather than being overwritten by the snapshot.
+    const cinStar = result.players.find((p) => p.name === 'Cin Star WR')
+    expect(cinStar.stats.receivingYards).toBe(700)
+    const detStar = result.players.find((p) => p.name === 'Det Star WR')
+    expect(detStar.stats.receivingYards).toBe(500)
   })
 })
