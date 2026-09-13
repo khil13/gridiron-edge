@@ -1,17 +1,21 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 
-const CURRENT_YEAR = new Date().getFullYear()
+const LATEST_SEASON = 2025
+
+vi.mock('../generated/player-stats-meta.json', () => ({
+  default: { generatedAt: '2026-01-01T00:00:00.000Z', latestSeason: LATEST_SEASON, playerCount: 2 }
+}))
 
 vi.mock('../generated/player-stats.json', () => ({
   default: {
     generatedAt: '2026-01-01T00:00:00.000Z',
-    latestSeason: CURRENT_YEAR,
+    latestSeason: LATEST_SEASON,
     seasons: {
-      [CURRENT_YEAR]: {
+      [LATEST_SEASON]: {
         'cin star wr|WR': { games: 8, tds: 6, receivingYards: 900, receptions: 60, targets: 90, rushingYards: 0, rushingAttempts: 0, passingYards: 0, passingAttempts: 0, passingTouchdowns: 0 },
         'det star wr|WR': { games: 8, tds: 3, receivingYards: 500, receptions: 40, targets: 60, rushingYards: 0, rushingAttempts: 0, passingYards: 0, passingAttempts: 0, passingTouchdowns: 0 }
       },
-      [CURRENT_YEAR - 1]: {
+      [LATEST_SEASON - 1]: {
         'cin star wr|WR': { games: 17, tds: 9, receivingYards: 1200, receptions: 95, targets: 140, rushingYards: 0, rushingAttempts: 0, passingYards: 0, passingAttempts: 0, passingTouchdowns: 0 },
         'det star wr|WR': { games: 17, tds: 5, receivingYards: 800, receptions: 70, targets: 100, rushingYards: 0, rushingAttempts: 0, passingYards: 0, passingAttempts: 0, passingTouchdowns: 0 }
       }
@@ -49,7 +53,11 @@ function mockFetchRouter(routes) {
 describe('fetchGameRosters with the bundled stats snapshot', () => {
   const game = { id: 'g1', home: 'CIN', away: 'DET' }
 
-  it('merges real per-player stats from the bundled snapshot', async () => {
+  it('merges real per-player stats from the bundled snapshot without needing an explicit season', async () => {
+    // No `season` option passed — this should anchor to the snapshot's own
+    // latestSeason rather than the wall-clock year, which is the whole
+    // point of the fix (a clock/data-currency mismatch previously made
+    // every lookup miss).
     const fetchMock = mockFetchRouter([
       [/\/teams\/cin\/roster/, async () => ({ ok: true, json: async () => rosterJson([{ id: 10, name: 'Cin Star WR' }]) })],
       [/\/teams\/det\/roster/, async () => ({ ok: true, json: async () => rosterJson([{ id: 20, name: 'Det Star WR' }]) })],
@@ -59,6 +67,7 @@ describe('fetchGameRosters with the bundled stats snapshot', () => {
 
     const result = await fetchGameRosters(game)
 
+    expect(result.statsSeason).toBe(LATEST_SEASON)
     expect(result.hasSeasonStats).toBe(true)
     expect(result.usedPriorSeason).toBe(false)
     expect(result.statsNote).toBeNull()
@@ -69,10 +78,10 @@ describe('fetchGameRosters with the bundled stats snapshot', () => {
   it('falls back to last season for a player with nothing yet this year', async () => {
     vi.doMock('../generated/player-stats.json', () => ({
       default: {
-        latestSeason: CURRENT_YEAR,
+        latestSeason: LATEST_SEASON,
         seasons: {
           // Only a prior-season row exists for either player.
-          [CURRENT_YEAR - 1]: {
+          [LATEST_SEASON - 1]: {
             'cin star wr|WR': { games: 17, tds: 9, receivingYards: 1200, receptions: 95, targets: 140, rushingYards: 0, rushingAttempts: 0, passingYards: 0, passingAttempts: 0, passingTouchdowns: 0 },
             'det star wr|WR': { games: 17, tds: 5, receivingYards: 800, receptions: 70, targets: 100, rushingYards: 0, rushingAttempts: 0, passingYards: 0, passingAttempts: 0, passingTouchdowns: 0 }
           }
