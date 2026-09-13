@@ -612,10 +612,10 @@ function Passing({ analysis, game }) {
 /**
  * Yardage, receptions and carries.
  *
- * Every row here is backed by an actual season rate. A player with no
- * receptions this year gets no receiving line, because a positional average
- * is fine for a touchdown share — a proportion — and useless for a yardage
- * number, where being twenty yards wrong is the whole bet.
+ * A real per-game rate is used whenever one exists. When it doesn't, a row
+ * still appears using a rough positional average instead of refusing
+ * outright, clearly marked "Est." so it never reads as this player's own
+ * number.
  */
 function Volume({ analysis, entered, onPrice }) {
   const [market, setMarket] = useState('receivingYards')
@@ -626,31 +626,39 @@ function Volume({ analysis, entered, onPrice }) {
       <section className="panel">
         <div className="panel-head">
           <h2 style={{ fontSize: 'var(--t-base)' }}>Yardage and volume</h2>
-          <Badge tone="quiet">No season rates yet</Badge>
+          <Badge tone="quiet">Unavailable</Badge>
         </div>
         <p className="dim" style={{ fontSize: 12, padding: 'var(--s4)', margin: 0, maxWidth: '75ch' }}>
-          These markets need a real per-game rate — yards, catches or carries actually recorded.
-          {analysis.statsNote ? ` ${analysis.statsNote}` : ' Neither this season nor last returned any for these rosters.'}
-          {' '}A positional average is not a substitute: it is adequate for a touchdown share,
-          which is a proportion, and worthless for a yardage line where being twenty yards out
-          is the whole bet.
+          No player on either roster plays a position with an established per-game rate to fall
+          back on.{analysis.statsNote ? ` ${analysis.statsNote}` : ''}
         </p>
       </section>
     )
   }
+
+  const anySynthetic = analysis.volume.some((v) => v.synthetic)
+  const allSynthetic = analysis.volume.every((v) => v.synthetic)
 
   return (
     <section className="panel">
       <div className="panel-head">
         <div>
           <div className="eyebrow">
-            {analysis.usedPriorSeason
-              ? `${analysis.statsSeason} rates, scaled to this game`
-              : 'This season\u2019s rate, scaled to this game'}
+            {allSynthetic
+              ? 'League-average estimate, not these players\u2019 own rates'
+              : analysis.usedPriorSeason
+                ? `${analysis.statsSeason} rates, scaled to this game`
+                : 'This season\u2019s rate, scaled to this game'}
           </div>
           <h2 style={{ fontSize: 'var(--t-base)', marginTop: 4 }}>Yardage and volume</h2>
         </div>
-        {analysis.usedPriorSeason && <Badge tone="chalk">Last season</Badge>}
+        {allSynthetic ? (
+          <Badge tone="quiet">Estimated</Badge>
+        ) : analysis.usedPriorSeason ? (
+          <Badge tone="chalk">Last season</Badge>
+        ) : anySynthetic ? (
+          <Badge tone="quiet">Some estimated</Badge>
+        ) : null}
       </div>
 
       <div style={{ padding: 'var(--s3) var(--s4) 0' }}>
@@ -690,11 +698,12 @@ function Volume({ analysis, entered, onPrice }) {
                       <TeamMark abbr={v.team} size={16} />
                       <span className="team-name">{v.player.name}</span>
                       <span className="dim">{v.role}</span>
+                      {v.synthetic && <Badge tone="quiet" title="League-average estimate, not this player's own rate">Est.</Badge>}
                       {v.injury && !/active/i.test(v.injury) && <Badge tone="live">{v.injury}</Badge>}
                     </span>
                   </td>
                   <td className="num dim" data-label="Rate">
-                    <span>{v.perGame}/g over {v.games}</span>
+                    <span>{v.synthetic ? `${v.perGame}/g league avg` : `${v.perGame}/g over ${v.games}`}</span>
                   </td>
                   <td className="num" data-label="Projection">
                     <span>{v.mean} {v.environment !== 1 && <span className="dim">×{v.environment}</span>}</span>
@@ -740,6 +749,15 @@ function Volume({ analysis, entered, onPrice }) {
           offseason sits between: players changed teams, roles moved, and a rookie has no line
           here at all because he has no history to project from. Treat them as a starting point
           that gets replaced as this season is played.
+        </p>
+      )}
+
+      {anySynthetic && (
+        <p className="dim" style={{ fontSize: 11, padding: 'var(--s3) var(--s4) 0', margin: 0, maxWidth: '80ch' }}>
+          <span className="neg">Rows marked &quot;Est.&quot; are a league-average rate for that
+          role, not this player&apos;s own numbers</span> — his own per-game data could not be
+          loaded (ESPN's stats feed for this has been unreliable). Being twenty yards off is the
+          whole bet on a yardage line, so treat these as a rough placeholder, not a real edge.
         </p>
       )}
 

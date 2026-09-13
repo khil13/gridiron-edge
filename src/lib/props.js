@@ -275,6 +275,35 @@ export const VOLUME_MARKETS = [
 ]
 
 /**
+ * Positional-average per-game rates, used only when a player's own season
+ * rate is unavailable (ESPN's per-athlete stats feed has been unreliable —
+ * see playerData.js). Rough, public, well-known NFL per-game norms by
+ * depth-chart role, not this player's own numbers.
+ *
+ * This is exactly the same tradeoff the touchdown model already makes —
+ * blend toward a positional prior when real data is thin — extended to
+ * volume markets, which the rest of this file used to refuse outright ("a
+ * positional average is worthless for a yardage line"). That is still true
+ * as a *substitute* for real data; it is better than refusing to show
+ * anything at all, provided it is never presented as this player's own
+ * rate. Every row built from this is flagged `synthetic: true` so the UI
+ * can say so.
+ */
+export const VOLUME_PRIORS = {
+  QB:  { passingYards: 235, passingAttempts: 33, rushingYards: 14, rushingAttempts: 3 },
+  RB1: { rushingYards: 65, rushingAttempts: 14, receivingYards: 18, receptions: 2.5 },
+  RB2: { rushingYards: 30, rushingAttempts: 7, receivingYards: 8, receptions: 1.2 },
+  RB:  { rushingYards: 12, rushingAttempts: 3, receivingYards: 4, receptions: 0.6 },
+  WR1: { receivingYards: 68, receptions: 5.2 },
+  WR2: { receivingYards: 45, receptions: 3.8 },
+  WR3: { receivingYards: 28, receptions: 2.5 },
+  WR:  { receivingYards: 14, receptions: 1.3 },
+  TE1: { receivingYards: 42, receptions: 3.6 },
+  TE2: { receivingYards: 24, receptions: 2.2 },
+  TE:  { receivingYards: 16, receptions: 1.5 }
+}
+
+/**
  * Project a player's volume statistic for one game.
  *
  * Two inputs, both real: the player's per-game rate this season, and how
@@ -295,12 +324,20 @@ export function projectVolume(player, market, { teamPoints, teamAverage }) {
   const games = stats?.games
   const total = stats?.[market.stat]
 
-  // No rate, no projection. A positional prior is fine for a touchdown
-  // share, which is a proportion; it is not fine for a yardage line, where
-  // being wrong by twenty yards is the whole bet.
-  if (!games || games < 1 || total == null) return null
-
-  const perGame = total / games
+  let perGame
+  let synthetic
+  if (games >= 1 && total != null) {
+    perGame = total / games
+    synthetic = false
+  } else {
+    // No real rate for this player. Fall back to a positional average
+    // rather than refusing outright — clearly flagged as synthetic so nothing
+    // downstream can present it as this player's own number.
+    const prior = VOLUME_PRIORS[player.role]?.[market.stat]
+    if (prior == null) return null
+    perGame = prior
+    synthetic = true
+  }
   if (perGame <= 0) return null
 
   const ratio = teamAverage > 0 ? teamPoints / teamAverage : 1
@@ -311,7 +348,8 @@ export function projectVolume(player, market, { teamPoints, teamAverage }) {
     market: market.key,
     label: market.label,
     perGame: round1(perGame),
-    games,
+    games: games ?? 0,
+    synthetic,
     environment: round2(damped),
     mean: round1(mean),
     variability: VARIABILITY[market.key] ?? null,
@@ -330,14 +368,20 @@ const clampRatio = (r) => Math.max(0.65, Math.min(1.45, r))
 /**
  * Which markets a player can actually be projected for.
  *
- * A player with no carries this season does not get a rushing line just
- * because his position allows one.
+ * Real season data wins when it exists. Otherwise a market is still offered
+ * if a positional average exists for this role — synthetic, and flagged as
+ * such by projectVolume, but a rough number beats none. A player whose role
+ * carries no prior at all for a given stat (e.g. a WR's passing yards) still
+ * gets nothing invented for it.
  */
 export function availableMarkets(player) {
   const base = player.position === 'FB' ? 'RB' : player.position
-  return VOLUME_MARKETS.filter(
-    (m) => m.positions.includes(base) && (player.stats?.[m.stat] ?? 0) > 0 && player.stats?.games > 0
-  )
+  return VOLUME_MARKETS.filter((m) => {
+    if (!m.positions.includes(base)) return false
+    const hasReal = (player.stats?.[m.stat] ?? 0) > 0 && (player.stats?.games ?? 0) > 0
+    const hasPrior = (VOLUME_PRIORS[player.role]?.[m.stat] ?? 0) > 0
+    return hasReal || hasPrior
+  })
 }
 
 /* ---------- First quarter ---------- */
