@@ -51,7 +51,14 @@ export default function FieldGraphic({ situation, home, away, lastPlay }) {
   const trajectory = lastPlayTrajectory(lastPlay, spot)
 
   return (
-    <div style={{ padding: 'var(--s3) 0' }}>
+    // The svg's height is locked to its width by its viewBox aspect ratio,
+    // which is exactly what makes the trajectory headroom above the field
+    // work — but it also means an unusually wide container (this section
+    // spans the full width of its panel, and that panel can be 900px+ on a
+    // wide desktop) scales the whole graphic up in lockstep, including
+    // every label and logo on it. Capping the width keeps it the same
+    // comfortable size regardless of how wide the page around it gets.
+    <div style={{ padding: 'var(--s3) 0', maxWidth: 420, margin: '0 auto' }}>
       <div style={{ position: 'relative' }}>
       <svg viewBox={`0 ${TOP} 100 ${HEIGHT}`} style={{ width: '100%', height: 'auto', display: 'block' }} role="img"
            aria-label={describe(situation, spot, posTeam, defTeam)}>
