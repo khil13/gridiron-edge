@@ -291,7 +291,7 @@ export async function fetchGameRosters(game, { signal, season } = {}) {
       const found = await staticStats(p.name, p.position, statsSeason)
       if (!found) return p
       if (found.priorSeason) priorSeason = true
-      return { ...p, stats: found.stats, tds: found.stats.tds }
+      return { ...p, stats: found.stats, tds: found.stats.tds, statsPriorSeason: found.priorSeason }
     }))
     if (priorSeason) usedPriorSeason = true
     return { ...roster, players }

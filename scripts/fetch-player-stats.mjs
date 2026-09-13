@@ -25,10 +25,15 @@
  * the latest season by actually probing for files rather than assuming a
  * wall-clock year lines up with what's published.
  *
+ * The same rows also carry each game's `opponent_team`, so a player's
+ * production is also a defense's *allowed* production from the other
+ * side — no extra fetch needed to build "this defense has allowed the
+ * Nth-most rushing TDs" context for the Card's per-pick reasons.
+ *
  * Run:  npm run player-stats
- * Output: src/data/generated/player-stats.json, bundled into the app at
- * build time as an ordinary import — no runtime fetch, no proxy, no CORS
- * question to answer.
+ * Output: src/data/generated/player-stats.json + team-defense.json,
+ * bundled into the app at build time as ordinary imports — no runtime
+ * fetch, no proxy, no CORS question to answer.
  */
 
 import { writeFileSync, mkdirSync } from 'node:fs'
@@ -40,6 +45,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const seasonUrl = (season) =>
   `https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_${season}.csv`
+
+/** nflverse's team codes that don't match this app's own (see playerData.js's ABBR). */
+const TEAM_ABBR = { JAX: 'JAC' }
+const normTeam = (t) => TEAM_ABBR[t] || t
 
 /** Quote-aware CSV parser — several fields (player names) can contain commas. */
 function parseCSV(text) {
@@ -66,7 +75,16 @@ function parseCSV(text) {
 /** Folds FB into RB, matching how playerData.js groups roles for everything else. */
 const basePosition = (position) => (position === 'FB' ? 'RB' : position)
 
-/** One season's worth of per-player REG-season totals, or null if the file doesn't exist yet. */
+const num = (v) => {
+  const n = Number(v)
+  return Number.isFinite(n) ? n : 0
+}
+
+/**
+ * One season's per-player REG-season totals plus, from the same rows, each
+ * team's allowed rushing/receiving yards and TDs (the flip side of every
+ * row's own production). Returns null if the file doesn't exist yet.
+ */
 async function fetchSeason(season) {
   const url = seasonUrl(season)
   const res = await fetch(url)
@@ -84,6 +102,8 @@ async function fetchSeason(season) {
     name: need('player_display_name'),
     position: need('position'),
     seasonType: need('season_type'),
+    opponentTeam: need('opponent_team'),
+    gameId: need('game_id'),
     attempts: need('attempts'),
     passingYards: need('passing_yards'),
     passingTds: need('passing_tds'),
@@ -96,16 +116,36 @@ async function fetchSeason(season) {
     receivingTds: need('receiving_tds')
   }
 
-  const num = (v) => {
-    const n = Number(v)
-    return Number.isFinite(n) ? n : 0
-  }
-
   const players = {}
+  const defense = {}
+  const gamesSeenByTeam = {}
+
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i]
     if (!r || r.length < header.length) continue
     if (r[idx.seasonType] !== 'REG') continue
+
+    const rushingYards = num(r[idx.rushingYards])
+    const rushingTds = num(r[idx.rushingTds])
+    const receivingYards = num(r[idx.receivingYards])
+    const receivingTds = num(r[idx.receivingTds])
+
+    // The defense side: this row's production happened against
+    // opponent_team, so it counts toward what that team's defense allowed.
+    const defTeam = normTeam(r[idx.opponentTeam])
+    if (defTeam) {
+      const d = (defense[defTeam] ??= {
+        rushingYardsAllowed: 0, rushingTdsAllowed: 0, receivingYardsAllowed: 0, receivingTdsAllowed: 0
+      })
+      d.rushingYardsAllowed += rushingYards
+      d.rushingTdsAllowed += rushingTds
+      d.receivingYardsAllowed += receivingYards
+      d.receivingTdsAllowed += receivingTds
+
+      const seen = (gamesSeenByTeam[defTeam] ??= new Set())
+      const gameId = r[idx.gameId]
+      if (gameId) seen.add(gameId)
+    }
 
     const name = r[idx.name]
     if (!name) continue
@@ -121,18 +161,39 @@ async function fetchSeason(season) {
     })
 
     if (attempts > 0 || carries > 0 || targets > 0) acc.games += 1
-    acc.tds += num(r[idx.rushingTds]) + num(r[idx.receivingTds])
-    acc.receivingYards += num(r[idx.receivingYards])
+    acc.tds += rushingTds + receivingTds
+    acc.receivingYards += receivingYards
     acc.receptions += num(r[idx.receptions])
     acc.targets += targets
-    acc.rushingYards += num(r[idx.rushingYards])
+    acc.rushingYards += rushingYards
     acc.rushingAttempts += carries
     acc.passingYards += num(r[idx.passingYards])
     acc.passingAttempts += attempts
     acc.passingTouchdowns += num(r[idx.passingTds])
   }
 
-  return Object.keys(players).length ? players : null
+  for (const [team, d] of Object.entries(defense)) {
+    d.games = gamesSeenByTeam[team]?.size ?? 0
+  }
+
+  return {
+    players: Object.keys(players).length ? players : null,
+    defense: Object.keys(defense).length ? defense : null
+  }
+}
+
+/** 1 = allows the most (worst defense) on that stat, matching "allowed the Nth-most X" phrasing. */
+function rankDefense(defense) {
+  const stats = ['rushingYardsAllowed', 'rushingTdsAllowed', 'receivingYardsAllowed', 'receivingTdsAllowed']
+  const teams = Object.keys(defense)
+  const out = {}
+  for (const stat of stats) {
+    const ranked = [...teams].sort((a, b) => defense[b][stat] - defense[a][stat])
+    ranked.forEach((team, i) => {
+      (out[team] ??= {})[stat] = i + 1
+    })
+  }
+  return out
 }
 
 async function main() {
@@ -145,11 +206,11 @@ async function main() {
   const candidates = [clockYear + 1, clockYear, clockYear - 1, clockYear - 2, clockYear - 3]
 
   let latestSeason = null
-  let latestPlayers = null
+  let latestData = null
   for (const season of candidates) {
     console.log(`Checking ${seasonUrl(season)} ...`)
-    const players = await fetchSeason(season)
-    if (players) { latestSeason = season; latestPlayers = players; break }
+    const data = await fetchSeason(season)
+    if (data?.players) { latestSeason = season; latestData = data; break }
   }
   if (latestSeason == null) {
     throw new Error(`No season found among candidates: ${candidates.join(', ')}`)
@@ -159,35 +220,57 @@ async function main() {
   // playerData.js already does (opening weeks, or a rookie's first snap).
   const priorSeason = latestSeason - 1
   console.log(`Checking ${seasonUrl(priorSeason)} ...`)
-  const priorPlayers = await fetchSeason(priorSeason)
+  const priorData = await fetchSeason(priorSeason)
 
-  const seasons = { [latestSeason]: latestPlayers }
-  if (priorPlayers) seasons[priorSeason] = priorPlayers
+  const playerSeasons = { [latestSeason]: latestData.players }
+  if (priorData?.players) playerSeasons[priorSeason] = priorData.players
 
-  const payload = {
+  const playerPayload = {
     generatedAt: new Date().toISOString(),
     source: 'https://github.com/nflverse/nflverse-data (stats_player release, regular season)',
     latestSeason,
-    seasons
+    seasons: playerSeasons
+  }
+
+  const defenseSeasons = {}
+  for (const [season, data] of [[latestSeason, latestData], [priorSeason, priorData]]) {
+    if (!data?.defense) continue
+    const ranks = rankDefense(data.defense)
+    const teams = {}
+    for (const [team, d] of Object.entries(data.defense)) {
+      teams[team] = { ...d, ranks: ranks[team] }
+    }
+    defenseSeasons[season] = teams
+  }
+
+  const defensePayload = {
+    generatedAt: new Date().toISOString(),
+    source: 'https://github.com/nflverse/nflverse-data (stats_player release, regular season, aggregated by opponent)',
+    latestSeason,
+    seasons: defenseSeasons
   }
 
   const outDir = resolve(__dirname, '../src/data/generated')
   mkdirSync(outDir, { recursive: true })
 
   const out = resolve(outDir, 'player-stats.json')
-  writeFileSync(out, JSON.stringify(payload, null, 2) + '\n')
+  writeFileSync(out, JSON.stringify(playerPayload, null, 2) + '\n')
 
-  const playerCount = Object.keys(latestPlayers).length
+  const playerCount = Object.keys(latestData.players).length
 
   // A separate, tiny file for anything that just wants to show "as of
   // <season>" without pulling the whole few-hundred-KB dataset into a
   // bundle that only needs one number — see ModelLabView.jsx.
   const metaOut = resolve(outDir, 'player-stats-meta.json')
-  writeFileSync(metaOut, JSON.stringify({ generatedAt: payload.generatedAt, latestSeason, playerCount }, null, 2) + '\n')
+  writeFileSync(metaOut, JSON.stringify({ generatedAt: playerPayload.generatedAt, latestSeason, playerCount }, null, 2) + '\n')
+
+  const defenseOut = resolve(outDir, 'team-defense.json')
+  writeFileSync(defenseOut, JSON.stringify(defensePayload, null, 2) + '\n')
 
   console.log(`Wrote ${out}`)
   console.log(`Wrote ${metaOut}`)
-  console.log(`Latest season: ${latestSeason} (${playerCount} players)`)
+  console.log(`Wrote ${defenseOut}`)
+  console.log(`Latest season: ${latestSeason} (${playerCount} players, ${Object.keys(latestData.defense ?? {}).length} teams)`)
 }
 
 main().catch((err) => {

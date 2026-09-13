@@ -23,6 +23,17 @@ export const fmtMoney = (n) =>
 
 export const fmtRecord = (w, l, t = 0) => (t ? `${w}-${l}-${t}` : `${w}-${l}`)
 
+export const ordinal = (n) => {
+  const rem100 = n % 100
+  if (rem100 >= 11 && rem100 <= 13) return `${n}th`
+  switch (n % 10) {
+    case 1: return `${n}st`
+    case 2: return `${n}nd`
+    case 3: return `${n}rd`
+    default: return `${n}th`
+  }
+}
+
 const timeFmt = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' })
 const dayFmt = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
 const shortDayFmt = new Intl.DateTimeFormat(undefined, { weekday: 'short' })
