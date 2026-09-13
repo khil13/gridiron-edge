@@ -18,8 +18,9 @@ import { href } from '../lib/router.js'
  * the app, so they live behind a toggle and stay shut by default.
  */
 export default function ModelLabView({ data }) {
-  const { settings, oddsKey, dispatch } = useStore()
+  const { settings, oddsKey, statsProxyUrl, dispatch } = useStore()
   const [keyDraft, setKeyDraft] = useState(oddsKey || '')
+  const [proxyDraft, setProxyDraft] = useState(statsProxyUrl || '')
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [backupNote, setBackupNote] = useState(null)
   const set = (key) => (value) => dispatch({ type: 'setting', key, value })
@@ -152,6 +153,65 @@ export default function ModelLabView({ data }) {
             The key is stored in this browser only. It is never committed to the repo and
             never sent anywhere except The Odds API — which is why it is entered here rather
             than built into the site, where every visitor could read it.
+          </p>
+        </div>
+      </section>
+
+      <section className="panel" style={{ marginBottom: 'var(--s4)' }}>
+        <div className="panel-head">
+          <div>
+            <div className="eyebrow">Real per-player yardage rates</div>
+            <h2 style={{ fontSize: 'var(--t-lg)', marginTop: 4 }}>
+              {statsProxyUrl ? 'Stats proxy connected' : 'Yardage props are estimated'}
+            </h2>
+          </div>
+          {statsProxyUrl ? <Badge tone="edge">Connected</Badge> : <Badge tone="quiet">Estimated</Badge>}
+        </div>
+
+        <div style={{ padding: 'var(--s4)' }}>
+          <p className="dim" style={{ fontSize: 12, marginTop: 0, maxWidth: '75ch' }}>
+            ESPN's per-player stats feed has real receiving/rushing rates, but refuses to
+            answer this app's own requests directly (a CORS policy on ESPN's side, not
+            something fixable from here). Without a proxy, yardage and volume props fall back
+            to a league-average estimate for each role — honest, but not these players' own
+            numbers. Deploying{' '}
+            <code>worker/espn-proxy.js</code> (a few minutes, free — see{' '}
+            <code>worker/README.md</code>) and pasting its URL below replaces that estimate
+            with real per-player rates.
+          </p>
+
+          <div className="row gap-2" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <div className="field grow" style={{ minWidth: 240 }}>
+              <label><span>Proxy URL</span></label>
+              <input
+                type="text"
+                autoComplete="off"
+                spellCheck="false"
+                placeholder="https://gridiron-edge-espn-proxy.your-name.workers.dev"
+                value={proxyDraft}
+                onChange={(e) => setProxyDraft(e.target.value.trim())}
+              />
+            </div>
+            <button
+              className="btn primary"
+              onClick={() => dispatch({ type: 'setStatsProxyUrl', url: proxyDraft })}
+              disabled={proxyDraft === (statsProxyUrl || '')}
+            >
+              {statsProxyUrl ? 'Update' : 'Connect'}
+            </button>
+            {statsProxyUrl && (
+              <button
+                className="btn"
+                onClick={() => { setProxyDraft(''); dispatch({ type: 'setStatsProxyUrl', url: '' }) }}
+              >
+                Disconnect
+              </button>
+            )}
+          </div>
+
+          <p className="dim" style={{ fontSize: 11, marginBottom: 0, marginTop: 'var(--s3)' }}>
+            The URL is stored in this browser only, same as the odds API key above. It points
+            at infrastructure you deploy and own — this app never runs one for you.
           </p>
         </div>
       </section>

@@ -24,7 +24,7 @@ import { href } from '../lib/router.js'
  * thing separating this from a list of games.
  */
 export default function CardView({ data }) {
-  const { settings, lockedCards, oddsKey, dispatch } = useStore()
+  const { settings, lockedCards, oddsKey, statsProxyUrl, dispatch } = useStore()
   const [tab, setTab] = useState('today')
   const [propState, setPropState] = useState({ status: 'idle', dayKey: null })
   const days = useMemo(() => daysFrom(data.games), [data.games])
@@ -85,7 +85,7 @@ export default function CardView({ data }) {
     setPropState({ status: 'loading', dayKey: day.key })
     const settled = await Promise.allSettled(
       targets.map(async (g) => {
-        const rosters = await fetchGameRosters(g)
+        const rosters = await fetchGameRosters(g, { statsProxyUrl: statsProxyUrl || undefined })
         const props = await fetchGameProps({ apiKey: oddsKey, game: g, markets: ANYTIME_TD_MARKETS })
         const { anytime } = analyseAnytimeTouchdowns({ game: g, proj: g.projection, rosters, props })
         return { game: g, anytime }

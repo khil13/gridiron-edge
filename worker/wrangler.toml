@@ -1,0 +1,9 @@
+name = "gridiron-edge-espn-proxy"
+main = "espn-proxy.js"
+compatibility_date = "2024-11-01"
+
+# Restrict this to the origin the app is actually deployed at once you know
+# it (e.g. "https://<user>.github.io") — see README.md. "*" works everywhere
+# but also lets any other site's page use your worker's ESPN request quota.
+[vars]
+ALLOWED_ORIGIN = "*"
