@@ -4,10 +4,10 @@ import EdgeRail from '../components/EdgeRail.jsx'
 import { Badge, Empty, Tabs } from '../components/Controls.jsx'
 import { useStore } from '../lib/store.jsx'
 import { toSlipLeg } from '../lib/edges.js'
-import { buildCard, daysFrom, confidenceOf, lockCard, tierForProp } from '../lib/card.js'
-import { analyseAnytimeTouchdowns } from '../lib/props.js'
+import { buildCard, daysFrom, confidenceOf, lockCard, tierForProp, tierForVolume } from '../lib/card.js'
+import { analyseAnytimeTouchdowns, volumePlaysForGame } from '../lib/props.js'
 import { fetchGameRosters } from '../data/providers/playerData.js'
-import { fetchGameProps, ANYTIME_TD_MARKETS, ANYTIME_TD_CREDIT_COST } from '../data/providers/oddsApiProvider.js'
+import { fetchGameProps, CARD_PROP_MARKETS, CARD_PROP_CREDIT_COST } from '../data/providers/oddsApiProvider.js'
 import { getTeam } from '../data/teams.js'
 import ResultsView from './ResultsView.jsx'
 import {
@@ -67,14 +67,22 @@ export default function CardView({ data }) {
     if (!propsReady) return []
     const unit = (settings.bankroll ?? 1000) * 0.01
     const picks = []
-    for (const { game, anytime } of propState.perGame) {
-      // One prop leg per game, same discipline as the game-line card: the
-      // best-EV entry is already first, since analyseAnytimeTouchdowns sorts.
-      const best = anytime.find((e) => e.devigged && e.ev != null)
-      if (!best) continue
-      const tier = tierForProp(best)
-      if (tier.units === 0) continue
-      picks.push({ game, entry: best, tier, stake: tier.units * unit })
+    for (const { game, anytime, volume } of propState.perGame) {
+      // Every qualifying candidate for this game, touchdown and yardage
+      // alike — one leg per game, same discipline as the game-line card,
+      // so the best-EV qualifier across both prop types wins the slot
+      // rather than always favouring whichever type is checked first.
+      const candidates = []
+      const bestTd = anytime.find((e) => e.devigged && e.ev != null)
+      if (bestTd) candidates.push({ kind: 'td', entry: bestTd, tier: tierForProp(bestTd) })
+      for (const v of volume ?? []) {
+        candidates.push({ kind: 'volume', entry: v, tier: tierForVolume(v) })
+      }
+      const qualifying = candidates.filter((c) => c.tier.units > 0)
+      if (!qualifying.length) continue
+      qualifying.sort((a, b) => b.entry.ev - a.entry.ev)
+      const best = qualifying[0]
+      picks.push({ game, kind: best.kind, entry: best.entry, tier: best.tier, stake: best.tier.units * unit })
     }
     return picks.sort((a, b) => b.entry.ev - a.entry.ev).slice(0, 6)
   }, [propsReady, propState, settings])
@@ -86,9 +94,10 @@ export default function CardView({ data }) {
     const settled = await Promise.allSettled(
       targets.map(async (g) => {
         const rosters = await fetchGameRosters(g, { statsProxyUrl: statsProxyUrl || undefined })
-        const props = await fetchGameProps({ apiKey: oddsKey, game: g, markets: ANYTIME_TD_MARKETS })
+        const props = await fetchGameProps({ apiKey: oddsKey, game: g, markets: CARD_PROP_MARKETS })
         const { anytime } = analyseAnytimeTouchdowns({ game: g, proj: g.projection, rosters, props })
-        return { game: g, anytime }
+        const volume = volumePlaysForGame({ game: g, proj: g.projection, rosters, offers: props?.volume, ratings: data.ratings })
+        return { game: g, anytime, volume }
       })
     )
     const perGame = settled.filter((r) => r.status === 'fulfilled').map((r) => r.value)
@@ -272,28 +281,28 @@ export default function CardView({ data }) {
       <section className="panel" style={{ marginBottom: 'var(--s6)' }}>
         <div className="panel-head">
           <div>
-            <div className="eyebrow">Anytime touchdown · opt-in, costs API credits</div>
+            <div className="eyebrow">Touchdown, receiving &amp; rushing yards · opt-in, costs API credits</div>
             <h2 style={{ fontSize: 'var(--t-lg)', marginTop: 4 }}>Prop plays</h2>
           </div>
           {oddsKey && !propsLoading && (
             <button className="btn" onClick={loadProps}>
               {propsReady
                 ? 'Re-check props'
-                : `Check this slate (~${day.games.length * ANYTIME_TD_CREDIT_COST} credits)`}
+                : `Check this slate (~${day.games.length * CARD_PROP_CREDIT_COST} credits)`}
             </button>
           )}
         </div>
         <div style={{ padding: 'var(--s4)' }}>
           {!oddsKey && (
             <p className="dim" style={{ fontSize: 12, margin: 0, maxWidth: '78ch' }}>
-              Connect an odds API key in Settings to check the slate for touchdown prop value.
-              Without live prices there is nothing to compare the model's own numbers against, so
-              this is not something the card can do automatically.
+              Connect an odds API key in Settings to check the slate for touchdown, receiving-yard
+              and rushing-yard prop value. Without live prices there is nothing to compare the
+              model's own numbers against, so this is not something the card can do automatically.
             </p>
           )}
           {oddsKey && propsLoading && (
             <p className="dim" style={{ fontSize: 12, margin: 0 }}>
-              Pulling rosters and anytime-touchdown prices for {day.games.filter((g) => g.projection && g.status !== 'final').length} game
+              Pulling rosters and prop prices for {day.games.filter((g) => g.projection && g.status !== 'final').length} game
               {day.games.length === 1 ? '' : 's'}…
             </p>
           )}
@@ -301,9 +310,10 @@ export default function CardView({ data }) {
             <p className="dim" style={{ fontSize: 12, margin: 0, maxWidth: '78ch' }}>
               {propState.checked} game{propState.checked === 1 ? '' : 's'} checked
               {propState.failed ? `, ${propState.failed} could not be priced` : ''} — nothing cleared
-              the bar. These markets carry a fifteen-to-twenty-five percent hold on top of a depth
-              chart the model is often guessing at, so most days that is the correct answer, not a
-              bug.
+              the bar. Touchdown props carry a fifteen-to-twenty-five percent hold on top of a
+              depth chart the model is often guessing at, and a yardage line only qualifies against
+              a player's own real per-game rate (see Model Lab's stats proxy) — so most days that is
+              the correct answer, not a bug.
             </p>
           )}
           {oddsKey && propsReady && propPlays.length > 0 && (
@@ -316,8 +326,10 @@ export default function CardView({ data }) {
               <p className="dim" style={{ fontSize: 11, marginTop: 'var(--s4)', marginBottom: 0, maxWidth: '80ch' }}>
                 Touchdown props are the market this app trusts least: the hold is triple a
                 spread's, and early in a season every player at a position can show the same
-                number because there is no depth chart to rank yet. Capped at 2 units even at the
-                top tier, and treated as a lean worth checking rather than a lock.
+                number because there is no depth chart to rank yet — capped at 2 units even at the
+                top tier. A yardage play only ever prices against a player's own real season rate,
+                never a league-average guess, and devigs the ordinary two-way way a total does, so
+                it can reach the same 3-unit ceiling a game line can.
               </p>
             </>
           )}
@@ -562,24 +574,34 @@ function PlayCard({ entry, dispatch, ratings }) {
   )
 }
 
-/* ---------- One touchdown prop, as a ticket ---------- */
+/* ---------- One prop play, as a ticket ---------- */
+
+/** Shorten "Receiving yards" -> "Receiving yds" to fit a badge. */
+const shortMarketLabel = (label) => label.replace(' yards', ' yds')
 
 function PropPlayCard({ pick, dispatch }) {
-  const { game, entry, tier, stake } = pick
+  const { game, kind, entry, tier, stake } = pick
   const homeTeam = getTeam(game.home)
   const awayTeam = getTeam(game.away)
+  const isVolume = kind === 'volume'
+
+  const modelProb = isVolume ? entry.modelProb : entry.model.prob
+  const title = isVolume
+    ? `${entry.player} ${entry.side === 'over' ? 'Over' : 'Under'} ${entry.line} ${entry.marketLabel}`
+    : `${entry.player} anytime TD`
+  const badgeLabel = isVolume ? shortMarketLabel(entry.marketLabel) : 'TD prop'
 
   const add = () =>
     dispatch({
       type: 'addLeg',
       leg: {
-        id: `${game.id}:td:${entry.key}`,
-        label: `${entry.player} anytime TD`,
+        id: `${game.id}:${isVolume ? 'vol' : 'td'}:${entry.key}`,
+        label: title,
         matchup: `${game.away} @ ${game.home}`,
         gameId: game.id,
         book: entry.book,
         price: entry.price,
-        modelProb: entry.model.prob,
+        modelProb,
         marketProb: entry.fair,
         pushProb: 0,
         ev: entry.ev,
@@ -614,12 +636,12 @@ function PropPlayCard({ pick, dispatch }) {
           <div style={{ minWidth: 200 }}>
             <div className="row gap-3" style={{ marginBottom: 6 }}>
               <Badge tone={tier.tone}>{`${tier.units}u · ${tier.label}`}</Badge>
-              <Badge tone="quiet">TD prop</Badge>
+              <Badge tone="quiet">{badgeLabel}</Badge>
             </div>
             <h3 style={{ fontSize: 'var(--t-xl)' }}>
               <span className="row gap-2">
                 <TeamMark abbr={entry.team} size={18} />
-                {entry.player} anytime TD
+                {title}
               </span>
             </h3>
             <div className="row gap-3" style={{ marginTop: 4 }}>
@@ -631,7 +653,7 @@ function PropPlayCard({ pick, dispatch }) {
           </div>
 
           <div className="row gap-5" style={{ flexWrap: 'wrap' }}>
-            <Metric label="Model" value={fmtPct(entry.model.prob)} />
+            <Metric label="Model" value={fmtPct(modelProb)} />
             <Metric label="Fair" value={fmtPct(entry.fair)} dim />
             <Metric label="Edge" value={`${fmtSigned((entry.edge ?? 0) * 100)}pp`} />
             <Metric
@@ -643,18 +665,27 @@ function PropPlayCard({ pick, dispatch }) {
           </div>
         </div>
 
+        {isVolume && (
+          <p className="dim" style={{ fontSize: 11, margin: '0 0 var(--s3)' }}>
+            {entry.perGame}/g over {entry.games} games this season, projected to {entry.mean}
+            {' '}for this matchup.
+          </p>
+        )}
+
         <div className="perf" />
 
         <div className="row spread-between gap-3" style={{ flexWrap: 'wrap' }}>
           <p className="dim grow" style={{ fontSize: 11, margin: 0, minWidth: 240 }}>
             {tier.suspicious && (
               <span className="neg">
-                An edge this large on a touchdown prop is far more likely to be a bad depth
-                chart than free money — check who is actually active before betting it.{' '}
+                {isVolume
+                  ? 'An edge this large on a yardage line is far more likely to be a bad matchup read than free money — check the injury report before betting it. '
+                  : 'An edge this large on a touchdown prop is far more likely to be a bad depth chart than free money — check who is actually active before betting it. '}
               </span>
             )}
-            Anytime touchdown markets hold 15–25% and rely on a guessed depth chart; treat this
-            as a lean worth a second look, not a lock.
+            {isVolume
+              ? "Priced against this player's own season rate, adjusted for this game's projected environment."
+              : 'Anytime touchdown markets hold 15–25% and rely on a guessed depth chart; treat this as a lean worth a second look, not a lock.'}
           </p>
           <div className="row gap-2">
             <a className="btn ghost" href={href(`game/${game.id}`)}>Game</a>

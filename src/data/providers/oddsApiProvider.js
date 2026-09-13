@@ -185,6 +185,18 @@ export const PROPS_CREDIT_COST = PROPS_MARKETS.length * 10
 export const ANYTIME_TD_MARKETS = ['player_anytime_td']
 export const ANYTIME_TD_CREDIT_COST = ANYTIME_TD_MARKETS.length * 10
 
+/**
+ * Real yardage lines. Maps The Odds API's market key to the stat key
+ * props.js's VOLUME_MARKETS already uses, so a fetched offer slots
+ * straight into the same projection code the Props tab's manual-entry
+ * rows use — no separate model for "real price" vs "typed-in price."
+ */
+export const VOLUME_ODDS_MARKETS = { player_rush_yds: 'rushingYards', player_reception_yds: 'receivingYards' }
+
+/** Anytime touchdown plus real receiving/rushing yardage lines, for the Card of the day. */
+export const CARD_PROP_MARKETS = [...ANYTIME_TD_MARKETS, ...Object.keys(VOLUME_ODDS_MARKETS)]
+export const CARD_PROP_CREDIT_COST = CARD_PROP_MARKETS.length * 10
+
 /** Find the Odds API event id for one of our games. */
 export async function findEventId({ apiKey, game, signal }) {
   const res = await fetch(`${EVENTS_BASE}?apiKey=${encodeURIComponent(apiKey)}`, { signal })
@@ -245,6 +257,7 @@ export async function fetchGameProps({ apiKey, game, eventId, books, markets = P
 
   const anytime = []
   const passing = []
+  const volume = []
 
   for (const bm of json.bookmakers ?? []) {
     for (const market of bm.markets ?? []) {
@@ -265,10 +278,20 @@ export async function fetchGameProps({ apiKey, game, eventId, books, markets = P
             line: o.point,
             price: o.price
           })
+        } else if (VOLUME_ODDS_MARKETS[market.key]) {
+          volume.push({
+            market: VOLUME_ODDS_MARKETS[market.key],
+            book: bm.title,
+            bookKey: bm.key,
+            player,
+            side: /^over$/i.test(o.name) ? 'over' : 'under',
+            line: o.point,
+            price: o.price
+          })
         }
       }
     }
   }
 
-  return { eventId: id, anytime, passing, quota, unmatched: false }
+  return { eventId: id, anytime, passing, volume, quota, unmatched: false }
 }
