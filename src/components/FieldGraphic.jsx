@@ -1,5 +1,12 @@
 import { getTeam } from '../data/teams.js'
 import { readable } from '../lib/format.js'
+import { parseLastPlay } from '../lib/lastPlay.js'
+
+// Extra canvas above the field, reserved whether or not a play ends up
+// drawn there — reserving it unconditionally keeps the graphic's height
+// from jumping around as plays come and go from poll to poll.
+const TOP = -14
+const HEIGHT = 44
 
 /**
  * The field, with the ball on it.
@@ -13,7 +20,7 @@ import { readable } from '../lib/format.js'
  * the component renders nothing rather than putting the ball at midfield and
  * hoping — a wrong ball position is worse than no field.
  */
-export default function FieldGraphic({ situation, home, away }) {
+export default function FieldGraphic({ situation, home, away, lastPlay }) {
   const spot = absoluteSpot(situation, home, away)
   if (spot == null) return null
 
@@ -40,9 +47,11 @@ export default function FieldGraphic({ situation, home, away }) {
     ? spot + toGo
     : null
 
+  const trajectory = lastPlayTrajectory(lastPlay, spot)
+
   return (
     <div style={{ padding: 'var(--s3) 0' }}>
-      <svg viewBox="0 0 100 30" style={{ width: '100%', height: 'auto' }} role="img"
+      <svg viewBox={`0 ${TOP} 100 ${HEIGHT}`} style={{ width: '100%', height: 'auto' }} role="img"
            aria-label={describe(situation, spot, posTeam, defTeam)}>
         {/* End zones */}
         <rect x="0" y="4" width="10" height="20" fill={defColor} opacity="0.55" />
@@ -101,6 +110,8 @@ export default function FieldGraphic({ situation, home, away }) {
               style={{ fontSize: 3.4, fontFamily: 'var(--font-display)', fontWeight: 700 }}>
           {possessing}
         </text>
+
+        {trajectory && <LastPlayTrajectory {...trajectory} x={x} />}
       </svg>
 
       <div className="row spread-between" style={{ marginTop: 'var(--s2)' }}>
@@ -113,6 +124,89 @@ export default function FieldGraphic({ situation, home, away }) {
       </div>
     </div>
   )
+}
+
+/**
+ * Two floating markers above the field — where the ball started this play
+ * and where it ended up — joined by an arc for a pass, or a straight line
+ * for a run. This is the same idea as a broadcast's "gamecast" ball-path
+ * graphic, without the player photos: those would need a separate athlete
+ * lookup this app has no way to do reliably from a name alone.
+ */
+function LastPlayTrajectory({ startYards, endYards, startLabel, endLabel, curved, x }) {
+  const sx = x(startYards)
+  const ex = x(endYards)
+  const y = -8
+
+  // A rush or a sack is one player, not two — the ball "starts" and "ends"
+  // with the same runner, so only the one real position gets a marker and a
+  // label. A dangling second circle with nothing under it would read as a
+  // teammate who was never actually part of the play.
+  if (!endLabel) {
+    return (
+      <g>
+        <path d={`M ${sx} ${y} L ${ex} ${y}`} stroke="var(--muted)" strokeWidth="0.5" strokeDasharray="1.2 1" fill="none" />
+        <line x1={ex} x2={ex} y1={y} y2="4" stroke="var(--sky)" strokeWidth="0.4" strokeDasharray="0.8 0.6" />
+        <circle cx={ex} cy={y} r="2" fill="var(--slab-lift)" stroke="var(--sky)" strokeWidth="0.5" />
+        <text x={ex} y={y - 3.5} textAnchor="middle" fill="var(--bone-dim)"
+              style={{ fontSize: 3, fontFamily: 'var(--font-mono)' }}>
+          {startLabel}
+        </text>
+      </g>
+    )
+  }
+
+  const path = curved
+    ? `M ${sx} ${y} Q ${(sx + ex) / 2} ${y - 6} ${ex} ${y}`
+    : `M ${sx} ${y} L ${ex} ${y}`
+
+  return (
+    <g>
+      <path d={path} stroke="var(--muted)" strokeWidth="0.5" strokeDasharray="1.2 1" fill="none" />
+      <line x1={sx} x2={sx} y1={y} y2="4" stroke="var(--gold)" strokeWidth="0.4" strokeDasharray="0.8 0.6" />
+      <line x1={ex} x2={ex} y1={y} y2="4" stroke="var(--sky)" strokeWidth="0.4" strokeDasharray="0.8 0.6" />
+      <circle cx={sx} cy={y} r="2" fill="var(--slab-lift)" stroke="var(--gold)" strokeWidth="0.5" />
+      <circle cx={ex} cy={y} r="2" fill="var(--slab-lift)" stroke="var(--sky)" strokeWidth="0.5" />
+      {/* Anchored away from each other, not centered on their own circle —
+          on a short gain the two circles sit close together, and labels
+          centered inward would run into each other. */}
+      <text x={sx - 2.5} y={y + 1} textAnchor="end" fill="var(--bone-dim)"
+            style={{ fontSize: 3, fontFamily: 'var(--font-mono)' }}>
+        {startLabel}
+      </text>
+      <text x={ex + 2.5} y={y + 1} textAnchor="start" fill="var(--bone-dim)"
+            style={{ fontSize: 3, fontFamily: 'var(--font-mono)' }}>
+        {endLabel}
+      </text>
+    </g>
+  )
+}
+
+/**
+ * Where the last play started and ended, in the same "yards from the
+ * possessing team's own goal" coordinates as the rest of the field —
+ * derived from the play text's own stated yardage rather than any position
+ * data the feed doesn't actually provide.
+ *
+ * Deliberately conservative: a play the parser doesn't recognize, or one
+ * whose implied start falls off the field (a play spanning a turnover or a
+ * score, where "current spot" no longer means "where this play ended"),
+ * draws nothing rather than a trajectory that might be wrong.
+ */
+function lastPlayTrajectory(lastPlay, endYards) {
+  const play = parseLastPlay(lastPlay)
+  if (!play) return null
+
+  const startYards = endYards - play.yards
+  if (startYards < 0 || startYards > 100) return null
+
+  return {
+    startYards,
+    endYards,
+    startLabel: play.primary,
+    endLabel: play.secondary,
+    curved: play.type === 'pass'
+  }
 }
 
 /** Perceptual-ish distance between two hex colours. */

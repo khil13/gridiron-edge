@@ -535,7 +535,7 @@ function StatsTab({ game, data }) {
               )}
             </div>
 
-            <FieldGraphic situation={situation} home={game.home} away={game.away} />
+            <FieldGraphic situation={situation} home={game.home} away={game.away} lastPlay={lastPlay} />
 
             {lastPlay && (
               <p className="dim" style={{ fontSize: 12, marginBottom: 0, marginTop: 'var(--s3)' }}>
