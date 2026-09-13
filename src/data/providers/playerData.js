@@ -285,6 +285,14 @@ export async function fetchGameRosters(game, { signal, season } = {}) {
  * layouts are tried and anything unrecognised yields null rather than a
  * confident wrong answer.
  */
+/**
+ * Special-teams-only slots. These share the depth chart's athlete/rank
+ * shape with offense, but a punt or kick returner's rank says nothing about
+ * a receiver or back's offensive role — see the reasoning in readPositions
+ * below, where this is used to exclude them.
+ */
+const SPECIAL_TEAMS_POSITIONS = new Set(['PR', 'KR', 'P', 'PK', 'LS', 'H'])
+
 export async function fetchDepthChart(teamAbbr, { signal } = {}) {
   const slug = teamAbbr === 'LA' ? 'lar' : teamAbbr === 'WAS' ? 'wsh' : teamAbbr === 'JAC' ? 'jax' : teamAbbr.toLowerCase()
 
@@ -306,7 +314,17 @@ export async function fetchDepthChart(teamAbbr, { signal } = {}) {
 
   const readPositions = (positions) => {
     if (!positions) return
-    for (const entry of Object.values(positions)) {
+    for (const [key, entry] of Object.entries(positions)) {
+      // ESPN's depth chart lists special-teams slots (punt/kick returner,
+      // holder, long snapper, placekicker) in the same shape as offense, and
+      // an athlete keeps whichever ID he was listed under in both. A
+      // journeyman receiver who is also the team's #1 punt returner would
+      // otherwise inherit that rank-1 and outrank the actual starting
+      // receivers — confirmed live: exactly this made a depth WR read as a
+      // team's WR1. A returner's rank has nothing to do with offensive
+      // depth, so those slots are skipped entirely.
+      const posAbbr = String(entry?.position?.abbreviation ?? key ?? '').toUpperCase()
+      if (SPECIAL_TEAMS_POSITIONS.has(posAbbr)) continue
       const athletes = entry?.athletes
       if (!Array.isArray(athletes)) continue
       athletes.forEach((a, i) => {
