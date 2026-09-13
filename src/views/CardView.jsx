@@ -335,26 +335,6 @@ export default function CardView({ data }) {
               depth chart the model is often guessing at, and a yardage line only qualifies against
               a player's own real per-game rate (see Model Lab's stats proxy) — so most days that is
               the correct answer, not a bug.
-              {propState.volumeOffersSeen === 0 ? (
-                <>
-                  {' '}The odds feed returned zero receiving/rushing-yard lines for this slate —
-                  books often post that market later than anytime touchdown, so try again closer to
-                  kickoff before assuming something's broken.
-                </>
-              ) : propState.volumeCandidatesPriced === 0 ? (
-                <>
-                  {' '}The odds feed returned {propState.volumeOffersSeen} yardage line
-                  {propState.volumeOffersSeen === 1 ? '' : 's'}, but none matched a real per-player
-                  rate on either roster — check that Model Lab's stats proxy is returning data for
-                  these players specifically.
-                </>
-              ) : (
-                <>
-                  {' '}{propState.volumeCandidatesPriced} yardage play
-                  {propState.volumeCandidatesPriced === 1 ? '' : 's'} priced against a real rate,
-                  just none with enough edge to clear the bar this time.
-                </>
-              )}
             </p>
           )}
           {oddsKey && propsReady && propPlays.length > 0 && (
@@ -373,6 +353,30 @@ export default function CardView({ data }) {
                 it can reach the same 3-unit ceiling a game line can.
               </p>
             </>
+          )}
+          {oddsKey && propsReady && !propPlays.some((p) => p.kind === 'volume') && (
+            <p className="dim" style={{ fontSize: 11, marginTop: propPlays.length > 0 ? 'var(--s3)' : 0, marginBottom: 0, maxWidth: '78ch' }}>
+              {propState.volumeOffersSeen === 0 ? (
+                <>
+                  Yardage: the odds feed returned zero receiving/rushing-yard lines for this
+                  slate — books often post that market later than anytime touchdown, so try again
+                  closer to kickoff before assuming something's broken.
+                </>
+              ) : propState.volumeCandidatesPriced === 0 ? (
+                <>
+                  Yardage: the odds feed returned {propState.volumeOffersSeen} line
+                  {propState.volumeOffersSeen === 1 ? '' : 's'}, but none matched a real
+                  per-player rate on either roster — check that Model Lab's stats proxy is
+                  returning data for these players specifically.
+                </>
+              ) : (
+                <>
+                  Yardage: {propState.volumeCandidatesPriced} play
+                  {propState.volumeCandidatesPriced === 1 ? '' : 's'} priced against a real rate,
+                  just none with enough edge to clear the bar this time.
+                </>
+              )}
+            </p>
           )}
         </div>
       </section>
