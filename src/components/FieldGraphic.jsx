@@ -1,3 +1,4 @@
+import TeamMark from './TeamMark.jsx'
 import { getTeam } from '../data/teams.js'
 import { readable } from '../lib/format.js'
 import { parseLastPlay } from '../lib/lastPlay.js'
@@ -51,7 +52,8 @@ export default function FieldGraphic({ situation, home, away, lastPlay }) {
 
   return (
     <div style={{ padding: 'var(--s3) 0' }}>
-      <svg viewBox={`0 ${TOP} 100 ${HEIGHT}`} style={{ width: '100%', height: 'auto' }} role="img"
+      <div style={{ position: 'relative' }}>
+      <svg viewBox={`0 ${TOP} 100 ${HEIGHT}`} style={{ width: '100%', height: 'auto', display: 'block' }} role="img"
            aria-label={describe(situation, spot, posTeam, defTeam)}>
         {/* End zones */}
         <rect x="0" y="4" width="10" height="20" fill={defColor} opacity="0.55" />
@@ -59,6 +61,12 @@ export default function FieldGraphic({ situation, home, away, lastPlay }) {
 
         {/* Field */}
         <rect x="10" y="4" width="80" height="20" fill="var(--slab-hi)" />
+
+        {/* Goalposts, drawn over the end zones so they read clearly rather
+            than being dimmed by the tint — the single clearest signal that
+            this is a football field and not just a coloured bar. */}
+        <Goalpost x={1.5} />
+        <Goalpost x={98.5} />
 
         {/* Every ten yards, with midfield heavier */}
         {[10, 20, 30, 40, 50, 60, 70, 80, 90].map((yards) => (
@@ -101,18 +109,31 @@ export default function FieldGraphic({ situation, home, away, lastPlay }) {
           stroke="var(--muted)" strokeWidth="0.4" fill="none"
         />
 
-        {/* End zone labels */}
-        <text x="5" y="16" textAnchor="middle" fill="var(--bone-dim)"
-              style={{ fontSize: 3.4, fontFamily: 'var(--font-display)', fontWeight: 700 }}>
+        {/* End zone labels, below the logo overlay so the two don't stack */}
+        <text x="5" y="21" textAnchor="middle" fill="var(--bone-dim)"
+              style={{ fontSize: 3, fontFamily: 'var(--font-display)', fontWeight: 700 }}>
           {defending}
         </text>
-        <text x="95" y="16" textAnchor="middle" fill="var(--bone-dim)"
-              style={{ fontSize: 3.4, fontFamily: 'var(--font-display)', fontWeight: 700 }}>
+        <text x="95" y="21" textAnchor="middle" fill="var(--bone-dim)"
+              style={{ fontSize: 3, fontFamily: 'var(--font-display)', fontWeight: 700 }}>
           {possessing}
         </text>
 
         {trajectory && <LastPlayTrajectory {...trajectory} x={x} />}
       </svg>
+
+      {/* Team logos over each end zone — color coding alone is not reliable
+          identification (a dark team color lifted for contrast on this
+          dark background can end up an indistinct grey), but a crest never
+          is. Positioned by percentage against the svg's own box so they
+          track it at any width. */}
+      <div style={{ position: 'absolute', left: '5%', top: '57%', transform: 'translate(-50%, -50%)', pointerEvents: 'none' }}>
+        <TeamMark abbr={defending} size={26} />
+      </div>
+      <div style={{ position: 'absolute', left: '95%', top: '57%', transform: 'translate(-50%, -50%)', pointerEvents: 'none' }}>
+        <TeamMark abbr={possessing} size={26} />
+      </div>
+      </div>
 
       <div className="row spread-between" style={{ marginTop: 'var(--s2)' }}>
         <span className="mono" style={{ fontSize: 'var(--t-base)' }}>
@@ -123,6 +144,20 @@ export default function FieldGraphic({ situation, home, away, lastPlay }) {
         </span>
       </div>
     </div>
+  )
+}
+
+/** A goalpost silhouette — a ground pole to a crossbar, then two uprights — at the back of an end zone. Real posts are always yellow, whichever teams are playing. */
+function Goalpost({ x }) {
+  const left = x - 1.5
+  const right = x + 1.5
+  return (
+    <g stroke="var(--gold)" strokeWidth="0.6" fill="none" opacity="0.85">
+      <line x1={x} x2={x} y1="24" y2="10" />
+      <line x1={left} x2={right} y1="10" y2="10" />
+      <line x1={left} x2={left} y1="10" y2="2" />
+      <line x1={right} x2={right} y1="10" y2="2" />
+    </g>
   )
 }
 
