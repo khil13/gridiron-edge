@@ -18,6 +18,8 @@
  * the data is absent — the player is omitted instead.
  */
 
+import { expectedValue, impliedProb } from './odds.js'
+
 /**
  * Points to touchdowns.
  *
@@ -256,6 +258,80 @@ export function devigField(entries, teamCtx, { minField = 6 } = {}) {
 export function expectedScorers(totalTds, contributors = 6.5) {
   if (totalTds <= 0) return 0
   return contributors * (1 - Math.exp(-totalTds / contributors))
+}
+
+/** A team's total tracked touchdowns and games played, from its own roster. */
+export function teamGameData(players, team) {
+  const teamPlayers = players.filter((p) => p.team === team)
+  const teamTds = teamPlayers.reduce((s, p) => s + (p.tds ?? 0), 0)
+  const games = teamPlayers.reduce((m, p) => Math.max(m, p.stats?.games ?? 0), 0)
+  return { teamTds, games }
+}
+
+export const normPropName = (n) =>
+  String(n || '').toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+/g, ' ').trim()
+
+/**
+ * The full anytime-touchdown market for one game: the model's projection for
+ * every rostered player, matched against the best posted price per player and
+ * devigged per team.
+ *
+ * Shared by the Props tab (one game, loaded on demand) and the Card of the
+ * day (a whole slate, opt-in because of the API cost) so this maths lives in
+ * exactly one place rather than drifting apart between the two callers.
+ * Stake sizing is deliberately left to the caller — it needs settings
+ * (bankroll, Kelly fraction) this module has no business knowing about.
+ */
+export function analyseAnytimeTouchdowns({ game, proj, rosters, props }) {
+  const homeGames = teamGameData(rosters.players, game.home)
+  const awayGames = teamGameData(rosters.players, game.away)
+  const teamCtx = {
+    [game.home]: { expectedTds: expectedTouchdowns(proj.homeTeamTotal), ...homeGames },
+    [game.away]: { expectedTds: expectedTouchdowns(proj.awayTeamTotal), ...awayGames }
+  }
+
+  const projected = normaliseField(
+    projectAnytimeTouchdowns(
+      rosters.players.map((p) => ({ ...p, tds: p.tds ?? 0 })),
+      teamCtx
+    ),
+    teamCtx
+  )
+  const byName = new Map(projected.map((p) => [normPropName(p.name), p]))
+
+  const bestByPlayer = new Map()
+  for (const o of props?.anytime ?? []) {
+    const key = normPropName(o.player)
+    const current = bestByPlayer.get(key)
+    if (!current || o.price > current.price) bestByPlayer.set(key, o)
+  }
+
+  const entries = [...bestByPlayer.entries()]
+    .map(([key, o]) => {
+      const model = byName.get(key)
+      return model
+        ? { key, ...o, team: model.team, model, impliedProb: impliedProb(o.price) }
+        : null
+    })
+    .filter(Boolean)
+
+  const dv = entries.length ? devigField(entries, teamCtx) : null
+
+  const anytime = entries.map((e, i) => {
+    const teamDevig = dv?.teams?.[e.team]
+    const devigged = !!teamDevig?.complete
+    const fair = devigged ? dv.fair[i] : null
+    const ev = devigged ? expectedValue(e.model.prob, e.price) : null
+    return {
+      ...e,
+      fair,
+      ev,
+      devigged,
+      edge: devigged ? e.model.prob - fair : null
+    }
+  }).sort((a, b) => (b.ev ?? -Infinity) - (a.ev ?? -Infinity))
+
+  return { anytime, projected, teamCtx, devig: dv, hasPrices: entries.length > 0 }
 }
 
 

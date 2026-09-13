@@ -67,6 +67,34 @@ export function tierFor(play) {
 }
 
 /**
+ * Conviction tiers for touchdown props, kept separate from TIERS above.
+ *
+ * A prop has no spread-style "points of disagreement" to check alongside its
+ * EV, and it comes from the market the app trusts least (see the Props tab's
+ * own caveats — depth charts guessed at, a fifteen-to-twenty-five percent
+ * hold to clear first). So the bar is both higher and shaped differently:
+ * EV plus a minimum probability edge, capped at 2 units even at the top,
+ * versus 3 for a game line.
+ */
+export const PROP_TIERS = [
+  { units: 2, label: 'Best bet', minEv: 0.10, minProbEdge: 0.06, tone: 'edge' },
+  { units: 1, label: 'Lean',     minEv: 0.05, minProbEdge: 0.03, tone: 'chalk' }
+]
+
+/** Highest tier a touchdown prop qualifies for. Never null — falls back to a lean. */
+export function tierForProp(play) {
+  if (!play || play.ev == null) return NO_PLAY
+  const edge = Math.abs(play.edge ?? 0)
+  const tier = PROP_TIERS.find((t) => play.ev >= t.minEv && edge >= t.minProbEdge) || null
+  if (!tier) return NO_PLAY
+
+  if (play.ev >= IMPLAUSIBLE_EV) {
+    return { ...tier, units: 1, label: 'Check model', tone: 'live', suspicious: true }
+  }
+  return tier
+}
+
+/**
  * Why a read is not worth a stake. Being specific here is the difference
  * between a card that teaches you something and one that just says no.
  */

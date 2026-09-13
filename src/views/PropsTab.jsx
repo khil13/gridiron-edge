@@ -5,9 +5,8 @@ import { useStore } from '../lib/store.jsx'
 import { fetchGameRosters } from '../data/providers/playerData.js'
 import { fetchGameProps, PROPS_CREDIT_COST } from '../data/providers/oddsApiProvider.js'
 import {
-  expectedTouchdowns, expectedScorers, projectAnytimeTouchdowns, normaliseField,
-  projectPassingTouchdowns, devigField, projectVolume, availableMarkets,
-  projectFirstQuarter, VOLUME_MARKETS
+  projectPassingTouchdowns, projectVolume, availableMarkets,
+  projectFirstQuarter, VOLUME_MARKETS, analyseAnytimeTouchdowns, normPropName
 } from '../lib/props.js'
 import { impliedProb, expectedValue, kelly, validPrice, PRICE_MAX } from '../lib/odds.js'
 import { fmtOdds, fmtPct, fmtMoney, fmtSigned } from '../lib/format.js'
@@ -136,73 +135,28 @@ function analyse({ game, proj, settings, ratings, rosters, props, entered = {} }
   // touchdowns against the positional prior — but only once it actually
   // has a team's real touchdown count and games played. Those were never
   // wired up here, so every player fell back to the prior alone, no matter
-  // how much real season data existed for them.
-  const homeGames = teamGameData(rosters.players, game.home)
-  const awayGames = teamGameData(rosters.players, game.away)
-  const teamCtx = {
-    [game.home]: { expectedTds: expectedTouchdowns(proj.homeTeamTotal), ...homeGames },
-    [game.away]: { expectedTds: expectedTouchdowns(proj.awayTeamTotal), ...awayGames }
-  }
-
-  // Model side: every rostered scorer, normalised so each team's projected
-  // scorers add up to the touchdowns the game model expects.
-  const projected = normaliseField(
-    projectAnytimeTouchdowns(
-      rosters.players.map((p) => ({ ...p, tds: p.tds ?? 0 })),
-      teamCtx
-    ),
-    teamCtx
-  )
+  // how much real season data existed for them. analyseAnytimeTouchdowns()
+  // (in lib/props.js) is the fix, shared with the Card of the day.
+  const { anytime: rawAnytime, projected, teamCtx, devig: dv, hasPrices } = analyseAnytimeTouchdowns({ game, proj, rosters, props })
   const byName = new Map(projected.map((p) => [normName(p.name), p]))
+  const pricedKeys = new Set(rawAnytime.map((e) => e.key))
 
-  // Market side: best price per player, then devig the whole posted field
-  // per team rather than treating each price as a fair two-way market.
-  const bestByPlayer = new Map()
-  for (const o of props?.anytime ?? []) {
-    const key = normName(o.player)
-    const current = bestByPlayer.get(key)
-    if (!current || o.price > current.price) bestByPlayer.set(key, o)
-  }
-
-  const entries = [...bestByPlayer.entries()]
-    .map(([key, o]) => {
-      const model = byName.get(key)
-      return model
-        ? { key, ...o, team: model.team, model, impliedProb: impliedProb(o.price) }
-        : null
-    })
-    .filter(Boolean)
-
-  const dv = entries.length ? devigField(entries, teamCtx) : null
-
-  const anytime = entries.map((e, i) => {
-    const teamDevig = dv?.teams?.[e.team]
-    const devigged = !!teamDevig?.complete
-
+  const anytime = rawAnytime.map((e) => ({
+    ...e,
     // If the posted field for this team could not be devigged, the raw price
     // still carries the book's entire margin. Reporting an EV against it
     // would show a large edge on nearly every player that is nothing but the
     // vig, so no EV is claimed — the row is shown, flagged, without one.
-    const fair = devigged ? dv.fair[i] : null
-    const ev = devigged ? expectedValue(e.model.prob, e.price) : null
-
-    return {
-      ...e,
-      fair,
-      ev,
-      devigged,
-      edge: devigged ? e.model.prob - fair : null,
-      stake: devigged
-        ? kelly(e.model.prob, e.price, 0, settings.kellyFraction) * settings.bankroll
-        : 0
-    }
-  }).sort((a, b) => (b.ev ?? -Infinity) - (a.ev ?? -Infinity))
+    stake: e.devigged
+      ? kelly(e.model.prob, e.price, 0, settings.kellyFraction) * settings.bankroll
+      : 0
+  }))
 
   // Players the model rates but no feed priced. These are the rows you type
   // a sportsbook's number into: the EV is then computed against the price
   // you would actually be taking, which is the number that decides the bet.
   const unpriced = projected
-    .filter((p) => !bestByPlayer.has(normName(p.name)))
+    .filter((p) => !pricedKeys.has(normName(p.name)))
     .map((p) => {
       const price = entered[normName(p.name)]
       const numeric = Number(price)
@@ -298,7 +252,7 @@ function analyse({ game, proj, settings, ratings, rosters, props, entered = {} }
     passing: passing.sort((a, b) => (b.ev ?? -1) - (a.ev ?? -1)),
     devig: dv,
     teamCtx,
-    hasPrices: entries.length > 0,
+    hasPrices,
     hasTouchdownData: rosters.hasTouchdownData,
     depthKnown: rosters.depthKnown,
     statsSeason: rosters.statsSeason,
@@ -319,16 +273,7 @@ function fairTwoWay(offers, side, outcome) {
   return side === 'over' ? a / total : b / total
 }
 
-const normName = (n) =>
-  String(n || '').toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+/g, ' ').trim()
-
-/** A team's total tracked touchdowns and games played, from its own roster. */
-function teamGameData(players, team) {
-  const teamPlayers = players.filter((p) => p.team === team)
-  const teamTds = teamPlayers.reduce((s, p) => s + (p.tds ?? 0), 0)
-  const games = teamPlayers.reduce((m, p) => Math.max(m, p.stats?.games ?? 0), 0)
-  return { teamTds, games }
-}
+const normName = normPropName
 
 /* ---------- UI ---------- */
 
