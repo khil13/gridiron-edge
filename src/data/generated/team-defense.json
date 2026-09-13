@@ -1,0 +1,479 @@
+{
+  "generatedAt": "2026-09-13T15:19:26.756Z",
+  "source": "https://github.com/nflverse/nflverse-data (stats_player release, regular season, aggregated by opponent)",
+  "latestSeason": 2026,
+  "seasons": {
+    "2025": {
+      "NYJ": {
+        "rushingYardsAllowed": 2371,
+        "rushingTdsAllowed": 20,
+        "receivingYardsAllowed": 3849,
+        "receivingTdsAllowed": 36,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 4,
+          "rushingTdsAllowed": 6,
+          "receivingYardsAllowed": 17,
+          "receivingTdsAllowed": 1
+        }
+      },
+      "BAL": {
+        "rushingYardsAllowed": 1813,
+        "rushingTdsAllowed": 18,
+        "receivingYardsAllowed": 4403,
+        "receivingTdsAllowed": 23,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 23,
+          "rushingTdsAllowed": 10,
+          "receivingYardsAllowed": 4,
+          "receivingTdsAllowed": 22
+        }
+      },
+      "PIT": {
+        "rushingYardsAllowed": 1922,
+        "rushingTdsAllowed": 10,
+        "receivingYardsAllowed": 4437,
+        "receivingTdsAllowed": 30,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 20,
+          "rushingTdsAllowed": 30,
+          "receivingYardsAllowed": 3,
+          "receivingTdsAllowed": 8
+        }
+      },
+      "CIN": {
+        "rushingYardsAllowed": 2500,
+        "rushingTdsAllowed": 18,
+        "receivingYardsAllowed": 4175,
+        "receivingTdsAllowed": 33,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 1,
+          "rushingTdsAllowed": 11,
+          "receivingYardsAllowed": 8,
+          "receivingTdsAllowed": 3
+        }
+      },
+      "NO": {
+        "rushingYardsAllowed": 2050,
+        "rushingTdsAllowed": 12,
+        "receivingYardsAllowed": 3336,
+        "receivingTdsAllowed": 25,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 14,
+          "rushingTdsAllowed": 26,
+          "receivingYardsAllowed": 28,
+          "receivingTdsAllowed": 15
+        }
+      },
+      "HOU": {
+        "rushingYardsAllowed": 1593,
+        "rushingTdsAllowed": 13,
+        "receivingYardsAllowed": 3486,
+        "receivingTdsAllowed": 20,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 29,
+          "rushingTdsAllowed": 22,
+          "receivingYardsAllowed": 26,
+          "receivingTdsAllowed": 24
+        }
+      },
+      "WAS": {
+        "rushingYardsAllowed": 2411,
+        "rushingTdsAllowed": 18,
+        "receivingYardsAllowed": 4371,
+        "receivingTdsAllowed": 33,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 3,
+          "rushingTdsAllowed": 12,
+          "receivingYardsAllowed": 5,
+          "receivingTdsAllowed": 4
+        }
+      },
+      "SEA": {
+        "rushingYardsAllowed": 1563,
+        "rushingTdsAllowed": 9,
+        "receivingYardsAllowed": 3619,
+        "receivingTdsAllowed": 20,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 30,
+          "rushingTdsAllowed": 31,
+          "receivingYardsAllowed": 21,
+          "receivingTdsAllowed": 25
+        }
+      },
+      "NYG": {
+        "rushingYardsAllowed": 2470,
+        "rushingTdsAllowed": 21,
+        "receivingYardsAllowed": 3908,
+        "receivingTdsAllowed": 25,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 2,
+          "rushingTdsAllowed": 4,
+          "receivingYardsAllowed": 16,
+          "receivingTdsAllowed": 16
+        }
+      },
+      "ARI": {
+        "rushingYardsAllowed": 2158,
+        "rushingTdsAllowed": 19,
+        "receivingYardsAllowed": 4128,
+        "receivingTdsAllowed": 31,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 8,
+          "rushingTdsAllowed": 9,
+          "receivingYardsAllowed": 9,
+          "receivingTdsAllowed": 6
+        }
+      },
+      "DEN": {
+        "rushingYardsAllowed": 1548,
+        "rushingTdsAllowed": 11,
+        "receivingYardsAllowed": 3606,
+        "receivingTdsAllowed": 18,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 31,
+          "rushingTdsAllowed": 28,
+          "receivingYardsAllowed": 22,
+          "receivingTdsAllowed": 28
+        }
+      },
+      "ATL": {
+        "rushingYardsAllowed": 2146,
+        "rushingTdsAllowed": 12,
+        "receivingYardsAllowed": 3773,
+        "receivingTdsAllowed": 27,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 9,
+          "rushingTdsAllowed": 27,
+          "receivingYardsAllowed": 18,
+          "receivingTdsAllowed": 13
+        }
+      },
+      "PHI": {
+        "rushingYardsAllowed": 2115,
+        "rushingTdsAllowed": 20,
+        "receivingYardsAllowed": 3476,
+        "receivingTdsAllowed": 14,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 11,
+          "rushingTdsAllowed": 7,
+          "receivingYardsAllowed": 27,
+          "receivingTdsAllowed": 32
+        }
+      },
+      "CHI": {
+        "rushingYardsAllowed": 2287,
+        "rushingTdsAllowed": 15,
+        "receivingYardsAllowed": 4067,
+        "receivingTdsAllowed": 32,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 6,
+          "rushingTdsAllowed": 18,
+          "receivingYardsAllowed": 11,
+          "receivingTdsAllowed": 5
+        }
+      },
+      "DET": {
+        "rushingYardsAllowed": 1947,
+        "rushingTdsAllowed": 16,
+        "receivingYardsAllowed": 4027,
+        "receivingTdsAllowed": 31,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 19,
+          "rushingTdsAllowed": 14,
+          "receivingYardsAllowed": 12,
+          "receivingTdsAllowed": 7
+        }
+      },
+      "JAC": {
+        "rushingYardsAllowed": 1455,
+        "rushingTdsAllowed": 13,
+        "receivingYardsAllowed": 3933,
+        "receivingTdsAllowed": 25,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 32,
+          "rushingTdsAllowed": 23,
+          "receivingYardsAllowed": 14,
+          "receivingTdsAllowed": 17
+        }
+      },
+      "KC": {
+        "rushingYardsAllowed": 1797,
+        "rushingTdsAllowed": 14,
+        "receivingYardsAllowed": 3487,
+        "receivingTdsAllowed": 18,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 24,
+          "rushingTdsAllowed": 20,
+          "receivingYardsAllowed": 25,
+          "receivingTdsAllowed": 29
+        }
+      },
+      "LAC": {
+        "rushingYardsAllowed": 1791,
+        "rushingTdsAllowed": 16,
+        "receivingYardsAllowed": 3314,
+        "receivingTdsAllowed": 16,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 25,
+          "rushingTdsAllowed": 15,
+          "receivingYardsAllowed": 29,
+          "receivingTdsAllowed": 30
+        }
+      },
+      "BUF": {
+        "rushingYardsAllowed": 2315,
+        "rushingTdsAllowed": 24,
+        "receivingYardsAllowed": 2894,
+        "receivingTdsAllowed": 19,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 5,
+          "rushingTdsAllowed": 1,
+          "receivingYardsAllowed": 32,
+          "receivingTdsAllowed": 27
+        }
+      },
+      "NE": {
+        "rushingYardsAllowed": 1729,
+        "rushingTdsAllowed": 11,
+        "receivingYardsAllowed": 3512,
+        "receivingTdsAllowed": 25,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 27,
+          "rushingTdsAllowed": 29,
+          "receivingYardsAllowed": 24,
+          "receivingTdsAllowed": 18
+        }
+      },
+      "CLE": {
+        "rushingYardsAllowed": 1979,
+        "rushingTdsAllowed": 14,
+        "receivingYardsAllowed": 3220,
+        "receivingTdsAllowed": 25,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 17,
+          "rushingTdsAllowed": 21,
+          "receivingYardsAllowed": 30,
+          "receivingTdsAllowed": 19
+        }
+      },
+      "MIN": {
+        "rushingYardsAllowed": 2110,
+        "rushingTdsAllowed": 13,
+        "receivingYardsAllowed": 3021,
+        "receivingTdsAllowed": 15,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 12,
+          "rushingTdsAllowed": 24,
+          "receivingYardsAllowed": 31,
+          "receivingTdsAllowed": 31
+        }
+      },
+      "SF": {
+        "rushingYardsAllowed": 1833,
+        "rushingTdsAllowed": 13,
+        "receivingYardsAllowed": 4110,
+        "receivingTdsAllowed": 29,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 22,
+          "rushingTdsAllowed": 25,
+          "receivingYardsAllowed": 10,
+          "receivingTdsAllowed": 11
+        }
+      },
+      "LA": {
+        "rushingYardsAllowed": 1884,
+        "rushingTdsAllowed": 8,
+        "receivingYardsAllowed": 3988,
+        "receivingTdsAllowed": 26,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 21,
+          "rushingTdsAllowed": 32,
+          "receivingYardsAllowed": 13,
+          "receivingTdsAllowed": 14
+        }
+      },
+      "LV": {
+        "rushingYardsAllowed": 1986,
+        "rushingTdsAllowed": 22,
+        "receivingYardsAllowed": 3644,
+        "receivingTdsAllowed": 23,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 16,
+          "rushingTdsAllowed": 3,
+          "receivingYardsAllowed": 20,
+          "receivingTdsAllowed": 23
+        }
+      },
+      "TEN": {
+        "rushingYardsAllowed": 1948,
+        "rushingTdsAllowed": 21,
+        "receivingYardsAllowed": 4221,
+        "receivingTdsAllowed": 30,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 18,
+          "rushingTdsAllowed": 5,
+          "receivingYardsAllowed": 7,
+          "receivingTdsAllowed": 9
+        }
+      },
+      "TB": {
+        "rushingYardsAllowed": 1684,
+        "rushingTdsAllowed": 16,
+        "receivingYardsAllowed": 4332,
+        "receivingTdsAllowed": 30,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 28,
+          "rushingTdsAllowed": 16,
+          "receivingYardsAllowed": 6,
+          "receivingTdsAllowed": 10
+        }
+      },
+      "CAR": {
+        "rushingYardsAllowed": 2096,
+        "rushingTdsAllowed": 20,
+        "receivingYardsAllowed": 3657,
+        "receivingTdsAllowed": 20,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 13,
+          "rushingTdsAllowed": 8,
+          "receivingYardsAllowed": 19,
+          "receivingTdsAllowed": 26
+        }
+      },
+      "MIA": {
+        "rushingYardsAllowed": 2251,
+        "rushingTdsAllowed": 18,
+        "receivingYardsAllowed": 3920,
+        "receivingTdsAllowed": 29,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 7,
+          "rushingTdsAllowed": 13,
+          "receivingYardsAllowed": 15,
+          "receivingTdsAllowed": 12
+        }
+      },
+      "IND": {
+        "rushingYardsAllowed": 1732,
+        "rushingTdsAllowed": 16,
+        "receivingYardsAllowed": 4462,
+        "receivingTdsAllowed": 24,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 26,
+          "rushingTdsAllowed": 17,
+          "receivingYardsAllowed": 2,
+          "receivingTdsAllowed": 20
+        }
+      },
+      "GB": {
+        "rushingYardsAllowed": 2001,
+        "rushingTdsAllowed": 15,
+        "receivingYardsAllowed": 3516,
+        "receivingTdsAllowed": 24,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 15,
+          "rushingTdsAllowed": 19,
+          "receivingYardsAllowed": 23,
+          "receivingTdsAllowed": 21
+        }
+      },
+      "DAL": {
+        "rushingYardsAllowed": 2133,
+        "rushingTdsAllowed": 24,
+        "receivingYardsAllowed": 4521,
+        "receivingTdsAllowed": 35,
+        "games": 17,
+        "ranks": {
+          "rushingYardsAllowed": 10,
+          "rushingTdsAllowed": 2,
+          "receivingYardsAllowed": 1,
+          "receivingTdsAllowed": 2
+        }
+      }
+    },
+    "2026": {
+      "SF": {
+        "rushingYardsAllowed": 122,
+        "rushingTdsAllowed": 1,
+        "receivingYardsAllowed": 168,
+        "receivingTdsAllowed": 0,
+        "games": 1,
+        "ranks": {
+          "rushingYardsAllowed": 2,
+          "rushingTdsAllowed": 1,
+          "receivingYardsAllowed": 4,
+          "receivingTdsAllowed": 4
+        }
+      },
+      "SEA": {
+        "rushingYardsAllowed": 109,
+        "rushingTdsAllowed": 0,
+        "receivingYardsAllowed": 178,
+        "receivingTdsAllowed": 1,
+        "games": 1,
+        "ranks": {
+          "rushingYardsAllowed": 3,
+          "rushingTdsAllowed": 2,
+          "receivingYardsAllowed": 3,
+          "receivingTdsAllowed": 2
+        }
+      },
+      "LA": {
+        "rushingYardsAllowed": 174,
+        "rushingTdsAllowed": 0,
+        "receivingYardsAllowed": 205,
+        "receivingTdsAllowed": 3,
+        "games": 1,
+        "ranks": {
+          "rushingYardsAllowed": 1,
+          "rushingTdsAllowed": 3,
+          "receivingYardsAllowed": 1,
+          "receivingTdsAllowed": 1
+        }
+      },
+      "NE": {
+        "rushingYardsAllowed": 97,
+        "rushingTdsAllowed": 0,
+        "receivingYardsAllowed": 200,
+        "receivingTdsAllowed": 1,
+        "games": 1,
+        "ranks": {
+          "rushingYardsAllowed": 4,
+          "rushingTdsAllowed": 4,
+          "receivingYardsAllowed": 2,
+          "receivingTdsAllowed": 3
+        }
+      }
+    }
+  }
+}

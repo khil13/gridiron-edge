@@ -517,7 +517,7 @@ export function volumePlaysForGame({ game, proj, rosters, offers, ratings }) {
     const base = {
       player: g.player, team: player.team, role: player.role, injury: player.injury,
       market: g.market, marketLabel: marketDef.label, line: g.line, book: g.book,
-      mean: v.mean, perGame: v.perGame, games: v.games
+      mean: v.mean, perGame: v.perGame, games: v.games, statsPriorSeason: player.statsPriorSeason
     }
     plays.push({
       ...base, key: `${normPropName(g.player)}:${g.market}:over:${g.line}`,

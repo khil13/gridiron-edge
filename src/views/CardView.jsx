@@ -6,6 +6,7 @@ import { useStore } from '../lib/store.jsx'
 import { toSlipLeg } from '../lib/edges.js'
 import { buildCard, daysFrom, confidenceOf, lockCard, tierForProp, tierForVolume, pickBestProp, sortPropPicks } from '../lib/card.js'
 import { analyseAnytimeTouchdowns, volumePlaysForGame } from '../lib/props.js'
+import { reasonsForPick } from '../lib/reasons.js'
 import { fetchGameRosters } from '../data/providers/playerData.js'
 import { fetchGameProps, CARD_PROP_MARKETS, CARD_PROP_CREDIT_COST } from '../data/providers/oddsApiProvider.js'
 import { getTeam } from '../data/teams.js'
@@ -649,6 +650,7 @@ function PropPlayCard({ pick, dispatch }) {
   const homeTeam = getTeam(game.home)
   const awayTeam = getTeam(game.away)
   const isVolume = kind === 'volume'
+  const reasons = reasonsForPick(pick)
 
   const modelProb = isVolume ? entry.modelProb : entry.model.prob
   const title = isVolume
@@ -730,10 +732,15 @@ function PropPlayCard({ pick, dispatch }) {
           </div>
         </div>
 
+        {reasons.length > 0 && (
+          <ul className="dim" style={{ fontSize: 11, margin: '0 0 var(--s3)', paddingLeft: 18 }}>
+            {reasons.map((reason, i) => <li key={i}>{reason}</li>)}
+          </ul>
+        )}
+
         {isVolume && (
           <p className="dim" style={{ fontSize: 11, margin: '0 0 var(--s3)' }}>
-            {entry.perGame}/g over {entry.games} games this season, projected to {entry.mean}
-            {' '}for this matchup.
+            Projected to {entry.mean} {entry.marketLabel.toLowerCase()} for this matchup.
           </p>
         )}
 
