@@ -18,7 +18,7 @@
  * the data is absent — the player is omitted instead.
  */
 
-import { expectedValue, impliedProb } from './odds.js'
+import { expectedValue, impliedProb, devig } from './odds.js'
 
 /**
  * Points to touchdowns.
@@ -458,6 +458,80 @@ export function availableMarkets(player) {
     const hasPrior = (VOLUME_PRIORS[player.role]?.[m.stat] ?? 0) > 0
     return hasReal || hasPrior
   })
+}
+
+/**
+ * Real yardage/volume lines, priced against the model.
+ *
+ * Unlike anytime touchdown — where many players can score, so the whole
+ * posted field has to be normalised together — an Over/Under yardage line
+ * is a genuine two-outcome market: mutually exclusive, collectively
+ * exhaustive. The ordinary two-way devig used for a spread or a total
+ * applies directly, which is simpler and firmer ground than touchdown
+ * props stand on.
+ *
+ * A play is never offered against a synthetic (positional-average)
+ * projection — that is a league-wide guess, not this player's own rate,
+ * and staking real units on the gap between a guess and a market price
+ * would be pricing the model's own uncertainty as if it were an edge.
+ *
+ * @param {Array} offers  this game's volume offers from fetchGameProps(),
+ *                        i.e. { market, book, player, side, line, price }
+ * @returns {Array} both sides of every offer with a matching Over and
+ *                  Under at the same book and line, ranked by EV
+ */
+export function volumePlaysForGame({ game, proj, rosters, offers, ratings }) {
+  if (!offers?.length) return []
+
+  const teamAverage = (team) => ratings?.[team]?.ppg ?? 22
+  const byPlayer = new Map(rosters.players.map((p) => [normPropName(p.name), p]))
+
+  // An Over and an Under only price against each other when they are the
+  // same book's number — mixing books would devig two different markets
+  // against one another and manufacture an edge from nothing.
+  const groups = new Map()
+  for (const o of offers) {
+    const key = [normPropName(o.player), o.market, o.book, o.line].join('|')
+    if (!groups.has(key)) groups.set(key, { ...o, over: null, under: null })
+    groups.get(key)[o.side] = o.price
+  }
+
+  const plays = []
+  for (const g of groups.values()) {
+    if (g.over == null || g.under == null) continue
+    const player = byPlayer.get(normPropName(g.player))
+    if (!player) continue
+    const marketDef = VOLUME_MARKETS.find((m) => m.key === g.market)
+    if (!marketDef) continue
+
+    const teamPoints = player.team === game.home ? proj.homeTeamTotal : proj.awayTeamTotal
+    const v = projectVolume(player, marketDef, { teamPoints, teamAverage: teamAverage(player.team) })
+    if (!v || v.synthetic) continue
+    const outcome = v.over(g.line)
+    if (!outcome) continue
+
+    const { probs } = devig([g.over, g.under])
+    const overWin = outcome.win
+    const underWin = Math.max(0, 1 - overWin - outcome.push)
+
+    const base = {
+      player: g.player, team: player.team, role: player.role, injury: player.injury,
+      market: g.market, marketLabel: marketDef.label, line: g.line, book: g.book,
+      mean: v.mean, perGame: v.perGame, games: v.games
+    }
+    plays.push({
+      ...base, key: `${normPropName(g.player)}:${g.market}:over:${g.line}`,
+      side: 'over', price: g.over, modelProb: overWin, fair: probs[0],
+      ev: expectedValue(overWin, g.over, outcome.push), edge: overWin - probs[0]
+    })
+    plays.push({
+      ...base, key: `${normPropName(g.player)}:${g.market}:under:${g.line}`,
+      side: 'under', price: g.under, modelProb: underWin, fair: probs[1],
+      ev: expectedValue(underWin, g.under, outcome.push), edge: underWin - probs[1]
+    })
+  }
+
+  return plays.sort((a, b) => b.ev - a.ev)
 }
 
 /* ---------- First quarter ---------- */

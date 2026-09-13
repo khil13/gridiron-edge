@@ -95,6 +95,37 @@ export function tierForProp(play) {
 }
 
 /**
+ * Conviction tiers for real yardage/volume plays.
+ *
+ * An Over/Under yardage line devigs the same ordinary way a total does —
+ * see volumePlaysForGame() in lib/props.js — so it does not carry
+ * touchdown props' extreme hold or field-wide guesswork, and the bar sits
+ * closer to a game line's than to a prop's. It never even sees a play
+ * built on a synthetic (positional-average) projection: that function
+ * excludes those before this is called, since a play on the gap between a
+ * league-wide guess and a market price would be pricing the model's own
+ * uncertainty as if it were an edge.
+ */
+export const VOLUME_TIERS = [
+  { units: 3, label: 'Best bet', minEv: 0.06, minProbEdge: 0.04, tone: 'edge' },
+  { units: 2, label: 'Strong',   minEv: 0.04, minProbEdge: 0.03, tone: 'edge' },
+  { units: 1, label: 'Lean',     minEv: 0.02, minProbEdge: 0.015, tone: 'chalk' }
+]
+
+/** Highest tier a volume play qualifies for. Never null — falls back to a lean. */
+export function tierForVolume(play) {
+  if (!play || play.ev == null) return NO_PLAY
+  const edge = Math.abs(play.edge ?? 0)
+  const tier = VOLUME_TIERS.find((t) => play.ev >= t.minEv && edge >= t.minProbEdge) || null
+  if (!tier) return NO_PLAY
+
+  if (play.ev >= IMPLAUSIBLE_EV) {
+    return { ...tier, units: 1, label: 'Check model', tone: 'live', suspicious: true }
+  }
+  return tier
+}
+
+/**
  * Why a read is not worth a stake. Being specific here is the difference
  * between a card that teaches you something and one that just says no.
  */
