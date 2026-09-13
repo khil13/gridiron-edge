@@ -4,7 +4,7 @@ import EdgeRail from '../components/EdgeRail.jsx'
 import { Badge, Empty, Tabs } from '../components/Controls.jsx'
 import { useStore } from '../lib/store.jsx'
 import { toSlipLeg } from '../lib/edges.js'
-import { buildCard, daysFrom, confidenceOf, lockCard, tierForProp, tierForVolume } from '../lib/card.js'
+import { buildCard, daysFrom, confidenceOf, lockCard, tierForProp, tierForVolume, pickBestProp, sortPropPicks } from '../lib/card.js'
 import { analyseAnytimeTouchdowns, volumePlaysForGame } from '../lib/props.js'
 import { fetchGameRosters } from '../data/providers/playerData.js'
 import { fetchGameProps, CARD_PROP_MARKETS, CARD_PROP_CREDIT_COST } from '../data/providers/oddsApiProvider.js'
@@ -69,22 +69,22 @@ export default function CardView({ data }) {
     const picks = []
     for (const { game, anytime, volume } of propState.perGame) {
       // Every qualifying candidate for this game, touchdown and yardage
-      // alike — one leg per game, same discipline as the game-line card,
-      // so the best-EV qualifier across both prop types wins the slot
-      // rather than always favouring whichever type is checked first.
+      // alike — one leg per game, same discipline as the game-line card.
+      // pickBestProp() prefers an unflagged edge over a flagged longshot
+      // even at a lower raw EV; see its doc comment for why that matters.
       const candidates = []
-      const bestTd = anytime.find((e) => e.devigged && e.ev != null)
-      if (bestTd) candidates.push({ kind: 'td', entry: bestTd, tier: tierForProp(bestTd) })
+      for (const e of anytime) {
+        if (!e.devigged || e.ev == null) continue
+        candidates.push({ kind: 'td', entry: e, tier: tierForProp(e) })
+      }
       for (const v of volume ?? []) {
         candidates.push({ kind: 'volume', entry: v, tier: tierForVolume(v) })
       }
-      const qualifying = candidates.filter((c) => c.tier.units > 0)
-      if (!qualifying.length) continue
-      qualifying.sort((a, b) => b.entry.ev - a.entry.ev)
-      const best = qualifying[0]
+      const best = pickBestProp(candidates)
+      if (!best) continue
       picks.push({ game, kind: best.kind, entry: best.entry, tier: best.tier, stake: best.tier.units * unit })
     }
-    return picks.sort((a, b) => b.entry.ev - a.entry.ev).slice(0, 6)
+    return sortPropPicks(picks).slice(0, 6)
   }, [propsReady, propState, settings])
 
   const loadProps = async () => {

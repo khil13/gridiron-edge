@@ -126,6 +126,39 @@ export function tierForVolume(play) {
 }
 
 /**
+ * Choose the single prop leg for one game from every qualifying candidate,
+ * touchdown and yardage alike.
+ *
+ * A "Check model" flag almost always carries a far larger raw EV than a
+ * genuine edge — long odds turn even a small, noisy probability gap into a
+ * huge-looking percentage (a 3-point edge is worth far more EV% at +5000
+ * than at -110). Sorting on EV alone lets a flagged longshot bury every
+ * real Lean or Strong play in the same game, every time, since it always
+ * out-scores them — confirmed live: a slate of six games returned six
+ * flagged longshots and nothing else. A clean candidate is preferred
+ * whenever one exists; a flagged one is used only when it is the single
+ * thing on this game's board that clears the bar at all.
+ *
+ * @param {Array<{tier, entry}>} candidates  every priced candidate for one game
+ * @returns {object|null} the winning candidate, or null if none qualify
+ */
+export function pickBestProp(candidates) {
+  const qualifying = candidates.filter((c) => c.tier.units > 0)
+  if (!qualifying.length) return null
+  const clean = qualifying.filter((c) => !c.tier.suspicious)
+  const pool = clean.length ? clean : qualifying
+  return [...pool].sort((a, b) => b.entry.ev - a.entry.ev)[0]
+}
+
+/** Same clean-before-flagged preference, applied across an entire slate's picks. */
+export function sortPropPicks(picks) {
+  return [...picks].sort((a, b) => {
+    if (a.tier.suspicious !== b.tier.suspicious) return a.tier.suspicious ? 1 : -1
+    return b.entry.ev - a.entry.ev
+  })
+}
+
+/**
  * Why a read is not worth a stake. Being specific here is the difference
  * between a card that teaches you something and one that just says no.
  */
