@@ -129,33 +129,32 @@ export function tierForVolume(play) {
  * Choose the single prop leg for one game from every qualifying candidate,
  * touchdown and yardage alike.
  *
- * A "Check model" flag almost always carries a far larger raw EV than a
- * genuine edge — long odds turn even a small, noisy probability gap into a
- * huge-looking percentage (a 3-point edge is worth far more EV% at +5000
- * than at -110). Sorting on EV alone lets a flagged longshot bury every
- * real Lean or Strong play in the same game, every time, since it always
- * out-scores them — confirmed live: a slate of six games returned six
- * flagged longshots and nothing else. A clean candidate is preferred
- * whenever one exists; a flagged one is used only when it is the single
- * thing on this game's board that clears the bar at all.
+ * A "Check model" flag means exactly what it says: the size of the edge is
+ * itself the evidence that something is wrong (a bad depth chart, a noisy
+ * early-season sample), not that it's real. Confirmed live on two separate
+ * real slates: every single game that had a flagged candidate had nothing
+ * else, so treating it as "a play, just a risky one" meant the card never
+ * showed anything BUT flagged longshots — six for six, twice. A flagged
+ * candidate is therefore not a fallback; it is excluded the same as a
+ * candidate that never cleared the EV bar at all. A game with nothing but
+ * flagged noise gets no prop leg, same as a game with no edge at all.
  *
  * @param {Array<{tier, entry}>} candidates  every priced candidate for one game
  * @returns {object|null} the winning candidate, or null if none qualify
  */
 export function pickBestProp(candidates) {
-  const qualifying = candidates.filter((c) => c.tier.units > 0)
+  const qualifying = candidates.filter((c) => c.tier.units > 0 && !c.tier.suspicious)
   if (!qualifying.length) return null
-  const clean = qualifying.filter((c) => !c.tier.suspicious)
-  const pool = clean.length ? clean : qualifying
-  return [...pool].sort((a, b) => b.entry.ev - a.entry.ev)[0]
+  return [...qualifying].sort((a, b) => b.entry.ev - a.entry.ev)[0]
 }
 
-/** Same clean-before-flagged preference, applied across an entire slate's picks. */
+/**
+ * Sort a slate's picks by EV. pickBestProp() already excludes flagged
+ * candidates, so this never sees one — the ordering here exists purely so
+ * a caller doesn't have to remember which field to sort on.
+ */
 export function sortPropPicks(picks) {
-  return [...picks].sort((a, b) => {
-    if (a.tier.suspicious !== b.tier.suspicious) return a.tier.suspicious ? 1 : -1
-    return b.entry.ev - a.entry.ev
-  })
+  return [...picks].sort((a, b) => b.entry.ev - a.entry.ev)
 }
 
 /**
