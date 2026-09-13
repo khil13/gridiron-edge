@@ -22,9 +22,15 @@ const PASS_RE = new RegExp(
   'i'
 )
 
+// A direction/gap phrase — "right end", "up the middle", "left tackle" — on
+// its own, with no "rush" verb at all, is how ESPN's real feed writes a lot
+// of running plays ("A.Jeanty left end to LV 22 for -1 yards"). Requiring
+// the word "rush" would silently miss those, so it's optional: either it
+// says "rush(ed)" (with or without a direction after it), or it skips
+// straight to the direction phrase.
+const DIRECTION = '(?:(?:up\\s+)?(?:the\\s+)?(?:left|right|middle|end|guard|tackle))'
 const RUSH_RE = new RegExp(
-  `^(${NAME})\\s+rush(?:ed)?\\b` +
-  `(?:\\s+(?:up\\s+)?(?:the\\s+)?(?:left|right|middle|end|guard|tackle))*` +
+  `^(${NAME})\\s+(?:rush(?:ed)?\\b(?:\\s+${DIRECTION})*|${DIRECTION}(?:\\s+${DIRECTION})*)` +
   `(?:\\s+to\\s+[A-Z]{2,3}\\s+\\d{1,2})?\\s+${FOR_YARDS}\\b`,
   'i'
 )

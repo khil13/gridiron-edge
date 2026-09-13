@@ -20,9 +20,24 @@ describe('parseLastPlay', () => {
     })
   })
 
+  it('parses a real ESPN rush that omits the word "rush" entirely', () => {
+    // Confirmed live from ESPN's own feed: a lot of real rush plays are
+    // worded as "<player> <direction> to <spot> for <yards>" with no verb
+    // at all, not "<player> rush <direction> ...".
+    expect(parseLastPlay('A.Jeanty left end to LV 22 for -1 yards (C.Johnson).')).toEqual({
+      type: 'rush', yards: -1, primary: 'A.Jeanty', secondary: null
+    })
+  })
+
   it('parses a rush for no gain', () => {
     expect(parseLastPlay('L.Jackson rush middle for no gain')).toEqual({
       type: 'rush', yards: 0, primary: 'L.Jackson', secondary: null
+    })
+  })
+
+  it('parses a rush with the verb but no direction at all', () => {
+    expect(parseLastPlay('L.Jackson rush for 8 yards')).toEqual({
+      type: 'rush', yards: 8, primary: 'L.Jackson', secondary: null
     })
   })
 

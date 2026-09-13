@@ -121,11 +121,14 @@ export async function fetchGameSummary(eventId, { signal } = {}) {
   }
   if (!json) throw new Error(`Game detail unavailable (${lastError?.message ?? 'unknown'})`)
 
+  const situation = parseSituation(json)
   return {
     teamStats: parseTeamStats(json),
     linescores: parseLinescores(json),
-    situation: parseSituation(json),
-    lastPlay: json?.situation?.lastPlay?.text ?? null,
+    situation,
+    // The legacy shape nests this under situation.lastPlay; the current-drive
+    // fallback already carries the same text on the situation object itself.
+    lastPlay: json?.situation?.lastPlay?.text ?? situation?.lastPlay ?? null,
     leaders: parseLeaders(json)
   }
 }
@@ -181,13 +184,25 @@ function parseLinescores(json) {
   return rows.sort((x, y) => (x.homeAway === 'away' ? -1 : 1))
 }
 
-/** Down, distance and possession for a game in progress. */
-function parseSituation(json) {
-  const s = json?.situation
+/**
+ * Down, distance and possession for a game in progress.
+ *
+ * ESPN has served this two different ways. Older payloads carry an explicit
+ * `situation` object (top-level, or under the first competition in
+ * `header`). A newer payload shape drops that field entirely — not merely
+ * empty, but genuinely absent from the response — and the same information
+ * only survives as the `end` of the most recent play in the current drive
+ * (`drives.current.plays`). Falling back to the drive is what keeps the
+ * live field graphic working now that ESPN has stopped populating the
+ * older field for at least some games.
+ */
+export function parseSituation(json) {
   const comp = json?.header?.competitions?.[0]
-  if (!s && !comp?.situation) return null
-  const src = s || comp.situation
+  const legacy = json?.situation || comp?.situation
+  return legacy ? situationFromLegacy(legacy, comp) : situationFromCurrentDrive(json, comp)
+}
 
+function situationFromLegacy(src, comp) {
   const possessionId = src?.possession ?? src?.possessionText
   const possessing = comp?.competitors?.find(
     (c) => String(c?.id) === String(possessionId) || String(c?.team?.id) === String(possessionId)
@@ -200,7 +215,32 @@ function parseSituation(json) {
     isRedZone: !!src?.isRedZone,
     down: numberOrNull(src?.down),
     distance: numberOrNull(src?.distance),
-    yardLine: numberOrNull(src?.yardLine)
+    yardLine: numberOrNull(src?.yardLine),
+    lastPlay: null
+  }
+}
+
+/** The `end` of the current drive's most recent play carries the same shape of information the legacy `situation` object did. */
+function situationFromCurrentDrive(json, comp) {
+  const plays = json?.drives?.current?.plays
+  const last = Array.isArray(plays) && plays.length ? plays[plays.length - 1] : null
+  const end = last?.end
+  if (!end) return null
+
+  const teamId = end?.team?.id ?? json?.drives?.current?.team?.id
+  const possessing = comp?.competitors?.find((c) => String(c?.team?.id) === String(teamId))
+
+  return {
+    downDistance: end.shortDownDistanceText || end.downDistanceText || null,
+    fieldPosition: end.possessionText || null,
+    possession: possessing ? norm(possessing.team?.abbreviation) : null,
+    // Not carried explicitly in this shape; a team inside its own 20 is the
+    // ordinary definition of the red zone, so it's derived the same way.
+    isRedZone: Number.isFinite(end.yardsToEndzone) && end.yardsToEndzone <= 20,
+    down: numberOrNull(end.down),
+    distance: numberOrNull(end.distance),
+    yardLine: numberOrNull(end.yardLine),
+    lastPlay: last.text?.trim() || null
   }
 }
 
