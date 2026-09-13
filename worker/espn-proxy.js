@@ -32,7 +32,15 @@ const ATHLETE_STATS = /^\/athletes\/(\d+)\/stats\/?$/
 // request needs to change.
 const BROWSER_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-  Accept: 'application/json'
+  Accept: 'application/json',
+  // ESPN's own site calls this same endpoint from the browser as the site
+  // is being used — a Referer/Origin matching espn.com makes this request
+  // look like that, rather than an unrelated third party. Still a guess at
+  // this point: if this alone doesn't clear it, the block is more likely
+  // on the source IP (Cloudflare Workers share a well-known range a lot of
+  // bot protection denies outright) than anything about the request itself.
+  Referer: 'https://www.espn.com/',
+  Origin: 'https://www.espn.com'
 }
 
 function corsHeaders(env) {
