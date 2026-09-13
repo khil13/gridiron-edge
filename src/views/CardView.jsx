@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import TeamMark from '../components/TeamMark.jsx'
 import EdgeRail from '../components/EdgeRail.jsx'
 import { Badge, Empty, Tabs } from '../components/Controls.jsx'
@@ -30,9 +30,15 @@ const byMarket = (list) =>
  * isn't going to change on its own, but a market that hasn't been posted at
  * all often shows up within the hour as kickoff for a later slate gets
  * closer. A game already final never needs re-checking regardless.
+ *
+ * `liveStatus` must come from the current slate, not from `g.game.status` —
+ * that field is a snapshot frozen at whatever moment this game was last
+ * fetched, and a game checked while it was still scheduled never updates its
+ * own copy to 'final' on its own. Trusting the frozen copy would recheck an
+ * already-finished game forever, spending API credits on nothing.
  */
-const needsRecheck = (g) =>
-  g.game.status !== 'final' && (g.anytimeOffers ?? 0) === 0 && (g.volumeOffers ?? 0) === 0
+const needsRecheck = (g, liveStatus) =>
+  liveStatus !== 'final' && (g.anytimeOffers ?? 0) === 0 && (g.volumeOffers ?? 0) === 0
 
 /** How often to look again for games that had nothing posted last time. */
 const AUTO_RECHECK_MS = 20 * 60 * 1000
@@ -108,9 +114,17 @@ export default function CardView({ data }) {
   const propResult = useMemo(() => {
     if (!propsReady) return { picks: [], flaggedOnly: 0 }
     const unit = (settings.bankroll ?? 1000) * 0.01
+    // propState.perGame's own `game` field is a snapshot frozen at fetch
+    // time, so a game finished since it was checked still says otherwise
+    // there — the current slate is the only place with the live status.
+    const liveStatusById = new Map((day?.games ?? []).map((g) => [g.id, g.status]))
     const picks = []
     let flaggedOnly = 0
     for (const { game, anytime, volume } of propState.perGame) {
+      // A game that has since gone final has nothing left to bet — showing
+      // a prop found while it was still being played would be a stale
+      // pick on a game that's already over.
+      if (liveStatusById.get(game.id) === 'final') continue
       // Every qualifying candidate for this game, touchdown and yardage
       // alike. Up to two legs per game — a touchdown lean on one player and
       // a yardage lean on a different one are separate real signals, not
@@ -138,7 +152,7 @@ export default function CardView({ data }) {
       }
     }
     return { picks: sortPropPicks(picks).slice(0, 12), flaggedOnly }
-  }, [propsReady, propState, settings])
+  }, [propsReady, propState, settings, day])
   const { picks: propPlays, flaggedOnly: flaggedOnlyGames } = propResult
 
   // Shared by the manual "Check this slate" button and the auto-recheck
@@ -196,6 +210,16 @@ export default function CardView({ data }) {
     })
   }
 
+  // Always the latest `day`, read inside the timer below rather than
+  // closed over at schedule time. The effect that schedules that timer only
+  // re-runs when propState or the selected day itself changes — neither of
+  // which changes when a live game simply finishes — so without this ref
+  // the 20-minute callback would fire holding whatever game statuses were
+  // current when the timer was FIRST set, never learning that one of them
+  // went final in the meantime.
+  const dayRef = useRef(day)
+  dayRef.current = day
+
   // Auto-recheck: a later slate's books often haven't posted anything yet
   // when the day is first checked (see CardView's props-tab caveats). This
   // looks again, every twenty minutes, only at games with nothing posted
@@ -208,15 +232,26 @@ export default function CardView({ data }) {
   // create a new one.
   useEffect(() => {
     if (propState.status !== 'ready' || propState.dayKey !== day?.key) return
-    const stale = propState.perGame.filter(needsRecheck)
-    if (!stale.length) return
+    const liveStatusById = new Map((day?.games ?? []).map((g) => [g.id, g.status]))
+    const hasAnyStale = propState.perGame.some((g) => needsRecheck(g, liveStatusById.get(g.game.id)))
+    if (!hasAnyStale) return
 
     let alive = true
     const timer = setTimeout(async () => {
+      // Re-read status fresh here rather than trusting the check above: a
+      // game that was still scheduled when this timer was set may well have
+      // gone final in the twenty minutes since, and re-fetching it anyway
+      // would be exactly the credit waste this feature exists to avoid.
+      const currentDay = dayRef.current
+      if (!alive || currentDay?.key !== propState.dayKey) return
+      const currentStatusById = new Map((currentDay?.games ?? []).map((g) => [g.id, g.status]))
+      const stale = propState.perGame.filter((g) => needsRecheck(g, currentStatusById.get(g.game.id)))
+      if (!stale.length) return
+
       const refreshed = await checkGames(stale.map((g) => g.game))
       if (!alive) return
       setPropState((prev) => {
-        if (prev.status !== 'ready' || prev.dayKey !== day?.key) return prev
+        if (prev.status !== 'ready' || prev.dayKey !== propState.dayKey) return prev
         const byId = new Map(refreshed.map((g) => [g.game.id, g]))
         const perGame = prev.perGame.map((g) => byId.get(g.game.id) ?? g)
         return { ...prev, ...summarizeProps(perGame) }
