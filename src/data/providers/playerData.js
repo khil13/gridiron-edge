@@ -244,10 +244,14 @@ export function assignRoles(players, depthRanks = null) {
 async function staticStats(name, position, season) {
   const playerStats = await loadPlayerStats()
   const key = `${normPropName(name)}|${position === 'FB' ? 'RB' : position}`
+  // A player can appear in the current season's file with zero games (on a
+  // bye, inactive, or simply not yet played this early in the season) —
+  // that row exists but carries no real rate, and would otherwise shadow a
+  // perfectly good prior-season number with an empty one.
   const current = playerStats.seasons?.[season]?.[key]
-  if (current) return { stats: current, priorSeason: false }
+  if (current?.games > 0) return { stats: current, priorSeason: false }
   const prior = playerStats.seasons?.[season - 1]?.[key]
-  return prior ? { stats: prior, priorSeason: true } : null
+  return prior?.games > 0 ? { stats: prior, priorSeason: true } : null
 }
 
 /** Both rosters for a game, with roles assigned. */

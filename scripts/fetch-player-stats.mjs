@@ -11,10 +11,19 @@
  * than anything fixable by changing the request.
  *
  * nflverse (https://github.com/nflverse) publishes the same shape of data
- * — weekly per-player rushing/receiving/passing stats — as a plain CSV
- * file attached to a GitHub release. It is public, free, updated
- * automatically after each week's games, and served from GitHub's own
- * infrastructure rather than anything ESPN's protection could apply to.
+ * — weekly per-player rushing/receiving/passing stats — as plain CSV files
+ * attached to a GitHub release. It is public, free, updated automatically
+ * after each week's games, and served from GitHub's own infrastructure
+ * rather than anything ESPN's protection could apply to.
+ *
+ * This reads the `stats_player` release (one file per season:
+ * stats_player_week_<season>.csv), not the older `player_stats` release —
+ * confirmed live that the latter is frozen at the 2024 season while this
+ * one already carries the current season's games as they're played. Since
+ * "which season is current" already burned us once (see
+ * src/data/providers/playerData.js's statsSeason comment), this discovers
+ * the latest season by actually probing for files rather than assuming a
+ * wall-clock year lines up with what's published.
  *
  * Run:  npm run player-stats
  * Output: src/data/generated/player-stats.json, bundled into the app at
@@ -29,7 +38,8 @@ import { normPropName } from '../src/lib/props.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-const SOURCE_URL = 'https://github.com/nflverse/nflverse-data/releases/download/player_stats/player_stats.csv'
+const seasonUrl = (season) =>
+  `https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_${season}.csv`
 
 /** Quote-aware CSV parser — several fields (player names) can contain commas. */
 function parseCSV(text) {
@@ -56,23 +66,23 @@ function parseCSV(text) {
 /** Folds FB into RB, matching how playerData.js groups roles for everything else. */
 const basePosition = (position) => (position === 'FB' ? 'RB' : position)
 
-async function main() {
-  console.log(`Fetching ${SOURCE_URL} ...`)
-  const res = await fetch(SOURCE_URL)
-  if (!res.ok) throw new Error(`nflverse player_stats fetch failed: ${res.status}`)
+/** One season's worth of per-player REG-season totals, or null if the file doesn't exist yet. */
+async function fetchSeason(season) {
+  const url = seasonUrl(season)
+  const res = await fetch(url)
+  if (!res.ok) return null
   const text = await res.text()
 
   const rows = parseCSV(text)
   const header = rows[0]
   const col = Object.fromEntries(header.map((name, i) => [name, i]))
   const need = (name) => {
-    if (!(name in col)) throw new Error(`player_stats.csv is missing expected column "${name}"`)
+    if (!(name in col)) throw new Error(`${url} is missing expected column "${name}"`)
     return col[name]
   }
   const idx = {
     name: need('player_display_name'),
     position: need('position'),
-    season: need('season'),
     seasonType: need('season_type'),
     attempts: need('attempts'),
     passingYards: need('passing_yards'),
@@ -91,17 +101,11 @@ async function main() {
     return Number.isFinite(n) ? n : 0
   }
 
-  const seasons = {}
-  let latestSeason = 0
-
+  const players = {}
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i]
     if (!r || r.length < header.length) continue
     if (r[idx.seasonType] !== 'REG') continue
-
-    const season = Number(r[idx.season])
-    if (!Number.isFinite(season)) continue
-    latestSeason = Math.max(latestSeason, season)
 
     const name = r[idx.name]
     if (!name) continue
@@ -111,8 +115,7 @@ async function main() {
     const carries = num(r[idx.carries])
     const targets = num(r[idx.targets])
 
-    const bucket = (seasons[season] ??= {})
-    const acc = (bucket[key] ??= {
+    const acc = (players[key] ??= {
       games: 0, tds: 0, receivingYards: 0, receptions: 0, targets: 0,
       rushingYards: 0, rushingAttempts: 0, passingYards: 0, passingAttempts: 0, passingTouchdowns: 0
     })
@@ -129,18 +132,43 @@ async function main() {
     acc.passingTouchdowns += num(r[idx.passingTds])
   }
 
-  // Keep only the two most recent seasons — enough for the "current season,
-  // else last season for an early-week rookie" fallback playerData.js
-  // already does; older data is real but stops being a useful predictor.
-  const keepSeasons = [latestSeason, latestSeason - 1]
-  const trimmed = {}
-  for (const s of keepSeasons) if (seasons[s]) trimmed[s] = seasons[s]
+  return Object.keys(players).length ? players : null
+}
+
+async function main() {
+  // Probe from a season ahead of the wall-clock year down to a few behind
+  // it, rather than trusting the clock outright — exactly the assumption
+  // that broke last time. Stops at the first (highest) season that
+  // actually has rows, which is nflverse's real current season whatever
+  // the clock says.
+  const clockYear = new Date().getFullYear()
+  const candidates = [clockYear + 1, clockYear, clockYear - 1, clockYear - 2, clockYear - 3]
+
+  let latestSeason = null
+  let latestPlayers = null
+  for (const season of candidates) {
+    console.log(`Checking ${seasonUrl(season)} ...`)
+    const players = await fetchSeason(season)
+    if (players) { latestSeason = season; latestPlayers = players; break }
+  }
+  if (latestSeason == null) {
+    throw new Error(`No season found among candidates: ${candidates.join(', ')}`)
+  }
+
+  // The season right before it, for the "nothing yet this year" fallback
+  // playerData.js already does (opening weeks, or a rookie's first snap).
+  const priorSeason = latestSeason - 1
+  console.log(`Checking ${seasonUrl(priorSeason)} ...`)
+  const priorPlayers = await fetchSeason(priorSeason)
+
+  const seasons = { [latestSeason]: latestPlayers }
+  if (priorPlayers) seasons[priorSeason] = priorPlayers
 
   const payload = {
     generatedAt: new Date().toISOString(),
-    source: 'https://github.com/nflverse/nflverse-data (player_stats release, regular season)',
+    source: 'https://github.com/nflverse/nflverse-data (stats_player release, regular season)',
     latestSeason,
-    seasons: trimmed
+    seasons
   }
 
   const outDir = resolve(__dirname, '../src/data/generated')
@@ -149,7 +177,7 @@ async function main() {
   const out = resolve(outDir, 'player-stats.json')
   writeFileSync(out, JSON.stringify(payload, null, 2) + '\n')
 
-  const playerCount = Object.keys(trimmed[latestSeason] ?? {}).length
+  const playerCount = Object.keys(latestPlayers).length
 
   // A separate, tiny file for anything that just wants to show "as of
   // <season>" without pulling the whole few-hundred-KB dataset into a

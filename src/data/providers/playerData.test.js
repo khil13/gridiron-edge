@@ -104,6 +104,39 @@ describe('fetchGameRosters with the bundled stats snapshot', () => {
     expect(result.players.every((p) => p.stats?.games)).toBe(true)
   })
 
+  it('falls back to last season when the current season has a zero-games row (bye, inactive, or too early)', async () => {
+    vi.doMock('../generated/player-stats.json', () => ({
+      default: {
+        latestSeason: LATEST_SEASON,
+        seasons: {
+          [LATEST_SEASON]: {
+            // On file for this season, but hasn't recorded a snap yet.
+            'cin star wr|WR': { games: 0, tds: 0, receivingYards: 0, receptions: 0, targets: 0, rushingYards: 0, rushingAttempts: 0, passingYards: 0, passingAttempts: 0, passingTouchdowns: 0 }
+          },
+          [LATEST_SEASON - 1]: {
+            'cin star wr|WR': { games: 17, tds: 9, receivingYards: 1200, receptions: 95, targets: 140, rushingYards: 0, rushingAttempts: 0, passingYards: 0, passingAttempts: 0, passingTouchdowns: 0 }
+          }
+        }
+      }
+    }))
+    vi.resetModules()
+    const { fetchGameRosters: fetchGameRostersFresh } = await import('./playerData.js')
+
+    const fetchMock = mockFetchRouter([
+      [/\/teams\/cin\/roster/, async () => ({ ok: true, json: async () => rosterJson([{ id: 10, name: 'Cin Star WR' }]) })],
+      [/\/teams\/det\/roster/, async () => ({ ok: true, json: async () => rosterJson([{ id: 20, name: 'Det Star WR' }]) })],
+      [/depthcharts/, async () => ({ ok: false, status: 404 })]
+    ])
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await fetchGameRostersFresh(game)
+
+    const cinStar = result.players.find((p) => p.name === 'Cin Star WR')
+    expect(cinStar.stats.games).toBe(17)
+    expect(cinStar.stats.receivingYards).toBe(1200)
+    expect(result.usedPriorSeason).toBe(true)
+  })
+
   it('notes the coverage gap when no roster matches the snapshot', async () => {
     const fetchMock = mockFetchRouter([
       [/\/teams\/cin\/roster/, async () => ({ ok: true, json: async () => rosterJson([{ id: 10, name: 'Nobody On File' }]) })],
