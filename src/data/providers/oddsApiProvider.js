@@ -27,6 +27,20 @@ const toAbbr = (name) => NAME_TO_ABBR[String(name || '').toLowerCase()] || null
 const SHARP = new Set(['pinnacle', 'circasports', 'lowvig', 'betonlineag'])
 
 /**
+ * The same handful of HTTP statuses show up on every Odds API call, and a
+ * caller several layers up (the Card's failure banner) needs to tell "the
+ * key is bad" or "the quota is gone" apart from "nothing posted yet" — so
+ * every fetch in this module reports a status through the same wording
+ * rather than each spelling it out slightly differently.
+ */
+function oddsApiErrorMessage(status) {
+  if (status === 401) return 'The Odds API rejected that key.'
+  if (status === 429) return 'The Odds API quota is used up.'
+  if (status === 422) return 'This book or market is not available for that game.'
+  return `The Odds API returned ${status}.`
+}
+
+/**
  * @param {object}   opts
  * @param {string}   opts.apiKey
  * @param {string}   [opts.books]  comma-separated bookmaker keys
@@ -48,13 +62,8 @@ export async function fetchMarkets({ apiKey, books, games = [], signal } = {}) {
 
   if (!res.ok) {
     const body = await res.text().catch(() => '')
-    throw new Error(
-      res.status === 401
-        ? 'The Odds API rejected that key.'
-        : res.status === 429
-          ? 'The Odds API quota is used up for this period.'
-          : `The Odds API returned ${res.status}. ${body.slice(0, 120)}`
-    )
+    const message = oddsApiErrorMessage(res.status)
+    throw new Error(res.status === 401 || res.status === 429 ? message : `${message} ${body.slice(0, 120)}`)
   }
 
   // The API reports remaining quota in headers; surfacing it stops the free
@@ -200,7 +209,7 @@ export const CARD_PROP_CREDIT_COST = CARD_PROP_MARKETS.length * 10
 /** Find the Odds API event id for one of our games. */
 export async function findEventId({ apiKey, game, signal }) {
   const res = await fetch(`${EVENTS_BASE}?apiKey=${encodeURIComponent(apiKey)}`, { signal })
-  if (!res.ok) throw new Error(`Could not list events (${res.status})`)
+  if (!res.ok) throw new Error(oddsApiErrorMessage(res.status))
   const events = await res.json()
 
   const home = toAbbr(game.home)
@@ -237,17 +246,7 @@ export async function fetchGameProps({ apiKey, game, eventId, books, markets = P
   if (books) params.set('bookmakers', books)
 
   const res = await fetch(`${EVENTS_BASE}/${id}/odds?${params}`, { signal })
-  if (!res.ok) {
-    throw new Error(
-      res.status === 422
-        ? 'This book or market is not available for that game.'
-        : res.status === 401
-          ? 'The Odds API rejected that key.'
-          : res.status === 429
-            ? 'The Odds API quota is used up.'
-            : `The Odds API returned ${res.status}.`
-    )
-  }
+  if (!res.ok) throw new Error(oddsApiErrorMessage(res.status))
 
   const quota = {
     remaining: numeric(res.headers.get('x-requests-remaining')),

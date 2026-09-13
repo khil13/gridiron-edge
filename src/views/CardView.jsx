@@ -185,14 +185,21 @@ export default function CardView({ data }) {
         }
       })
     )
-    return settled.filter((r) => r.status === 'fulfilled').map((r) => r.value)
+    const perGame = settled.filter((r) => r.status === 'fulfilled').map((r) => r.value)
+    // A game can fail outright — a bad or quota-exhausted API key, a roster
+    // fetch that errors — which is a completely different situation from
+    // "checked fine, the feed just hasn't posted anything." Losing the
+    // reason here would leave both looking identical to whoever reads the
+    // count later, so it's carried alongside rather than discarded.
+    const failures = settled.filter((r) => r.status === 'rejected').map((r) => r.reason?.message ?? String(r.reason))
+    return { perGame, failures }
   }
 
   const loadProps = async () => {
     if (!day) return
     const targets = day.games.filter((g) => g.projection && g.status !== 'final')
     setPropState({ status: 'loading', dayKey: day.key })
-    const perGame = await checkGames(targets)
+    const { perGame, failures } = await checkGames(targets)
     setPropState({
       status: 'ready',
       dayKey: day.key,
@@ -206,7 +213,12 @@ export default function CardView({ data }) {
       // in the name matching is broken" — without needing the network tab.
       ...summarizeProps(perGame),
       checked: targets.length,
-      failed: targets.length - perGame.length
+      failed: targets.length - perGame.length,
+      // One representative message, not all of them — every failure on a
+      // slate is usually the same underlying cause (one bad key, one
+      // exhausted quota), and showing it once says more than a duplicate
+      // list would.
+      failureReason: failures[0] ?? null
     })
   }
 
@@ -248,13 +260,21 @@ export default function CardView({ data }) {
       const stale = propState.perGame.filter((g) => needsRecheck(g, currentStatusById.get(g.game.id)))
       if (!stale.length) return
 
-      const refreshed = await checkGames(stale.map((g) => g.game))
+      const { perGame: refreshed, failures } = await checkGames(stale.map((g) => g.game))
       if (!alive) return
       setPropState((prev) => {
         if (prev.status !== 'ready' || prev.dayKey !== propState.dayKey) return prev
         const byId = new Map(refreshed.map((g) => [g.game.id, g]))
         const perGame = prev.perGame.map((g) => byId.get(g.game.id) ?? g)
-        return { ...prev, ...summarizeProps(perGame) }
+        return {
+          ...prev,
+          ...summarizeProps(perGame),
+          // A recheck that starts failing (key revoked, quota hit mid-day)
+          // should surface that the same way the initial check would —
+          // silently keeping the old "nothing posted yet" reasoning around
+          // would hide a real, actionable error behind stale copy.
+          failureReason: failures[0] ?? prev.failureReason
+        }
       })
     }, AUTO_RECHECK_MS)
 
@@ -459,6 +479,14 @@ export default function CardView({ data }) {
             <p className="dim" style={{ fontSize: 12, margin: 0 }}>
               Pulling rosters and prop prices for {day.games.filter((g) => g.projection && g.status !== 'final').length} game
               {day.games.length === 1 ? '' : 's'}…
+            </p>
+          )}
+          {oddsKey && propsReady && propState.failed > 0 && propState.failureReason && (
+            <p className="neg" style={{ fontSize: 12, margin: '0 0 var(--s3)', maxWidth: '78ch' }}>
+              {propState.failed} of {propState.checked} game{propState.checked === 1 ? '' : 's'} failed
+              to check outright — {propState.failureReason} That is a real fetch failure, not "nothing
+              posted yet." If this keeps happening, check the odds API key and remaining quota in
+              Settings before assuming there's no value on the slate.
             </p>
           )}
           {oddsKey && propsReady && propPlays.length === 0 && (
