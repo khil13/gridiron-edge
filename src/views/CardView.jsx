@@ -4,7 +4,7 @@ import EdgeRail from '../components/EdgeRail.jsx'
 import { Badge, Empty, Tabs } from '../components/Controls.jsx'
 import { useStore } from '../lib/store.jsx'
 import { toSlipLeg } from '../lib/edges.js'
-import { buildCard, daysFrom, confidenceOf, lockCard, tierForProp, tierForVolume, pickPropsForGame, sortPropPicks } from '../lib/card.js'
+import { buildCard, daysFrom, confidenceOf, lockCard, tierForProp, tierForVolume, pickPropsForGame, sortPropPicks, isMainPlayer } from '../lib/card.js'
 import { analyseAnytimeTouchdowns, volumePlaysForGame } from '../lib/props.js'
 import { reasonsForPick } from '../lib/reasons.js'
 import { fetchGameRosters } from '../data/providers/playerData.js'
@@ -87,9 +87,11 @@ export default function CardView({ data }) {
       const candidates = []
       for (const e of anytime) {
         if (!e.devigged || e.ev == null) continue
+        if (!isMainPlayer(e.model?.role)) continue
         candidates.push({ kind: 'td', entry: e, tier: tierForProp(e) })
       }
       for (const v of volume ?? []) {
+        if (!isMainPlayer(v.role)) continue
         candidates.push({ kind: 'volume', entry: v, tier: tierForVolume(v) })
       }
       const legs = pickPropsForGame(candidates)
@@ -375,6 +377,8 @@ export default function CardView({ data }) {
               Touchdown props carry a fifteen-to-twenty-five percent hold on top of a
               depth chart the model is often guessing at, and a yardage line only qualifies against
               a player's own real per-game rate — so most days that is the correct answer, not a bug.
+              {' '}The Card also only ever plays a team's clear QB1, RB1, WR1 or TE1 — a real edge on
+              a second or third option still shows up on the Props tab, just not here.
             </p>
           )}
           {oddsKey && propsReady && propPlays.length > 0 && (

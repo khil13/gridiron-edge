@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { pickBestProp, pickPropsForGame, sortPropPicks } from './card.js'
+import { pickBestProp, pickPropsForGame, sortPropPicks, isMainPlayer } from './card.js'
 
 const clean = (ev, units = 1) => ({ tier: { units, suspicious: false }, entry: { ev } })
 const flagged = (ev) => ({ tier: { units: 1, suspicious: true }, entry: { ev } })
@@ -54,6 +54,30 @@ describe('pickPropsForGame', () => {
   it('defaults to a max of two legs per game', () => {
     const legs = pickPropsForGame([clean(0.01), clean(0.02), clean(0.03), clean(0.04)])
     expect(legs).toHaveLength(2)
+  })
+})
+
+describe('isMainPlayer', () => {
+  it('accepts a team\'s clear QB1, RB1, WR1 and TE1', () => {
+    expect(isMainPlayer('QB')).toBe(true)
+    expect(isMainPlayer('RB1')).toBe(true)
+    expect(isMainPlayer('WR1')).toBe(true)
+    expect(isMainPlayer('TE1')).toBe(true)
+  })
+
+  it('rejects a second or third option, and an unranked depth-unknown group member', () => {
+    expect(isMainPlayer('RB2')).toBe(false)
+    expect(isMainPlayer('WR2')).toBe(false)
+    expect(isMainPlayer('WR3')).toBe(false)
+    expect(isMainPlayer('TE2')).toBe(false)
+    expect(isMainPlayer('WR')).toBe(false)
+    expect(isMainPlayer('RB')).toBe(false)
+    expect(isMainPlayer('TE')).toBe(false)
+  })
+
+  it('rejects a missing role rather than throwing', () => {
+    expect(isMainPlayer(undefined)).toBe(false)
+    expect(isMainPlayer(null)).toBe(false)
   })
 })
 

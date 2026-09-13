@@ -81,6 +81,23 @@ export const PROP_TIERS = [
   { units: 1, label: 'Lean',     minEv: 0.05, minProbEdge: 0.03, tone: 'chalk' }
 ]
 
+/**
+ * The unambiguous lead player at each position — the one that answers
+ * "who's the starter here" with a single name, not "one of the receivers."
+ *
+ * Every role below this (WR2/WR3, RB2, TE2, or an unranked group member
+ * sharing a flat, depth-unknown estimate — see assignRoles() in
+ * playerData.js) is a real player with real production, just not a name
+ * the Card should be leading with: a prop on a team's third receiver is a
+ * much harder sell than the same edge on its clear top target, and this app
+ * already knows which is which from the depth chart it fetched. The Props
+ * tab still shows everyone; this only narrows what the auto-built Card
+ * surfaces.
+ */
+export const MAIN_PLAYER_ROLES = new Set(['QB', 'RB1', 'WR1', 'TE1'])
+
+export const isMainPlayer = (role) => MAIN_PLAYER_ROLES.has(role)
+
 /** Highest tier a touchdown prop qualifies for. Never null — falls back to a lean. */
 export function tierForProp(play) {
   if (!play || play.ev == null) return NO_PLAY
