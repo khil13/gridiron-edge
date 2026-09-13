@@ -23,6 +23,21 @@ const norm = (a) => ABBR[a] || a
 /** Positions that can plausibly score. Everyone else is noise on this board. */
 const SCORING_POSITIONS = new Set(['QB', 'RB', 'FB', 'WR', 'TE'])
 
+/**
+ * Roster statuses that mean a player cannot suit up this week at all —
+ * confirmed live: ESPN's roster feed lists practice-squad and injured-
+ * reserve players in the same groups as the active 53, distinguished only
+ * by this field. A weekly game-day designation (Questionable, Doubtful,
+ * Out) is a different, separate field and is deliberately left alone —
+ * those players might still play, which is exactly what the injury badge
+ * is for.
+ */
+const INACTIVE_ROSTER_STATUSES = new Set([
+  'practice squad', 'injured reserve', 'reserve/injured', 'physically unable to perform',
+  'reserve/pup', 'suspended', 'reserve/suspended', 'reserve/retired', 'reserve/did not report',
+  'commissioner exempt', 'exempt list', 'reserve/covid-19'
+])
+
 export async function fetchRoster(teamAbbr, { signal, season } = {}) {
   const slug = teamAbbr === 'LA' ? 'lar' : teamAbbr === 'WAS' ? 'wsh' : teamAbbr === 'JAC' ? 'jax' : teamAbbr.toLowerCase()
 
@@ -47,6 +62,13 @@ export async function fetchRoster(teamAbbr, { signal, season } = {}) {
     for (const a of group.items ?? []) {
       const position = a.position?.abbreviation
       if (!SCORING_POSITIONS.has(position)) continue
+      // A player who isn't on the active roster can't play this week at
+      // all — projecting him is worse than the "not dressed" case the
+      // injury badge exists for, since he isn't even a game-day question.
+      // ESPN's roster feed lists these players right alongside the active
+      // 53, distinguished only by this status field.
+      const rosterStatus = String(a.status?.name || '').toLowerCase()
+      if (INACTIVE_ROSTER_STATUSES.has(rosterStatus)) continue
       players.push({
         id: String(a.id),
         name: a.displayName || a.fullName || '',
@@ -219,55 +241,17 @@ export async function fetchGameRosters(game, { signal, season } = {}) {
   let statsNote = null
 
   if (!usable(home) && !usable(away)) {
-    // The roster endpoint ignores a season parameter, and the league-wide
-    // leaderboard endpoint this used to call turned out to reject its own
-    // category filter (see fetchAthleteStats). So this asks ESPN for each
-    // rostered player's own stats individually instead of the whole league
-    // at once. Slower — one request per player rather than one per stat
-    // category — but each player independently gets whichever season
-    // actually has games in it, which a single shared season pick cannot.
-    const allPlayers = [...home.players, ...away.players]
-    const currentYear = statsSeason
-    const priorYear = currentYear - 1
-
-    const results = await Promise.allSettled(
-      allPlayers.map((p) => fetchAthleteStats(p.id, { signal }))
-    )
-
-    let appliedCurrent = 0
-    let appliedPrior = 0
-    let reached = false
-    allPlayers.forEach((p, i) => {
-      const result = results[i]
-      if (result.status !== 'fulfilled') return
-      reached = true
-      const current = statsForSeason(result.value, currentYear)
-      if (current) {
-        p.stats = current
-        p.tds = current.tds
-        appliedCurrent++
-        return
-      }
-      const prior = statsForSeason(result.value, priorYear)
-      if (prior) {
-        p.stats = prior
-        p.tds = prior.tds
-        appliedPrior++
-      }
-    })
-
-    if (appliedCurrent > 0) {
-      statsNote = `${appliedCurrent} player${appliedCurrent === 1 ? '' : 's'} matched from ${currentYear} season statistics` +
-        (appliedPrior > 0 ? ` (${appliedPrior} more from ${priorYear}, not yet active this season).` : '.')
-    } else if (appliedPrior > 0) {
-      statsSeason = priorYear
-      usedPriorSeason = true
-      statsNote = `${appliedPrior} player${appliedPrior === 1 ? '' : 's'} matched from ${priorYear} season statistics.`
-    } else {
-      statsNote = reached
-        ? `ESPN returned per-player stats but none matched ${currentYear} or ${priorYear} for either roster, so yardage markets are unavailable.`
-        : "ESPN's per-athlete stats feed could not be reached for either roster, so yardage markets are unavailable."
-    }
+    // fetchAthleteStats() below has real per-player data and a parser
+    // verified against it — but is confirmed CORS-blocked in production
+    // (live-tested: 88/88 requests rejected, "no Access-Control-Allow-
+    // Origin header"). That is a static server-side policy on ESPN's end,
+    // not a flaky or per-request failure, so it will never succeed from a
+    // browser until ESPN changes it — retrying it here on every Props
+    // load bought nothing but ~80 doomed requests' worth of latency.
+    // Rather than spend that time to arrive at the same answer, this goes
+    // straight to the positional-average fallback in props.js.
+    statsNote = "ESPN's per-athlete stats feed is unreachable from the browser (blocked by its CORS policy), " +
+      'so yardage markets use a positional average instead of real per-game rates.'
   }
   const players = [
     ...assignRoles(home.players, homeDepth),
@@ -358,17 +342,29 @@ const idFromRef = (ref) => {
  * One athlete's full career stat history, broken out by season and
  * category (passing/rushing/receiving/scoring/...).
  *
- * This replaces an earlier approach that asked for the whole league's
- * stats in one request
- * (`.../statistics/byathlete?season=Y&category=passing`). ESPN now
- * rejects that with a 400 — confirmed live: the category parameter no
- * longer accepts a category name at all, and the error it returns names
- * an internal path shaped like `.../statistics/{id}/byathlete`, implying
+ * NOT CURRENTLY CALLED. This has real per-player data and a parser
+ * (statsForSeason, below) verified against it — but is confirmed
+ * CORS-blocked in production (live-tested: 88/88 requests rejected, no
+ * Access-Control-Allow-Origin header). Visiting the URL directly works
+ * fine; a fetch() from a different origin does not, and that is a static
+ * server-side policy on ESPN's end, not a flaky per-request failure, so
+ * it will not start working without ESPN changing it. Left in place
+ * (and exported) in case that ever happens, or a future backend/proxy
+ * calls it server-side instead. Do not wire this back into
+ * fetchGameRosters without re-confirming CORS first — the earlier
+ * attempt cost every Props load ~80 doomed requests' worth of latency
+ * for no benefit.
+ *
+ * This replaces an even earlier approach that asked for the whole
+ * league's stats in one request
+ * (`.../statistics/byathlete?season=Y&category=passing`). ESPN rejects
+ * that with a 400 — confirmed live: the category parameter no longer
+ * accepts a category name at all, and the error it returns names an
+ * internal path shaped like `.../statistics/{id}/byathlete`, implying
  * category is now expected to be a numeric id it doesn't document
  * anywhere. Dropping the parameter avoids the 400, but "succeeds" by
  * silently returning a tiny, unrelated 4-player leaderboard instead of
- * the league. This per-athlete endpoint has no such filter to break: it
- * just returns everything it has for one player, one row per season.
+ * the league.
  */
 export async function fetchAthleteStats(athleteId, { signal } = {}) {
   let json = null
