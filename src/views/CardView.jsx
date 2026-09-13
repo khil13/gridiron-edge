@@ -4,7 +4,7 @@ import EdgeRail from '../components/EdgeRail.jsx'
 import { Badge, Empty, Tabs } from '../components/Controls.jsx'
 import { useStore } from '../lib/store.jsx'
 import { toSlipLeg } from '../lib/edges.js'
-import { buildCard, daysFrom, confidenceOf, lockCard, tierForProp, tierForVolume, pickBestProp, sortPropPicks } from '../lib/card.js'
+import { buildCard, daysFrom, confidenceOf, lockCard, tierForProp, tierForVolume, pickPropsForGame, sortPropPicks } from '../lib/card.js'
 import { analyseAnytimeTouchdowns, volumePlaysForGame } from '../lib/props.js'
 import { reasonsForPick } from '../lib/reasons.js'
 import { fetchGameRosters } from '../data/providers/playerData.js'
@@ -78,9 +78,12 @@ export default function CardView({ data }) {
     let flaggedOnly = 0
     for (const { game, anytime, volume } of propState.perGame) {
       // Every qualifying candidate for this game, touchdown and yardage
-      // alike — one leg per game, same discipline as the game-line card.
-      // pickBestProp() excludes a flagged "Check model" candidate outright
-      // rather than using it as a fallback; see its doc comment for why.
+      // alike. Up to two legs per game — a touchdown lean on one player and
+      // a yardage lean on a different one are separate real signals, not
+      // the same opinion said twice, so there is no reason to compute a
+      // genuine edge and then discard it just because another player on the
+      // same field also cleared the bar. pickPropsForGame() still excludes
+      // a flagged "Check model" candidate outright, at any rank.
       const candidates = []
       for (const e of anytime) {
         if (!e.devigged || e.ev == null) continue
@@ -89,14 +92,16 @@ export default function CardView({ data }) {
       for (const v of volume ?? []) {
         candidates.push({ kind: 'volume', entry: v, tier: tierForVolume(v) })
       }
-      const best = pickBestProp(candidates)
-      if (!best) {
+      const legs = pickPropsForGame(candidates)
+      if (!legs.length) {
         if (candidates.some((c) => c.tier.units > 0)) flaggedOnly++
         continue
       }
-      picks.push({ game, kind: best.kind, entry: best.entry, tier: best.tier, stake: best.tier.units * unit })
+      for (const leg of legs) {
+        picks.push({ game, kind: leg.kind, entry: leg.entry, tier: leg.tier, stake: leg.tier.units * unit })
+      }
     }
-    return { picks: sortPropPicks(picks).slice(0, 6), flaggedOnly }
+    return { picks: sortPropPicks(picks).slice(0, 12), flaggedOnly }
   }, [propsReady, propState, settings])
   const { picks: propPlays, flaggedOnly: flaggedOnlyGames } = propResult
 

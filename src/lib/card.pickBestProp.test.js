@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { pickBestProp, sortPropPicks } from './card.js'
+import { pickBestProp, pickPropsForGame, sortPropPicks } from './card.js'
 
 const clean = (ev, units = 1) => ({ tier: { units, suspicious: false }, entry: { ev } })
 const flagged = (ev) => ({ tier: { units: 1, suspicious: true }, entry: { ev } })
@@ -32,6 +32,28 @@ describe('pickBestProp', () => {
 
   it('returns null when every qualifying candidate is flagged', () => {
     expect(pickBestProp([flagged(1.5), flagged(2.5)])).toBeNull()
+  })
+})
+
+describe('pickPropsForGame', () => {
+  it('returns every qualifying candidate, not just the best, up to the cap', () => {
+    const legs = pickPropsForGame([clean(0.02), clean(0.08), clean(0.05)], 2)
+    expect(legs.map((l) => l.entry.ev)).toEqual([0.08, 0.05])
+  })
+
+  it('still excludes flagged candidates at any rank', () => {
+    const legs = pickPropsForGame([flagged(2.5), clean(0.04), clean(0.02)])
+    expect(legs.every((l) => !l.tier.suspicious)).toBe(true)
+    expect(legs.map((l) => l.entry.ev)).toEqual([0.04, 0.02])
+  })
+
+  it('returns an empty array rather than a flagged candidate when nothing else qualifies', () => {
+    expect(pickPropsForGame([flagged(2.5), noPlay()])).toEqual([])
+  })
+
+  it('defaults to a max of two legs per game', () => {
+    const legs = pickPropsForGame([clean(0.01), clean(0.02), clean(0.03), clean(0.04)])
+    expect(legs).toHaveLength(2)
   })
 })
 
