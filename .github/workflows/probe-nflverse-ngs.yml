@@ -1,0 +1,35 @@
+name: Probe nflverse Next Gen Stats availability
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: List nflverse-data releases matching next-gen stats
+        run: |
+          echo "--- releases with 'ngs' or 'next' in the tag name ---"
+          curl -sS "https://api.github.com/repos/nflverse/nflverse-data/releases?per_page=100" \
+            -H "Accept: application/vnd.github+json" \
+            | jq -r '.[] | select(.tag_name | test("ngs|next"; "i")) | .tag_name'
+      - name: List asset filenames for the next-gen-stats release
+        run: |
+          TAG=$(curl -sS "https://api.github.com/repos/nflverse/nflverse-data/releases?per_page=100" \
+            -H "Accept: application/vnd.github+json" \
+            | jq -r '.[] | select(.tag_name | test("ngs|next"; "i")) | .tag_name' | head -1)
+          echo "Using tag: $TAG"
+          curl -sS "https://api.github.com/repos/nflverse/nflverse-data/releases/tags/$TAG" \
+            -H "Accept: application/vnd.github+json" \
+            | jq -r '.assets[].name' | head -60
+      - name: Fetch one recent NGS file and show its header + a sample row
+        run: |
+          TAG=$(curl -sS "https://api.github.com/repos/nflverse/nflverse-data/releases?per_page=100" \
+            -H "Accept: application/vnd.github+json" \
+            | jq -r '.[] | select(.tag_name | test("ngs|next"; "i")) | .tag_name' | head -1)
+          FILE=$(curl -sS "https://api.github.com/repos/nflverse/nflverse-data/releases/tags/$TAG" \
+            -H "Accept: application/vnd.github+json" \
+            | jq -r '.assets[].name' | grep -i 'receiv' | grep -E '2025|2024' | head -1)
+          echo "Fetching: $FILE"
+          curl -sSL "https://github.com/nflverse/nflverse-data/releases/download/$TAG/$FILE" -o ngs.csv
+          echo "--- header ---"
+          head -1 ngs.csv
+          echo "--- sample rows ---"
+          head -5 ngs.csv | tail -4
