@@ -16,24 +16,24 @@ jobs:
           curl -sS "https://api.github.com/repos/nflverse/nflverse-data/releases/tags/$TAG" \
             -H "Accept: application/vnd.github+json" \
             | jq -r '.assets[].name' | grep '\.csv\.gz$' | grep -E '^ngs_(2024|2025)_' | sort
-      - name: Fetch the 2025 receiving file (gzipped) and show its real header + sample rows
+      - name: Fetch the 2024 receiving file (the latest that actually exists) and show its real header + sample rows
         run: |
           TAG=nextgen_stats
-          FILE=ngs_2025_receiving.csv.gz
+          FILE=ngs_2024_receiving.csv.gz
           echo "Fetching: $FILE"
           curl -sSL "https://github.com/nflverse/nflverse-data/releases/download/$TAG/$FILE" -o ngs.csv.gz
           gunzip -c ngs.csv.gz > ngs.csv
           echo "--- header (comma-split onto separate lines) ---"
           head -1 ngs.csv | tr ',' '\n' | nl
-          echo "--- most recent 2025 rows (this season, not last) ---"
-          awk -F',' 'NR==1{print; next} {print}' ngs.csv | grep ',2025,' | tail -5
+          echo "--- last few rows of the file ---"
+          tail -6 ngs.csv
           echo "--- row count ---"
           wc -l ngs.csv
-      - name: Also check the 2025 passing and rushing files exist and their headers
+      - name: Also fetch the 2024 passing and rushing files and their headers
         run: |
           TAG=nextgen_stats
           for stat in passing rushing; do
-            FILE="ngs_2025_${stat}.csv.gz"
+            FILE="ngs_2024_${stat}.csv.gz"
             echo "--- $FILE ---"
             curl -sSL "https://github.com/nflverse/nflverse-data/releases/download/$TAG/$FILE" -o "$stat.csv.gz"
             gunzip -c "$stat.csv.gz" | head -1 | tr ',' '\n' | nl
