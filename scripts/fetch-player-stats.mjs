@@ -37,6 +37,7 @@
  */
 
 import { writeFileSync, mkdirSync } from 'node:fs'
+import { gunzipSync } from 'node:zlib'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { normPropName } from '../src/lib/props.js'
@@ -45,6 +46,21 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const seasonUrl = (season) =>
   `https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_${season}.csv`
+
+/**
+ * Next Gen Stats — separation, YAC over expectation, rush yards over
+ * expected, and similar tracking-data metrics nflverse republishes from the
+ * same release infrastructure as the season totals above, but as its own
+ * release (`nextgen_stats`) that runs on its own, slower publishing
+ * schedule: confirmed live that only a prior season's files exist there
+ * even once the current season is well underway in the main release. So
+ * this probes for its own latest season independently rather than assuming
+ * it lines up with whatever season the totals above landed on, and every
+ * NGS record below carries its own real season number rather than
+ * borrowing the season word from a different, fresher dataset.
+ */
+const ngsUrl = (season, stat) =>
+  `https://github.com/nflverse/nflverse-data/releases/download/nextgen_stats/ngs_${season}_${stat}.csv.gz`
 
 /** nflverse's team codes that don't match this app's own (see playerData.js's ABBR). */
 const TEAM_ABBR = { JAX: 'JAC' }
@@ -182,6 +198,100 @@ async function fetchSeason(season) {
   }
 }
 
+/**
+ * One NGS file (receiving or rushing) for one season, aggregated to a
+ * single row per player. nflverse's own convention marks the season-total
+ * row with week 0 — using that instead of summing the weekly rows avoids
+ * re-deriving an average nflverse has already computed correctly (several
+ * of these fields, like avg_separation, are means that don't sum sensibly
+ * across weeks at all).
+ *
+ * Returns null if the file doesn't exist yet for this season — the normal
+ * case for whatever season is more recent than NGS has published.
+ */
+async function fetchNgsFile(season, stat, fields) {
+  const url = ngsUrl(season, stat)
+  const res = await fetch(url)
+  if (!res.ok) return null
+  const gz = Buffer.from(await res.arrayBuffer())
+  const text = gunzipSync(gz).toString('utf8')
+
+  const rows = parseCSV(text)
+  const header = rows[0]
+  const col = Object.fromEntries(header.map((name, i) => [name, i]))
+  const need = (name) => {
+    if (!(name in col)) throw new Error(`${url} is missing expected column "${name}"`)
+    return col[name]
+  }
+  const idx = {
+    week: need('week'),
+    seasonType: need('season_type'),
+    name: need('player_display_name'),
+    position: need('player_position'),
+    ...Object.fromEntries(fields.map((f) => [f, need(f)]))
+  }
+
+  const out = {}
+  for (let i = 1; i < rows.length; i++) {
+    const r = rows[i]
+    if (!r || r.length < header.length) continue
+    if (r[idx.seasonType] !== 'REG') continue
+    if (r[idx.week] !== '0') continue // season-aggregate row only
+
+    const name = r[idx.name]
+    if (!name) continue
+    const key = `${normPropName(name)}|${basePosition(r[idx.position])}`
+    const record = { season }
+    for (const f of fields) record[f] = num(r[idx[f]])
+    out[key] = record
+  }
+  return Object.keys(out).length ? out : null
+}
+
+/**
+ * The latest season nflverse has actually published Next Gen Stats for,
+ * probed the same way fetchSeason's own latest-season search is — starting
+ * from the totals release's own latest season (never ahead of it) and
+ * walking backward, since NGS has already been confirmed to lag behind.
+ */
+async function fetchLatestNgs(fromSeason) {
+  const RECEIVING_FIELDS = ['avg_separation', 'avg_cushion', 'avg_intended_air_yards', 'percent_share_of_intended_air_yards', 'avg_yac_above_expectation']
+  const RUSHING_FIELDS = ['rush_yards_over_expected_per_att', 'percent_attempts_gte_eight_defenders']
+
+  for (let season = fromSeason; season >= fromSeason - 3; season--) {
+    console.log(`Checking ${ngsUrl(season, 'receiving')} ...`)
+    const [receiving, rushing] = await Promise.all([
+      fetchNgsFile(season, 'receiving', RECEIVING_FIELDS),
+      fetchNgsFile(season, 'rushing', RUSHING_FIELDS)
+    ])
+    if (!receiving && !rushing) continue
+
+    const players = {}
+    for (const [key, rec] of Object.entries(receiving ?? {})) {
+      players[key] = {
+        season,
+        avgSeparation: round1(rec.avg_separation),
+        avgCushion: round1(rec.avg_cushion),
+        avgIntendedAirYards: round1(rec.avg_intended_air_yards),
+        targetShareAirYards: round1(rec.percent_share_of_intended_air_yards),
+        yacAboveExpectation: round1(rec.avg_yac_above_expectation)
+      }
+    }
+    for (const [key, rec] of Object.entries(rushing ?? {})) {
+      players[key] = {
+        ...players[key],
+        season,
+        rushYardsOverExpectedPerAtt: round1(rec.rush_yards_over_expected_per_att),
+        stackedBoxRate: round1(rec.percent_attempts_gte_eight_defenders)
+      }
+    }
+    return { season, players }
+  }
+  return null
+}
+
+const round1 = (n) => Math.round(n * 10) / 10
+
 /** 1 = allows the most (worst defense) on that stat, matching "allowed the Nth-most X" phrasing. */
 function rankDefense(defense) {
   const stats = ['rushingYardsAllowed', 'rushingTdsAllowed', 'receivingYardsAllowed', 'receivingTdsAllowed']
@@ -271,6 +381,30 @@ async function main() {
   console.log(`Wrote ${metaOut}`)
   console.log(`Wrote ${defenseOut}`)
   console.log(`Latest season: ${latestSeason} (${playerCount} players, ${Object.keys(latestData.defense ?? {}).length} teams)`)
+
+  // Next Gen Stats: a genuinely separate release on its own schedule, so it
+  // gets its own file with its own season number rather than being forced
+  // to share (or silently misrepresent) the totals release's latestSeason.
+  // Always written, even when nothing was found — playerData.js statically
+  // imports this file, so it must exist for the build to succeed regardless
+  // of whether NGS itself is currently reachable.
+  const ngs = await fetchLatestNgs(latestSeason)
+  const ngsPayload = ngs
+    ? {
+        generatedAt: new Date().toISOString(),
+        source: 'https://github.com/nflverse/nflverse-data (nextgen_stats release, regular season)',
+        latestSeason: ngs.season,
+        players: ngs.players
+      }
+    : { generatedAt: new Date().toISOString(), source: null, latestSeason: null, players: {} }
+  const ngsOut = resolve(outDir, 'player-ngs.json')
+  writeFileSync(ngsOut, JSON.stringify(ngsPayload, null, 2) + '\n')
+  console.log(`Wrote ${ngsOut}`)
+  console.log(
+    ngs
+      ? `Next Gen Stats season: ${ngs.season} (${Object.keys(ngs.players).length} players)`
+      : 'No Next Gen Stats found in the last 4 seasons.'
+  )
 }
 
 main().catch((err) => {

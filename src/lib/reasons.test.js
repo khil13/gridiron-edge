@@ -81,6 +81,47 @@ describe('reasonsForTouchdownPick', () => {
     expect(bullets.some((b) => b.includes('rushing'))).toBe(true)
     expect(bullets.some((b) => b.includes('receiving'))).toBe(false)
   })
+
+  it('cites Next Gen Stats separation and YAC for a pass-catcher, with its own real year', () => {
+    const pick = {
+      game,
+      entry: {
+        team: 'DET',
+        model: {
+          role: 'WR1', depthKnown: true, stats: { games: 16, tds: 8 },
+          ngs: { season: 2024, avgSeparation: 3.3, yacAboveExpectation: 4.2 }
+        }
+      }
+    }
+    const bullets = reasonsForTouchdownPick(pick)
+    expect(bullets).toContain('Averages 3.3 yards of separation (Next Gen Stats, 2024).')
+    expect(bullets).toContain('Gains 4.2 more yards after the catch than expected (Next Gen Stats, 2024).')
+  })
+
+  it('cites Next Gen Stats rush yards over expected and stacked-box rate for a runner', () => {
+    const pick = {
+      game: { home: 'CIN', away: 'DET' },
+      entry: {
+        team: 'DET',
+        model: {
+          role: 'RB1', depthKnown: true, stats: { games: 10, tds: 5 },
+          ngs: { season: 2024, rushYardsOverExpectedPerAtt: -1, stackedBoxRate: 26.7 }
+        }
+      }
+    }
+    const bullets = reasonsForTouchdownPick(pick)
+    expect(bullets).toContain('Gains 1 fewer yards per carry than the blocking suggests (Next Gen Stats, 2024).')
+    expect(bullets).toContain('Faces a stacked box (8+ defenders) on 26.7% of carries (Next Gen Stats, 2024).')
+  })
+
+  it('omits Next Gen Stats bullets entirely when there is no row for this player', () => {
+    const pick = {
+      game,
+      entry: { team: 'DET', model: { role: 'WR1', depthKnown: true, stats: { games: 16, tds: 8 } } }
+    }
+    const bullets = reasonsForTouchdownPick(pick)
+    expect(bullets.some((b) => b.includes('Next Gen Stats'))).toBe(false)
+  })
 })
 
 describe('reasonsForVolumePick', () => {
@@ -105,6 +146,28 @@ describe('reasonsForVolumePick', () => {
     }
     const bullets = reasonsForVolumePick(pick)
     expect(bullets.some((b) => b.startsWith('Injury status'))).toBe(false)
+  })
+
+  it('cites Next Gen Stats for a rushing-yards pick, stating its own year', () => {
+    const pick = {
+      game,
+      entry: {
+        team: 'DET', role: 'RB1', games: 17, perGame: 92.1, marketLabel: 'Rushing yards',
+        ngs: { season: 2024, rushYardsOverExpectedPerAtt: 0.3, stackedBoxRate: 38.5 }
+      }
+    }
+    const bullets = reasonsForVolumePick(pick)
+    expect(bullets).toContain('Gains 0.3 more yards per carry than the blocking suggests (Next Gen Stats, 2024).')
+    expect(bullets).toContain('Faces a stacked box (8+ defenders) on 38.5% of carries (Next Gen Stats, 2024).')
+  })
+
+  it('omits Next Gen Stats bullets when the pick carries no ngs field at all', () => {
+    const pick = {
+      game,
+      entry: { team: 'DET', role: 'WR1', games: 17, perGame: 74.3, marketLabel: 'Receiving yards' }
+    }
+    const bullets = reasonsForVolumePick(pick)
+    expect(bullets.some((b) => b.includes('Next Gen Stats'))).toBe(false)
   })
 })
 

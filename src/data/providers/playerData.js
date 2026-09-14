@@ -22,6 +22,14 @@ let playerStatsPromise = null
 const loadPlayerStats = () =>
   (playerStatsPromise ??= import('../generated/player-stats.json').then((m) => m.default))
 
+// Next Gen Stats — separation, YAC over expectation, rush yards over
+// expected. A genuinely separate nflverse release on its own publishing
+// schedule, so it is its own small file with its own real season number
+// rather than being forced into the season key the totals above landed on.
+let playerNgsPromise = null
+const loadPlayerNgs = () =>
+  (playerNgsPromise ??= import('../generated/player-ngs.json').then((m) => m.default))
+
 const HOSTS = [
   'https://site.web.api.espn.com/apis/site/v2/sports/football/nfl',
   'https://site.api.espn.com/apis/site/v2/sports/football/nfl'
@@ -254,6 +262,23 @@ async function staticStats(name, position, season) {
   return prior?.games > 0 ? { stats: prior, priorSeason: true } : null
 }
 
+/**
+ * A player's Next Gen Stats — separation, YAC over expectation, rush yards
+ * over expected — from the bundled nflverse snapshot.
+ *
+ * Deliberately independent of staticStats()'s own season and prior-season
+ * fallback: NGS is published on its own schedule and has already been
+ * confirmed to lag behind the season totals by more than one year at
+ * times, so there is exactly one season bundled (whichever nflverse has
+ * actually published), and its own real year travels with it rather than
+ * inheriting whatever season word the totals happen to be using.
+ */
+async function staticNgs(name, position) {
+  const playerNgs = await loadPlayerNgs()
+  const key = `${normPropName(name)}|${position === 'FB' ? 'RB' : position}`
+  return playerNgs.players?.[key] ?? null
+}
+
 /** Both rosters for a game, with roles assigned. */
 export async function fetchGameRosters(game, { signal, season } = {}) {
   // Depth charts are best-effort: a failure there degrades the ranking, it
@@ -284,14 +309,20 @@ export async function fetchGameRosters(game, { signal, season } = {}) {
 
   // The ESPN roster feed itself sometimes embeds season stats already; the
   // bundled snapshot only needs to fill in players who don't have any.
+  // Next Gen Stats is attached regardless — it is not part of what makes a
+  // roster "usable" (ESPN's feed never carries it), so it would otherwise
+  // never reach a player whose season totals came from ESPN's own feed.
   const withStatic = async (roster) => {
-    if (usable(roster)) return roster
+    const skipTotals = usable(roster)
     let priorSeason = false
     const players = await Promise.all(roster.players.map(async (p) => {
+      const ngs = await staticNgs(p.name, p.position)
+      const withNgs = ngs ? { ...p, ngs } : p
+      if (skipTotals) return withNgs
       const found = await staticStats(p.name, p.position, statsSeason)
-      if (!found) return p
+      if (!found) return withNgs
       if (found.priorSeason) priorSeason = true
-      return { ...p, stats: found.stats, tds: found.stats.tds, statsPriorSeason: found.priorSeason }
+      return { ...withNgs, stats: found.stats, tds: found.stats.tds, statsPriorSeason: found.priorSeason }
     }))
     if (priorSeason) usedPriorSeason = true
     return { ...roster, players }

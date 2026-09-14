@@ -23,6 +23,16 @@ vi.mock('../generated/player-stats.json', () => ({
   }
 }))
 
+vi.mock('../generated/player-ngs.json', () => ({
+  default: {
+    generatedAt: '2026-01-01T00:00:00.000Z',
+    latestSeason: 2024,
+    players: {
+      'cin star wr|WR': { season: 2024, avgSeparation: 3.3, yacAboveExpectation: 4.2 }
+    }
+  }
+}))
+
 const { fetchGameRosters } = await import('./playerData.js')
 
 afterEach(() => {
@@ -179,5 +189,29 @@ describe('fetchGameRosters with the bundled stats snapshot', () => {
     expect(cinStar.stats.receivingYards).toBe(700)
     const detStar = result.players.find((p) => p.name === 'Det Star WR')
     expect(detStar.stats.receivingYards).toBe(500)
+
+    // Next Gen Stats is a separate lookup from the season totals, and must
+    // still reach this player even though the roster's own embedded stats
+    // short-circuited the bundled-snapshot lookup above — ESPN's roster
+    // feed never carries NGS itself, so this is the only place it can come
+    // from regardless of which branch supplied the season totals.
+    expect(cinStar.ngs).toEqual({ season: 2024, avgSeparation: 3.3, yacAboveExpectation: 4.2 })
+  })
+
+  it('attaches Next Gen Stats via the bundled-snapshot branch too', async () => {
+    const fetchMock = mockFetchRouter([
+      [/\/teams\/cin\/roster/, async () => ({ ok: true, json: async () => rosterJson([{ id: 10, name: 'Cin Star WR' }]) })],
+      [/\/teams\/det\/roster/, async () => ({ ok: true, json: async () => rosterJson([{ id: 20, name: 'Det Star WR' }]) })],
+      [/depthcharts/, async () => ({ ok: false, status: 404 })]
+    ])
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await fetchGameRosters(game)
+
+    const cinStar = result.players.find((p) => p.name === 'Cin Star WR')
+    expect(cinStar.ngs).toEqual({ season: 2024, avgSeparation: 3.3, yacAboveExpectation: 4.2 })
+    // Det has real season totals but no row in the NGS fixture at all.
+    const detStar = result.players.find((p) => p.name === 'Det Star WR')
+    expect(detStar.ngs).toBeUndefined()
   })
 })

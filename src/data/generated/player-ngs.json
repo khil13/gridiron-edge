@@ -1,0 +1,49 @@
+{
+  "generatedAt": "2026-09-14T19:21:04.706Z",
+  "source": "https://github.com/nflverse/nflverse-data (nextgen_stats release, regular season)",
+  "latestSeason": 2024,
+  "players": {
+    "isaiah likely|TE": {
+      "season": 2024,
+      "avgSeparation": 5,
+      "avgCushion": 7.4,
+      "avgIntendedAirYards": 9.4,
+      "targetShareAirYards": 39.3,
+      "yacAboveExpectation": 2.8
+    },
+    "zay flowers|WR": {
+      "season": 2024,
+      "avgSeparation": 4.2,
+      "avgCushion": 7.1,
+      "avgIntendedAirYards": 5.8,
+      "targetShareAirYards": 20.1,
+      "yacAboveExpectation": -0.2
+    },
+    "rashee rice|WR": {
+      "season": 2024,
+      "avgSeparation": 3.3,
+      "avgCushion": 5.5,
+      "avgIntendedAirYards": 4.5,
+      "targetShareAirYards": 28.1,
+      "yacAboveExpectation": 4.2
+    },
+    "rashod bateman|WR": {
+      "season": 2024,
+      "avgSeparation": 3.1,
+      "avgCushion": 2.5,
+      "avgIntendedAirYards": 24.1,
+      "targetShareAirYards": 41.9,
+      "yacAboveExpectation": 1.5
+    },
+    "derrick henry|RB": {
+      "season": 2024,
+      "rushYardsOverExpectedPerAtt": 0.3,
+      "stackedBoxRate": 38.5
+    },
+    "isiah pacheco|RB": {
+      "season": 2024,
+      "rushYardsOverExpectedPerAtt": -1,
+      "stackedBoxRate": 26.7
+    }
+  }
+}

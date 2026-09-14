@@ -2,13 +2,18 @@
  * reasons.js — the "why" behind a Card pick.
  *
  * A handful of short, factual bullets: the player's own real production,
- * his rostered role, and how the opponent's defense has fared against that
- * side of the ball. Every number here traces back to something already in
- * the app (the bundled nflverse snapshot, the roster feed, or the pick
+ * his rostered role, how the opponent's defense has fared against that
+ * side of the ball, and — when the bundled snapshot has it — Next Gen
+ * Stats tracking data (separation, YAC over expectation, rush yards over
+ * expected). Every number here traces back to something already in the
+ * app (the bundled nflverse snapshot, the roster feed, or the pick
  * itself) — nothing about redzone share, snap trends, or head-to-head
  * history is invented, because this app doesn't have that data. When a
- * fact isn't available (no season stats yet, an unranked opponent), its
- * bullet is simply left off rather than guessed at.
+ * fact isn't available (no season stats yet, an unranked opponent, no NGS
+ * row for this player), its bullet is simply left off rather than guessed
+ * at. NGS is published on its own schedule, often a season or more behind
+ * the totals above, so every NGS bullet states its own real year rather
+ * than borrowing "this season"/"last season" from a different dataset.
  */
 
 import { ordinal } from './format.js'
@@ -28,6 +33,38 @@ const sideFor = (positionGroup) =>
 
 /** Depth-chart roles are always a base group plus an optional rank digit — e.g. "WR3" -> "WR". */
 const roleGroup = (role) => String(role || '').replace(/[0-9]/g, '')
+
+/**
+ * Next Gen Stats bullets — separation and YAC over expectation for a
+ * pass-catcher, rush yards over expected and box counts for a runner.
+ * Capped at two: this is additive context on top of the season-rate and
+ * defense bullets already built above, not a replacement for them.
+ */
+function ngsBullets(ngs, positionGroup) {
+  if (!ngs) return []
+  const bullets = []
+  const year = ngs.season
+  if (sideFor(positionGroup) === 'receiving') {
+    if (ngs.avgSeparation != null) {
+      bullets.push(`Averages ${ngs.avgSeparation} yards of separation (Next Gen Stats, ${year}).`)
+    }
+    if (ngs.yacAboveExpectation != null) {
+      const n = Math.abs(ngs.yacAboveExpectation)
+      const dir = ngs.yacAboveExpectation >= 0 ? 'more' : 'fewer'
+      bullets.push(`Gains ${n} ${dir} yards after the catch than expected (Next Gen Stats, ${year}).`)
+    }
+  } else {
+    if (ngs.rushYardsOverExpectedPerAtt != null) {
+      const n = Math.abs(ngs.rushYardsOverExpectedPerAtt)
+      const dir = ngs.rushYardsOverExpectedPerAtt >= 0 ? 'more' : 'fewer'
+      bullets.push(`Gains ${n} ${dir} yards per carry than the blocking suggests (Next Gen Stats, ${year}).`)
+    }
+    if (ngs.stackedBoxRate != null) {
+      bullets.push(`Faces a stacked box (8+ defenders) on ${ngs.stackedBoxRate}% of carries (Next Gen Stats, ${year}).`)
+    }
+  }
+  return bullets.slice(0, 2)
+}
 
 function defenseBullet(opponent, positionGroup) {
   const found = defenseStatsFor(opponent)
@@ -68,10 +105,12 @@ export function reasonsForTouchdownPick(pick) {
   const defBullet = defenseBullet(opponent, roleGroup(model?.role))
   if (defBullet) bullets.push(defBullet)
 
+  bullets.push(...ngsBullets(model?.ngs, roleGroup(model?.role)))
+
   return bullets
 }
 
-/** Yardage/volume pick: real per-game rate this season, opponent context, injury status. */
+/** Yardage/volume pick: real per-game rate this season, opponent context, injury status, Next Gen Stats. */
 export function reasonsForVolumePick(pick) {
   const bullets = []
   const e = pick.entry
@@ -84,6 +123,8 @@ export function reasonsForVolumePick(pick) {
   const opponent = pick.game.home === e.team ? pick.game.away : pick.game.home
   const defBullet = defenseBullet(opponent, roleGroup(e.role))
   if (defBullet) bullets.push(defBullet)
+
+  bullets.push(...ngsBullets(e.ngs, roleGroup(e.role)))
 
   if (e.injury && e.injury !== 'Active') bullets.push(`Injury status: ${e.injury}.`)
 
