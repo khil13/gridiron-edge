@@ -9,6 +9,7 @@ import { analyseAnytimeTouchdowns, volumePlaysForGame } from '../lib/props.js'
 import { reasonsForPick } from '../lib/reasons.js'
 import { fetchGameRosters } from '../data/providers/playerData.js'
 import { fetchGameProps, CARD_PROP_MARKETS, CARD_PROP_CREDIT_COST } from '../data/providers/oddsApiProvider.js'
+import { buildPropOffers } from '../data/propMarkets.js'
 import { getTeam } from '../data/teams.js'
 import ResultsView from './ResultsView.jsx'
 import {
@@ -59,7 +60,13 @@ function summarizeProps(perGame) {
     volumeOffersByMarket: sumByMarket(perGame, 'volumeOffersByMarket'),
     volumeCandidatesByMarket: sumByMarket(perGame, 'volumeCandidatesByMarket'),
     anyRealStats: perGame.some((g) => g.hasSeasonStats),
-    statsNote: perGame.find((g) => g.statsNote)?.statsNote ?? null
+    statsNote: perGame.find((g) => g.statsNote)?.statsNote ?? null,
+    // Whether any game on this slate priced against a simulated board rather
+    // than a live one — because no key is connected, or the live fetch
+    // failed (a bad key, an exhausted quota) for that specific game.
+    anySimulatedProps: perGame.some((g) => g.simulated),
+    allSimulatedProps: perGame.length > 0 && perGame.every((g) => g.simulated),
+    simulatedPropsReason: perGame.find((g) => g.simulated && g.liveError)?.liveError ?? null
   }
 }
 
@@ -161,11 +168,32 @@ export default function CardView({ data }) {
     const settled = await Promise.allSettled(
       games.map(async (g) => {
         const rosters = await fetchGameRosters(g)
-        const props = await fetchGameProps({ apiKey: oddsKey, game: g, markets: CARD_PROP_MARKETS })
+
+        // Live prices when a key is connected; a simulated board — built the
+        // same way markets.js already fills in game lines with no odds key —
+        // whenever there is no key, or the live fetch for this specific game
+        // fails (a bad key, an exhausted quota). That keeps the Card able to
+        // produce prop plays even with the API unavailable, while still
+        // carrying the real failure reason through so it stays visible
+        // rather than silently swallowed.
+        let props = null
+        let liveError = null
+        if (oddsKey) {
+          try {
+            props = await fetchGameProps({ apiKey: oddsKey, game: g, markets: CARD_PROP_MARKETS })
+          } catch (err) {
+            liveError = err.message
+          }
+        }
+        const simulated = !props
+        if (simulated) {
+          props = buildPropOffers({ game: g, proj: g.projection, rosters, ratings: data.ratings })
+        }
+
         const { anytime } = analyseAnytimeTouchdowns({ game: g, proj: g.projection, rosters, props })
         const volume = volumePlaysForGame({ game: g, proj: g.projection, rosters, offers: props?.volume, ratings: data.ratings })
         return {
-          game: g, anytime, volume,
+          game: g, anytime, volume, simulated, liveError,
           // Rushing and receiving are two different odds-feed markets that
           // books post independently of each other — a slate can have
           // plenty of one and none of the other. Counting them separately
@@ -186,11 +214,12 @@ export default function CardView({ data }) {
       })
     )
     const perGame = settled.filter((r) => r.status === 'fulfilled').map((r) => r.value)
-    // A game can fail outright — a bad or quota-exhausted API key, a roster
-    // fetch that errors — which is a completely different situation from
-    // "checked fine, the feed just hasn't posted anything." Losing the
-    // reason here would leave both looking identical to whoever reads the
-    // count later, so it's carried alongside rather than discarded.
+    // A game can fail outright — a roster fetch that errors, most likely —
+    // which is a completely different situation from "checked fine, the feed
+    // just hasn't posted anything." A bad or quota-exhausted odds key no
+    // longer lands here: it is caught per-game above and priced against a
+    // simulated board instead, surfaced via `simulated`/`liveError` rather
+    // than failing the whole game.
     const failures = settled.filter((r) => r.status === 'rejected').map((r) => r.reason?.message ?? String(r.reason))
     return { perGame, failures }
   }
@@ -451,37 +480,58 @@ export default function CardView({ data }) {
         </div>
       )}
 
-      {/* Touchdown props — never fetched automatically, same reasoning as
-          the Props tab: checking a whole slate costs real API credits. */}
+      {/* Touchdown props — never fetched automatically when a key is
+          connected, same reasoning as the Props tab: checking a whole slate
+          costs real API credits. With no key, or a key whose quota is used
+          up, this checks for free against a simulated board instead — see
+          propMarkets.js — so the card can still produce prop plays. */}
       <section className="panel" style={{ marginBottom: 'var(--s6)' }}>
         <div className="panel-head">
           <div>
-            <div className="eyebrow">Touchdown, receiving &amp; rushing yards · opt-in, costs API credits</div>
+            <div className="eyebrow">
+              Touchdown, receiving &amp; rushing yards
+              {oddsKey ? ' · opt-in, costs API credits' : ' · simulated without an odds API key'}
+            </div>
             <h2 style={{ fontSize: 'var(--t-lg)', marginTop: 4 }}>Prop plays</h2>
           </div>
-          {oddsKey && !propsLoading && (
+          {!propsLoading && (
             <button className="btn" onClick={loadProps}>
               {propsReady
                 ? 'Re-check props'
-                : `Check this slate (~${day.games.length * CARD_PROP_CREDIT_COST} credits)`}
+                : oddsKey
+                  ? `Check this slate (~${day.games.length * CARD_PROP_CREDIT_COST} credits)`
+                  : 'Check this slate (simulated)'}
             </button>
           )}
         </div>
         <div style={{ padding: 'var(--s4)' }}>
-          {!oddsKey && (
+          {!propsReady && !propsLoading && (
             <p className="dim" style={{ fontSize: 12, margin: 0, maxWidth: '78ch' }}>
-              Connect an odds API key in Settings to check the slate for touchdown, receiving-yard
-              and rushing-yard prop value. Without live prices there is nothing to compare the
-              model's own numbers against, so this is not something the card can do automatically.
+              {oddsKey
+                ? 'Connect an odds API key in Settings to check the slate for touchdown, receiving-yard and rushing-yard prop value.'
+                : <>No odds API key is connected (or its quota is used up), so this prices against a
+                  simulated board instead — the model's own numbers against a plausible market
+                  disagreement, the same way the card already fills in spreads and totals with no
+                  key. Connect a working key in Settings for real prices.</>}
             </p>
           )}
-          {oddsKey && propsLoading && (
+          {propsLoading && (
             <p className="dim" style={{ fontSize: 12, margin: 0 }}>
               Pulling rosters and prop prices for {day.games.filter((g) => g.projection && g.status !== 'final').length} game
               {day.games.length === 1 ? '' : 's'}…
             </p>
           )}
-          {oddsKey && propsReady && propState.failed > 0 && propState.failureReason && (
+          {propsReady && propState.anySimulatedProps && (
+            <p className="dim" style={{ fontSize: 12, margin: '0 0 var(--s3)', maxWidth: '78ch' }}>
+              {propState.allSimulatedProps
+                ? 'Every game on this slate priced against a simulated board'
+                : `${propState.perGame.filter((g) => g.simulated).length} of ${propState.checked} game${propState.checked === 1 ? '' : 's'} priced against a simulated board`}
+              {propState.simulatedPropsReason ? ` (${propState.simulatedPropsReason})` : ' (no odds API key connected)'} — model numbers against a
+              plausible market disagreement, not a real quote. Connect a working odds API key in
+              Settings for live prices.
+            </p>
+          )}
+          {propsReady && propState.failed > 0 && propState.failureReason && (
             <p className="neg" style={{ fontSize: 12, margin: '0 0 var(--s3)', maxWidth: '78ch' }}>
               {propState.failed} of {propState.checked} game{propState.checked === 1 ? '' : 's'} failed
               to check outright — {propState.failureReason} That is a real fetch failure, not "nothing
@@ -489,7 +539,7 @@ export default function CardView({ data }) {
               Settings before assuming there's no value on the slate.
             </p>
           )}
-          {oddsKey && propsReady && propPlays.length === 0 && (
+          {propsReady && propPlays.length === 0 && (
             <p className="dim" style={{ fontSize: 12, margin: 0, maxWidth: '78ch' }}>
               {propState.checked} game{propState.checked === 1 ? '' : 's'} checked
               {propState.failed ? `, ${propState.failed} could not be priced` : ''} — nothing cleared
@@ -508,7 +558,7 @@ export default function CardView({ data }) {
               a second or third option still shows up on the Props tab, just not here.
             </p>
           )}
-          {oddsKey && propsReady && propPlays.length > 0 && (
+          {propsReady && propPlays.length > 0 && (
             <>
               <div style={{ display: 'grid', gap: 'var(--s4)' }}>
                 {propPlays.map((pick) => (
@@ -525,7 +575,7 @@ export default function CardView({ data }) {
               </p>
             </>
           )}
-          {oddsKey && propsReady && !propPlays.some((p) => p.kind === 'volume') && (
+          {propsReady && !propPlays.some((p) => p.kind === 'volume') && (
             <p className="dim" style={{ fontSize: 11, marginTop: propPlays.length > 0 ? 'var(--s3)' : 0, marginBottom: 0, maxWidth: '78ch' }}>
               {propState.volumeOffersSeen === 0 ? (
                 <>
@@ -557,7 +607,7 @@ export default function CardView({ data }) {
               )}
             </p>
           )}
-          {oddsKey && propsReady && (
+          {propsReady && (
             <p className="dim" style={{ fontSize: 10, marginTop: 'var(--s2)', marginBottom: 0 }}>
               Receiving-yard lines: {propState.volumeOffersByMarket.receivingYards ?? 0} seen,{' '}
               {propState.volumeCandidatesByMarket.receivingYards ?? 0} priced against a real rate.
