@@ -1,6 +1,9 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { volumePlaysForGame } from './props.js'
 import { tierForVolume, NO_PLAY } from './card.js'
+
+vi.mock('../data/generated/team-defense.json', () => ({ default: { latestSeason: 2026, seasons: {} } }))
+const { reasonsForVolumePick } = await import('./reasons.js')
 
 const game = { id: 'g1', home: 'CIN', away: 'DET' }
 const proj = { homeTeamTotal: 24, awayTeamTotal: 20 }
@@ -76,6 +79,20 @@ describe('volumePlaysForGame', () => {
     ]
     const plays = volumePlaysForGame({ game, proj, rosters, offers, ratings: {} })
     expect(plays).toEqual([])
+  })
+
+  it('carries a player\'s Next Gen Stats through to the priced play, and on into its reasons bullets', () => {
+    const ngs = { season: 2024, avgSeparation: 3.3, yacAboveExpectation: 4.2 }
+    const rosters = { players: [realPlayer({ ngs })] }
+    const offers = [rushMarket('over', -115), rushMarket('under', -105)]
+
+    const plays = volumePlaysForGame({ game, proj, rosters, offers, ratings: {} })
+    const over = plays.find((p) => p.side === 'over')
+    expect(over.ngs).toEqual(ngs)
+
+    const bullets = reasonsForVolumePick({ game, entry: over })
+    expect(bullets).toContain('Averages 3.3 yards of separation (Next Gen Stats, 2024).')
+    expect(bullets).toContain('Gains 4.2 more yards after the catch than expected (Next Gen Stats, 2024).')
   })
 })
 
