@@ -1,0 +1,88 @@
+name: Probe ESPN depth charts for CLE and WAS
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch CLE depth chart
+        run: |
+          echo "=== CLE depth chart (raw QB section) ==="
+          curl -s "https://site.web.api.espn.com/apis/site/v2/sports/football/nfl/teams/cle/depthcharts" \
+            | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+for group in data.get('items', data.get('depthchart', [])):
+    positions = group.get('positions', {})
+    for key, entry in positions.items():
+        pos = (entry.get('position') or {}).get('abbreviation', key)
+        if str(pos).upper() != 'QB':
+            continue
+        print('formation group:', group.get('name') or group.get('position'))
+        for i, a in enumerate(entry.get('athletes', [])):
+            ath = a.get('athlete', {})
+            print('  rank', a.get('rank', i+1), '-', ath.get('displayName'), 'id', ath.get('id'))
+"
+
+      - name: Fetch WAS depth chart
+        run: |
+          echo "=== WAS depth chart (raw QB section) ==="
+          curl -s "https://site.web.api.espn.com/apis/site/v2/sports/football/nfl/teams/wsh/depthcharts" \
+            | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+for group in data.get('items', data.get('depthchart', [])):
+    positions = group.get('positions', {})
+    for key, entry in positions.items():
+        pos = (entry.get('position') or {}).get('abbreviation', key)
+        if str(pos).upper() != 'QB':
+            continue
+        print('formation group:', group.get('name') or group.get('position'))
+        for i, a in enumerate(entry.get('athletes', [])):
+            ath = a.get('athlete', {})
+            print('  rank', a.get('rank', i+1), '-', ath.get('displayName'), 'id', ath.get('id'))
+"
+
+      - name: Fetch CLE roster QB touchdown counts
+        run: |
+          echo "=== CLE roster QBs (name, id, tds if present) ==="
+          curl -s "https://site.web.api.espn.com/apis/site/v2/sports/football/nfl/teams/cle/roster?enable=stats" \
+            | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+for group in data.get('athletes', []):
+    for a in group.get('items', []):
+        pos = (a.get('position') or {}).get('abbreviation')
+        if pos != 'QB':
+            continue
+        print(a.get('displayName'), 'id', a.get('id'), 'status', (a.get('status') or {}).get('name'))
+        stats = a.get('statistics') or {}
+        cats = stats.get('splits', {}).get('categories') or stats.get('categories') or []
+        for cat in cats:
+            for s in cat.get('stats', []):
+                if 'ouchdown' in str(s.get('name','')):
+                    print('   ', s.get('name'), s.get('value'))
+"
+
+      - name: Fetch WAS roster QB touchdown counts
+        run: |
+          echo "=== WAS roster QBs (name, id, tds if present) ==="
+          curl -s "https://site.web.api.espn.com/apis/site/v2/sports/football/nfl/teams/wsh/roster?enable=stats" \
+            | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+for group in data.get('athletes', []):
+    for a in group.get('items', []):
+        pos = (a.get('position') or {}).get('abbreviation')
+        if pos != 'QB':
+            continue
+        print(a.get('displayName'), 'id', a.get('id'), 'status', (a.get('status') or {}).get('name'))
+        stats = a.get('statistics') or {}
+        cats = stats.get('splits', {}).get('categories') or stats.get('categories') or []
+        for cat in cats:
+            for s in cat.get('stats', []):
+                if 'ouchdown' in str(s.get('name','')):
+                    print('   ', s.get('name'), s.get('value'))
+"
