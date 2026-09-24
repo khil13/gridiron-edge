@@ -199,8 +199,16 @@ export function assignRoles(players, depthRanks = null) {
   for (const [group, list] of Object.entries(byGroup)) {
     // A published depth chart beats inferring from touchdowns, and is the
     // only thing available before any games have been played.
+    //
+    // QB is excluded from the touchdown fallback specifically: a starting
+    // job there is a discrete coaching decision, not a share of touches, so
+    // a benched former starter's cumulative touchdowns from before the
+    // benching would still outrank a brand-new starter with only a start or
+    // two — confidently naming the wrong QB rather than admitting the role
+    // is unknown. Every other group's scoring is still a reasonable stand-in
+    // for a missing chart.
     const charted = depthRanks && list.some((p) => depthRanks.has(String(p.id)))
-    const signal = charted || list.some((p) => (p.tds ?? 0) > 0)
+    const signal = charted || (group !== 'QB' && list.some((p) => (p.tds ?? 0) > 0))
 
     if (!signal) {
       // No basis for a depth chart. Split the group's share evenly rather
@@ -226,8 +234,15 @@ export function assignRoles(players, depthRanks = null) {
       : [...list].sort((a, b) => (b.tds ?? 0) - (a.tds ?? 0))
 
     ranked.forEach((p, i) => {
+      // Every rostered QB used to get the same 'QB' role regardless of
+      // depth, so isMainPlayer() (card.js) treated a third-string arm as
+      // just as "main" as the actual starter — any backup with a real
+      // recorded stat line from an earlier start was just as eligible for a
+      // priced pick as whoever is starting now. Only the top of the ranking
+      // is the starter here; everyone behind him gets a backup role that
+      // isMainPlayer() correctly excludes.
       const role =
-        group === 'QB' ? 'QB'
+        group === 'QB' ? (i === 0 ? 'QB' : 'QB2')
           : i === 0 ? `${group}1`
           : i === 1 ? `${group}2`
           : i === 2 && group === 'WR' ? 'WR3'
