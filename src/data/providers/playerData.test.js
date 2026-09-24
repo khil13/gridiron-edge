@@ -33,7 +33,7 @@ vi.mock('../generated/player-ngs.json', () => ({
   }
 }))
 
-const { fetchGameRosters } = await import('./playerData.js')
+const { fetchGameRosters, assignRoles } = await import('./playerData.js')
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -213,5 +213,53 @@ describe('fetchGameRosters with the bundled stats snapshot', () => {
     // Det has real season totals but no row in the NGS fixture at all.
     const detStar = result.players.find((p) => p.name === 'Det Star WR')
     expect(detStar.ngs).toBeUndefined()
+  })
+})
+
+describe('assignRoles', () => {
+  const qb = (id, name, tds) => ({ id, name, position: 'QB', tds, stats: { games: 8 } })
+
+  it('marks only the depth chart\'s top QB as the main "QB" role; the rest are backups', () => {
+    const players = [qb(1, 'Backup Arm', 9), qb(2, 'Current Starter', 1), qb(3, 'Third String', 0)]
+    // The current starter is rank 1 on the real chart despite having fewer
+    // touchdowns than the benched former starter — a real depth chart must
+    // win over touchdown count for who counts as the starter.
+    const depthRanks = new Map([['2', 1], ['1', 2], ['3', 3]])
+
+    const roles = assignRoles(players, depthRanks)
+    const byName = Object.fromEntries(roles.map((p) => [p.name, p]))
+    expect(byName['Backup Arm'].role).toBe('QB2') // ranked 2nd despite more TDs
+    expect(byName['Current Starter'].role).toBe('QB') // ranked 1st on the chart
+    expect(byName['Third String'].role).toBe('QB2') // ranked 3rd
+    expect(byName['Current Starter'].depthKnown).toBe(true)
+  })
+
+  it('never ranks QBs by touchdown count when no real depth chart is available', () => {
+    // A benched former starter (Dillon-Gabriel-shaped: real touchdowns from
+    // earlier starts) alongside a new starter with none yet. Without a real
+    // chart, ranking by touchdowns would confidently name the wrong guy.
+    const players = [qb(1, 'Benched Former Starter', 6), qb(2, 'New Starter', 0)]
+
+    const roles = assignRoles(players, null)
+    expect(roles.every((p) => p.role === 'QB')).toBe(true)
+    expect(roles.every((p) => p.depthKnown === false)).toBe(true)
+    expect(roles.every((p) => p.flatShare != null)).toBe(true)
+  })
+
+  it('still ranks other position groups by touchdown count when no chart is available', () => {
+    // Unlike QB, a running back's touchdown share is a reasonable stand-in
+    // for depth when no chart has been published — this is existing,
+    // unaffected behavior worth guarding against regression.
+    const players = [
+      { id: 1, name: 'Lead Back', position: 'RB', tds: 5, stats: { games: 8 } },
+      { id: 2, name: 'Change of Pace', position: 'RB', tds: 1, stats: { games: 8 } }
+    ]
+
+    const roles = assignRoles(players, null)
+    const byName = Object.fromEntries(roles.map((p) => [p.name, p]))
+    expect(byName['Lead Back'].role).toBe('RB1')
+    expect(byName['Change of Pace'].role).toBe('RB2')
+    expect(byName['Lead Back'].depthKnown).toBe(true)
+    expect(byName['Lead Back'].depthSource).toBe('scoring')
   })
 })
