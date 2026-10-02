@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-29T17:17:13.403Z",
+  "generatedAt": "2026-10-02T17:03:20.118Z",
   "source": "https://github.com/nflverse/nflverse-data (stats_player release, regular season)",
   "latestSeason": 2026,
   "seasons": {
@@ -24211,16 +24211,16 @@
     },
     "2026": {
       "aaron rodgers|QB": {
-        "games": 3,
+        "games": 4,
         "tds": 0,
         "receivingYards": 0,
         "receptions": 0,
         "targets": 0,
         "rushingYards": 12,
         "rushingAttempts": 7,
-        "passingYards": 700,
-        "passingAttempts": 113,
-        "passingTouchdowns": 4
+        "passingYards": 999,
+        "passingAttempts": 153,
+        "passingTouchdowns": 7
       },
       "nick folk|K": {
         "games": 0,
@@ -25255,16 +25255,16 @@
         "passingTouchdowns": 0
       },
       "deshaun watson|QB": {
-        "games": 3,
+        "games": 4,
         "tds": 0,
         "receivingYards": 0,
         "receptions": 0,
         "targets": 0,
-        "rushingYards": 105,
-        "rushingAttempts": 24,
-        "passingYards": 587,
-        "passingAttempts": 82,
-        "passingTouchdowns": 5
+        "rushingYards": 127,
+        "rushingAttempts": 31,
+        "passingYards": 855,
+        "passingAttempts": 115,
+        "passingTouchdowns": 6
       },
       "dalvin tomlinson|DE": {
         "games": 0,
@@ -27127,11 +27127,11 @@
         "passingTouchdowns": 0
       },
       "dk metcalf|WR": {
-        "games": 3,
+        "games": 4,
         "tds": 1,
-        "receivingYards": 98,
-        "receptions": 11,
-        "targets": 24,
+        "receivingYards": 213,
+        "receptions": 16,
+        "targets": 33,
         "rushingYards": 0,
         "rushingAttempts": 0,
         "passingYards": 0,
@@ -27823,11 +27823,11 @@
         "passingTouchdowns": 0
       },
       "michael pittman|WR": {
-        "games": 2,
+        "games": 3,
         "tds": 0,
-        "receivingYards": 74,
-        "receptions": 5,
-        "targets": 8,
+        "receivingYards": 89,
+        "receptions": 7,
+        "targets": 12,
         "rushingYards": 0,
         "rushingAttempts": 0,
         "passingYards": 0,
@@ -28423,11 +28423,11 @@
         "passingTouchdowns": 0
       },
       "jerry jeudy|WR": {
-        "games": 2,
+        "games": 3,
         "tds": 0,
-        "receivingYards": 26,
-        "receptions": 2,
-        "targets": 5,
+        "receivingYards": 62,
+        "receptions": 5,
+        "targets": 8,
         "rushingYards": 0,
         "rushingAttempts": 0,
         "passingYards": 0,
@@ -29119,11 +29119,11 @@
         "passingTouchdowns": 0
       },
       "pat freiermuth|TE": {
-        "games": 3,
-        "tds": 1,
-        "receivingYards": 108,
-        "receptions": 11,
-        "targets": 14,
+        "games": 4,
+        "tds": 2,
+        "receivingYards": 125,
+        "receptions": 14,
+        "targets": 19,
         "rushingYards": 3,
         "rushingAttempts": 2,
         "passingYards": 0,
@@ -29959,13 +29959,13 @@
         "passingTouchdowns": 0
       },
       "jaylen warren|RB": {
-        "games": 3,
+        "games": 4,
         "tds": 0,
-        "receivingYards": 110,
-        "receptions": 10,
-        "targets": 14,
-        "rushingYards": 216,
-        "rushingAttempts": 38,
+        "receivingYards": 143,
+        "receptions": 13,
+        "targets": 20,
+        "rushingYards": 309,
+        "rushingAttempts": 55,
         "passingYards": 0,
         "passingAttempts": 0,
         "passingTouchdowns": 0
@@ -31639,11 +31639,11 @@
         "passingTouchdowns": 0
       },
       "darnell washington|TE": {
-        "games": 3,
-        "tds": 0,
-        "receivingYards": 92,
-        "receptions": 6,
-        "targets": 8,
+        "games": 4,
+        "tds": 1,
+        "receivingYards": 119,
+        "receptions": 9,
+        "targets": 13,
         "rushingYards": 0,
         "rushingAttempts": 0,
         "passingYards": 0,
@@ -33559,11 +33559,11 @@
         "passingTouchdowns": 0
       },
       "roman wilson|WR": {
-        "games": 3,
-        "tds": 1,
-        "receivingYards": 114,
-        "receptions": 11,
-        "targets": 18,
+        "games": 4,
+        "tds": 2,
+        "receivingYards": 188,
+        "receptions": 14,
+        "targets": 24,
         "rushingYards": 0,
         "rushingAttempts": 0,
         "passingYards": 0,
@@ -35443,13 +35443,13 @@
         "passingTouchdowns": 0
       },
       "raheim sanders|RB": {
-        "games": 3,
+        "games": 4,
         "tds": 0,
-        "receivingYards": 66,
-        "receptions": 8,
-        "targets": 9,
-        "rushingYards": 22,
-        "rushingAttempts": 4,
+        "receivingYards": 73,
+        "receptions": 10,
+        "targets": 11,
+        "rushingYards": 31,
+        "rushingAttempts": 6,
         "passingYards": 0,
         "passingAttempts": 0,
         "passingTouchdowns": 0
@@ -35719,11 +35719,11 @@
         "passingTouchdowns": 0
       },
       "harold fannin jr|TE": {
-        "games": 3,
-        "tds": 2,
-        "receivingYards": 126,
-        "receptions": 14,
-        "targets": 18,
+        "games": 4,
+        "tds": 3,
+        "receivingYards": 153,
+        "receptions": 17,
+        "targets": 23,
         "rushingYards": 0,
         "rushingAttempts": 0,
         "passingYards": 0,
@@ -36211,13 +36211,13 @@
         "passingTouchdowns": 0
       },
       "quinshon judkins|RB": {
-        "games": 3,
-        "tds": 0,
-        "receivingYards": 53,
-        "receptions": 9,
-        "targets": 9,
-        "rushingYards": 124,
-        "rushingAttempts": 42,
+        "games": 4,
+        "tds": 1,
+        "receivingYards": 96,
+        "receptions": 15,
+        "targets": 16,
+        "rushingYards": 177,
+        "rushingAttempts": 59,
         "passingYards": 0,
         "passingAttempts": 0,
         "passingTouchdowns": 0
@@ -36559,11 +36559,11 @@
         "passingTouchdowns": 0
       },
       "denzel boston|WR": {
-        "games": 3,
+        "games": 4,
         "tds": 2,
-        "receivingYards": 195,
-        "receptions": 9,
-        "targets": 15,
+        "receivingYards": 284,
+        "receptions": 13,
+        "targets": 22,
         "rushingYards": 0,
         "rushingAttempts": 0,
         "passingYards": 0,
@@ -37567,11 +37567,11 @@
         "passingTouchdowns": 0
       },
       "kc concepcion|WR": {
-        "games": 3,
+        "games": 4,
         "tds": 0,
-        "receivingYards": 80,
-        "receptions": 12,
-        "targets": 20,
+        "receivingYards": 144,
+        "receptions": 17,
+        "targets": 28,
         "rushingYards": 9,
         "rushingAttempts": 4,
         "passingYards": 0,
@@ -37999,13 +37999,13 @@
         "passingTouchdowns": 0
       },
       "travis homer|RB": {
-        "games": 2,
+        "games": 3,
         "tds": 0,
         "receivingYards": 0,
         "receptions": 0,
         "targets": 0,
-        "rushingYards": 16,
-        "rushingAttempts": 3,
+        "rushingYards": 15,
+        "rushingAttempts": 5,
         "passingYards": 0,
         "passingAttempts": 0,
         "passingTouchdowns": 0
@@ -38179,11 +38179,11 @@
         "passingTouchdowns": 0
       },
       "ben skowronek|WR": {
-        "games": 2,
+        "games": 3,
         "tds": 1,
-        "receivingYards": 25,
-        "receptions": 2,
-        "targets": 2,
+        "receivingYards": 32,
+        "receptions": 3,
+        "targets": 4,
         "rushingYards": 0,
         "rushingAttempts": 0,
         "passingYards": 0,
@@ -38635,13 +38635,13 @@
         "passingTouchdowns": 0
       },
       "jaleel mclaughlin|RB": {
-        "games": 1,
-        "tds": 0,
+        "games": 2,
+        "tds": 1,
         "receivingYards": 0,
         "receptions": 0,
         "targets": 1,
-        "rushingYards": 3,
-        "rushingAttempts": 1,
+        "rushingYards": 31,
+        "rushingAttempts": 2,
         "passingYards": 0,
         "passingAttempts": 0,
         "passingTouchdowns": 0
@@ -39427,11 +39427,11 @@
         "passingTouchdowns": 0
       },
       "isaiah bond|WR": {
-        "games": 1,
+        "games": 2,
         "tds": 0,
-        "receivingYards": 10,
-        "receptions": 1,
-        "targets": 1,
+        "receivingYards": 12,
+        "receptions": 2,
+        "targets": 2,
         "rushingYards": 0,
         "rushingAttempts": 0,
         "passingYards": 0,
@@ -39763,11 +39763,11 @@
         "passingTouchdowns": 0
       },
       "germie bernard|WR": {
-        "games": 2,
+        "games": 3,
         "tds": 0,
-        "receivingYards": 49,
-        "receptions": 5,
-        "targets": 9,
+        "receivingYards": 60,
+        "receptions": 7,
+        "targets": 11,
         "rushingYards": 0,
         "rushingAttempts": 0,
         "passingYards": 0,
@@ -41388,6 +41388,30 @@
         "receivingYards": 0,
         "receptions": 0,
         "targets": 1,
+        "rushingYards": 0,
+        "rushingAttempts": 0,
+        "passingYards": 0,
+        "passingAttempts": 0,
+        "passingTouchdowns": 0
+      },
+      "luke wypler|C": {
+        "games": 0,
+        "tds": 0,
+        "receivingYards": 0,
+        "receptions": 0,
+        "targets": 0,
+        "rushingYards": 0,
+        "rushingAttempts": 0,
+        "passingYards": 0,
+        "passingAttempts": 0,
+        "passingTouchdowns": 0
+      },
+      "max iheanachor|OT": {
+        "games": 0,
+        "tds": 0,
+        "receivingYards": 0,
+        "receptions": 0,
+        "targets": 0,
         "rushingYards": 0,
         "rushingAttempts": 0,
         "passingYards": 0,
