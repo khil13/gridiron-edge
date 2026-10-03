@@ -6,6 +6,13 @@ name: Update player stats snapshot
 # idempotent — a no-op week produces no diff and no commit. The push to
 # main triggers the existing deploy workflow, so the site picks up fresh
 # rates on its next rebuild automatically.
+#
+# `npm run player-stats` also writes team-defense.json and player-ngs.json
+# (see fetch-player-stats.mjs) — both must be in the diff check and the
+# commit below, or a week where only one of those two changed (NGS runs on
+# its own slower, independent publishing schedule) would silently produce
+# no commit at all, leaving real fetched data sitting uncommitted in the
+# runner's working tree and discarded when it tears down.
 on:
   schedule:
     # Tuesday and Friday mornings UTC — after Monday Night Football and
@@ -31,12 +38,13 @@ jobs:
 
       - name: Commit if the snapshot changed
         run: |
-          if git diff --quiet -- src/data/generated/player-stats.json src/data/generated/player-stats-meta.json; then
-            echo "No change in player stats this run."
+          FILES="src/data/generated/player-stats.json src/data/generated/player-stats-meta.json src/data/generated/team-defense.json src/data/generated/player-ngs.json"
+          if git diff --quiet -- $FILES; then
+            echo "No change in player stats, team defense or NGS this run."
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
-          git add src/data/generated/player-stats.json src/data/generated/player-stats-meta.json
+          git add $FILES
           git commit -m 'Update player stats snapshot'
           git push

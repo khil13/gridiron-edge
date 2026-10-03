@@ -51,6 +51,21 @@ export const fmtKickoff = (iso) => `${fmtShortDay(iso)} ${fmtTime(iso)}`
  * tabs and a card that could only see part of the night. Everyone means
  * their own Saturday when they say Saturday.
  */
+/** "3 hours ago" / "5 days ago" — for saying plainly how old a data snapshot is. */
+export const fmtAge = (iso) => {
+  const then = new Date(iso).getTime()
+  if (!Number.isFinite(then)) return 'unknown'
+  const minutes = Math.round((Date.now() - then) / 60000)
+  if (minutes < 1) return 'just now'
+  if (minutes < 60) return `${minutes} min ago`
+  const hours = Math.round(minutes / 60)
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`
+  const days = Math.round(hours / 24)
+  if (days < 14) return `${days} day${days === 1 ? '' : 's'} ago`
+  const weeks = Math.round(days / 7)
+  return `${weeks} week${weeks === 1 ? '' : 's'} ago`
+}
+
 export const dayKey = (iso) => {
   const d = new Date(iso)
   const m = String(d.getMonth() + 1).padStart(2, '0')

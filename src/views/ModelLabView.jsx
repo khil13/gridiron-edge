@@ -5,9 +5,10 @@ import { useStore } from '../lib/store.jsx'
 import { PRESETS, presetFor } from '../lib/model.js'
 import { americanToDecimal } from '../lib/odds.js'
 import { buildBackup, downloadBackup, restoreBackup, readBackupFile } from '../lib/backup.js'
-import { fmtSigned, fmtSpread, fmtMoney, fmtKickoff, fmtPct } from '../lib/format.js'
+import { fmtSigned, fmtSpread, fmtMoney, fmtKickoff, fmtPct, fmtAge } from '../lib/format.js'
 import { href } from '../lib/router.js'
 import { runBacktest, calibrationBuckets } from '../lib/backtest.js'
+import { dataSources } from '../lib/freshness.js'
 import { SEASON_2025 } from '../data/season2025.js'
 import PLAYER_STATS_META from '../data/generated/player-stats-meta.json'
 
@@ -184,6 +185,8 @@ export default function ModelLabView({ data }) {
           </p>
         </div>
       </section>
+
+      <DataSourcesPanel />
 
       <div
         style={{
@@ -552,6 +555,58 @@ const DEVIG_NOTES = {
   additive: 'Subtracts the margin evenly. Distorts longshots least at short prices.',
   power: 'Solves an exponent so probabilities sum to one. Handles longshot bias.',
   shin: 'Models the book\u2019s exposure to informed money. Usually closest to the true close.'
+}
+
+const FRESHNESS_TONE = { ok: 'edge', aging: 'chalk', stale: 'live', unknown: 'quiet' }
+const FRESHNESS_LABEL = { ok: 'Current', aging: 'Aging', stale: 'Stale', unknown: 'Unknown' }
+
+/**
+ * How old each real, bundled data source actually is right now (see
+ * freshness.js) — not a claim that everything is fine, a readout that
+ * lets a visitor check for themselves.
+ */
+function DataSourcesPanel() {
+  const rows = useMemo(() => dataSources(), [])
+  const worst = rows.some((r) => r.level === 'stale') ? 'stale' : rows.some((r) => r.level === 'aging') ? 'aging' : 'ok'
+
+  return (
+    <section className="panel" style={{ marginBottom: 'var(--s4)' }}>
+      <div className="panel-head">
+        <div>
+          <div className="eyebrow">Where every number comes from</div>
+          <h2 style={{ fontSize: 'var(--t-lg)', marginTop: 4 }}>Data freshness</h2>
+        </div>
+        <Badge tone={FRESHNESS_TONE[worst]}>
+          {worst === 'ok' ? 'All current' : worst === 'aging' ? 'Some aging' : 'Some stale'}
+        </Badge>
+      </div>
+      <div className="tbl-scroll">
+        <table className="tbl">
+          <thead><tr>
+            <th style={{ textAlign: 'left' }}>Source</th>
+            <th className="hide-sm">Covers</th>
+            <th>Last updated</th>
+            <th>Status</th>
+          </tr></thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.label}>
+                <td style={{ textAlign: 'left' }}>{r.label}</td>
+                <td className="dim hide-sm">{r.extra ?? '—'}</td>
+                <td className="num dim">{r.generatedAt ? fmtAge(r.generatedAt) : 'unknown'}</td>
+                <td className="num"><Badge tone={FRESHNESS_TONE[r.level]}>{FRESHNESS_LABEL[r.level]}</Badge></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="dim" style={{ fontSize: 11, padding: '0 var(--s4) var(--s4)', margin: 0, maxWidth: '75ch' }}>
+        Each source is judged against its own real refresh schedule, not one blanket number — an
+        injury report and Next Gen Stats go stale at very different rates. "Aging" means the usual
+        schedule was missed once; "Stale" means it was missed more than once and is worth checking.
+      </p>
+    </section>
+  )
 }
 
 function Stat({ label, value, sub }) {
