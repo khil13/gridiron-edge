@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react'
 import TeamMark from '../components/TeamMark.jsx'
 import { Badge, Empty, Segmented } from '../components/Controls.jsx'
+import { StatBar } from '../components/Charts.jsx'
+import { getTeam } from '../data/teams.js'
 import { useStore } from '../lib/store.jsx'
 import { fetchGameRosters } from '../data/providers/playerData.js'
 import { fetchGameProps, PROPS_CREDIT_COST } from '../data/providers/oddsApiProvider.js'
@@ -114,6 +116,7 @@ export default function PropsTab({ game, data }) {
         </p>
       )}
       <Caveats analysis={analysis} game={game} rosters={state.rosters} />
+      <PlayerCompare rosters={state.rosters} game={game} />
       <Volume analysis={analysis} entered={entered} onPrice={onPrice} />
       <FirstQuarter analysis={analysis} game={game} entered={entered} onPrice={onPrice} />
       <Anytime
@@ -276,6 +279,128 @@ function fairTwoWay(offers, side, outcome) {
 const normName = normPropName
 
 /* ---------- UI ---------- */
+
+/* ---------- Player comparison ---------- */
+
+// Per-game rates, not season totals — a player with 188 yards in two games
+// and one with 200 in four are not close, and a raw total would say they are.
+const COMPARE_ROWS = [
+  { key: 'receivingYards', label: 'Receiving yards/gm' },
+  { key: 'receptions', label: 'Receptions/gm' },
+  { key: 'targets', label: 'Targets/gm' },
+  { key: 'rushingYards', label: 'Rushing yards/gm' },
+  { key: 'rushingAttempts', label: 'Rush attempts/gm' },
+  { key: 'passingYards', label: 'Passing yards/gm' },
+  { key: 'passingAttempts', label: 'Pass attempts/gm' },
+  { key: 'passingTouchdowns', label: 'Passing TDs/gm' }
+]
+
+const NGS_ROWS = [
+  { key: 'avgSeparation', label: 'Avg separation (yds)', fmt: (v) => v.toFixed(1) },
+  { key: 'avgCushion', label: 'Avg cushion (yds)', fmt: (v) => v.toFixed(1) },
+  { key: 'avgIntendedAirYards', label: 'Air yards per target', fmt: (v) => v.toFixed(1) },
+  { key: 'yacAboveExpectation', label: 'YAC over expected', fmt: (v) => fmtSigned(v, 1) }
+]
+
+/**
+ * Any two players from this game's two rosters, stat for stat — built from
+ * the same real per-game rates (bundled nflverse season stats) and, when
+ * the bundled snapshot has it, Next Gen Stats the rest of this tab already
+ * uses. Nothing fetched twice: this reads the roster this tab already
+ * pulled in to build the props above.
+ */
+function PlayerCompare({ rosters, game }) {
+  const skillPlayers = useMemo(
+    () => [...rosters.players].sort((a, b) => a.name.localeCompare(b.name)),
+    [rosters.players]
+  )
+  const byTeam = (team) => skillPlayers.find((p) => p.team === team) ?? skillPlayers[0]
+
+  const [aId, setAId] = useState(() => byTeam(game.home)?.id ?? null)
+  const [bId, setBId] = useState(() => byTeam(game.away)?.id ?? null)
+
+  if (!skillPlayers.length) return null
+
+  const a = skillPlayers.find((p) => p.id === aId) ?? skillPlayers[0]
+  const b = skillPlayers.find((p) => p.id === bId) ?? skillPlayers[skillPlayers.length > 1 ? 1 : 0]
+  const teamA = getTeam(a.team)
+  const teamB = getTeam(b.team)
+
+  const perGame = (p, key) => {
+    const games = p.stats?.games
+    const v = p.stats?.[key]
+    return games > 0 && v != null ? v / games : null
+  }
+
+  const rows = COMPARE_ROWS
+    .map((r) => ({ ...r, va: perGame(a, r.key), vb: perGame(b, r.key) }))
+    // Real zeros on both sides (a receiver's passing line, a runner's
+    // targets) are accurate but say nothing — two WRs both throwing for
+    // nothing is not a comparison, it's noise crowding out the rows that
+    // actually separate them.
+    .filter((r) => r.va != null && r.vb != null && (r.va !== 0 || r.vb !== 0))
+
+  const ngsRows = NGS_ROWS
+    .map((r) => ({ ...r, va: a.ngs?.[r.key], vb: b.ngs?.[r.key] }))
+    .filter((r) => r.va != null && r.vb != null)
+
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <div>
+          <div className="eyebrow">Any two from this game</div>
+          <h2 style={{ fontSize: 'var(--t-lg)', marginTop: 4 }}>Compare players</h2>
+        </div>
+      </div>
+      <div style={{ padding: 'var(--s4)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--s3)' }}>
+        <div className="field">
+          <label><span>Player A</span></label>
+          <select value={a.id} onChange={(e) => setAId(e.target.value)}>
+            {skillPlayers.map((p) => <option key={p.id} value={p.id}>{p.team} {p.name} ({p.position})</option>)}
+          </select>
+        </div>
+        <div className="field">
+          <label><span>Player B</span></label>
+          <select value={b.id} onChange={(e) => setBId(e.target.value)}>
+            {skillPlayers.map((p) => <option key={p.id} value={p.id}>{p.team} {p.name} ({p.position})</option>)}
+          </select>
+        </div>
+      </div>
+
+      {a.id === b.id ? (
+        <p className="dim" style={{ fontSize: 12, padding: '0 var(--s4) var(--s4)', margin: 0 }}>
+          Pick two different players to compare.
+        </p>
+      ) : (
+        <div style={{ padding: '0 var(--s4) var(--s4)' }}>
+          {(rows.length > 0 || ngsRows.length > 0) ? (
+            <div style={{ display: 'grid', gap: 'var(--s3)' }}>
+              {rows.map((r) => (
+                <StatBar key={r.label} label={r.label} away={r.va} home={r.vb}
+                  awayColor={teamA.primary} homeColor={teamB.primary}
+                  format={(v) => v.toFixed(1)} />
+              ))}
+              {ngsRows.map((r) => (
+                <StatBar key={r.label} label={r.label} away={r.va} home={r.vb}
+                  awayColor={teamA.primary} homeColor={teamB.primary}
+                  format={r.fmt} />
+              ))}
+            </div>
+          ) : (
+            <p className="dim" style={{ fontSize: 12, margin: 0 }}>
+              No overlapping real stat between these two — likely a rookie or a recent call-up
+              with no games on record yet.
+            </p>
+          )}
+          <p className="dim" style={{ fontSize: 11, marginTop: 'var(--s3)', marginBottom: 0 }}>
+            {a.name} vs {b.name}, {a.stats?.games ?? 0} and {b.stats?.games ?? 0} games respectively
+            {rosters.usedPriorSeason ? ` (${rosters.statsSeason} rates — no games played yet this season)` : ''}.
+          </p>
+        </div>
+      )}
+    </section>
+  )
+}
 
 function Caveats({ analysis, game, rosters }) {
   const injured = rosters.players.filter((p) => p.injury && !/active/i.test(p.injury))
