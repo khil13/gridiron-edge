@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { useRoute } from './lib/router.js'
 import { useDataset } from './lib/useDataset.js'
 import AppShell from './components/AppShell.jsx'
+import ErrorBoundary from './components/ErrorBoundary.jsx'
 import ScoresView from './views/ScoresView.jsx'
 import { Empty } from './components/Controls.jsx'
 
@@ -26,15 +27,23 @@ export default function App() {
     : 'Prices are live from your configured sportsbook feed.'
 
   return (
-    <AppShell route={route} games={data.games} footNote={footNote}>
-      {data.loading ? (
-        <div className="page"><Empty title="Loading the slate">Pulling games, ratings and prices.</Empty></div>
-      ) : (
-        <Suspense fallback={<div className="page"><Empty title="Loading">Pulling this page's own code.</Empty></div>}>
-          <Router route={route} data={data} />
-        </Suspense>
-      )}
-    </AppShell>
+    <ErrorBoundary>
+      <AppShell route={route} games={data.games} footNote={footNote}>
+        {data.loading ? (
+          <div className="page"><Empty title="Loading the slate">Pulling games, ratings and prices.</Empty></div>
+        ) : (
+          // Keyed on the route so navigating away from a page that crashed
+          // mounts a fresh boundary rather than staying stuck on the error —
+          // an error boundary does not clear itself just because its
+          // children's props changed.
+          <ErrorBoundary key={`${route.view}:${route.param ?? ''}`}>
+            <Suspense fallback={<div className="page"><Empty title="Loading">Pulling this page's own code.</Empty></div>}>
+              <Router route={route} data={data} />
+            </Suspense>
+          </ErrorBoundary>
+        )}
+      </AppShell>
+    </ErrorBoundary>
   )
 }
 
