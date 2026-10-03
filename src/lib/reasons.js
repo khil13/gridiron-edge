@@ -27,16 +27,22 @@ const sideFor = (positionGroup) =>
 const roleGroup = (role) => String(role || '').replace(/[0-9]/g, '')
 
 /**
- * Next Gen Stats bullets — separation and YAC over expectation for a
- * pass-catcher, rush yards over expected and box counts for a runner.
- * Capped at two: this is additive context on top of the season-rate and
- * defense bullets already built above, not a replacement for them.
+ * Next Gen Stats bullets — target share of the team's air yards, separation
+ * and YAC over expectation for a pass-catcher; rush yards over expected and
+ * box counts for a runner. Capped at two: this is additive context on top
+ * of the season-rate and defense bullets already built above, not a
+ * replacement for them. Target share leads when it's available since it's
+ * the strongest real usage signal this app has for a receiver — closer to
+ * "how much of the offense goes through him" than separation or YAC are.
  */
 function ngsBullets(ngs, positionGroup) {
   if (!ngs) return []
   const bullets = []
   const year = ngs.season
   if (sideFor(positionGroup) === 'receiving') {
+    if (ngs.targetShareAirYards != null) {
+      bullets.push(`Commands ${ngs.targetShareAirYards}% of the team's intended air yards (Next Gen Stats, ${year}).`)
+    }
     if (ngs.avgSeparation != null) {
       bullets.push(`Averages ${ngs.avgSeparation} yards of separation (Next Gen Stats, ${year}).`)
     }

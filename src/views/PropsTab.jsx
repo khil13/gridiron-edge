@@ -303,6 +303,7 @@ const COMPARE_ROWS = [
 ]
 
 const NGS_ROWS = [
+  { key: 'targetShareAirYards', label: 'Share of team air yards (%)', fmt: (v) => v.toFixed(1) },
   { key: 'avgSeparation', label: 'Avg separation (yds)', fmt: (v) => v.toFixed(1) },
   { key: 'avgCushion', label: 'Avg cushion (yds)', fmt: (v) => v.toFixed(1) },
   { key: 'avgIntendedAirYards', label: 'Air yards per target', fmt: (v) => v.toFixed(1) },
