@@ -18,6 +18,7 @@ import { combineProjections } from './modelAgreement.js'
 import { simulateGame } from './simulation.js'
 import { confidenceFor } from './confidence.js'
 import { applyInjuryAdjustment } from './injuries.js'
+import { recordSnapshot, getHistory } from './priceHistory.js'
 import { computeEdges, consensusPlays } from './edges.js'
 import { useStore } from './store.jsx'
 import ratingsFile from '../data/generated/ratings.json'
@@ -79,6 +80,22 @@ export function useDataset() {
 
   const current = useCurrentRatings(ratingsFile.ratings, settings, slate.source, season, throughWeek)
 
+  // A real price is only ever a snapshot of right now (see priceHistory.js) —
+  // recording it is a side effect, so it happens here in an effect, not in
+  // the useMemo below. historyTick forces that memo to re-read storage once
+  // a genuinely new point lands; polling the same unchanged price does not
+  // bump it.
+  const [historyTick, setHistoryTick] = useState(0)
+  useEffect(() => {
+    if (!slate.markets) return
+    let changed = false
+    for (const m of Object.values(slate.markets)) {
+      if (m.simulated) continue
+      if (recordSnapshot(m.gameId, m.consensus?.spreadHome)) changed = true
+    }
+    if (changed) setHistoryTick((t) => t + 1)
+  }, [slate.markets])
+
   return useMemo(() => {
     // Ratings with the season replayed onto them when results are available,
     // opening ratings otherwise.
@@ -113,7 +130,29 @@ export function useDataset() {
       }
     }
 
-    const markets = slate.markets || buildMarkets(slate.games, project)
+    // Real markets carry no movement history of their own (The Odds API's
+    // live endpoint only ever returns the current price) — overlay whatever
+    // this browser has actually observed while open (priceHistory.js).
+    // Fewer than two real points means nothing has moved since this session
+    // started watching yet, which is honest to say rather than show a chart
+    // for. Simulated markets already carry their own (now clearly labeled)
+    // fabricated movement from buildMarkets() and are left untouched.
+    const withObserved = (m) => {
+      if (!m || m.simulated) return m
+      const hist = getHistory(m.gameId)
+      if (hist.length < 2) return { ...m, movement: [], observedOnly: true, observedCount: hist.length }
+      return {
+        ...m,
+        movement: hist.map((h, i) => ({ step: i, spreadHome: h.spreadHome })),
+        open: { spreadHome: hist[0].spreadHome },
+        observedOnly: true,
+        observedCount: hist.length
+      }
+    }
+    const rawMarkets = slate.markets || buildMarkets(slate.games, project)
+    const markets = slate.markets
+      ? Object.fromEntries(Object.entries(rawMarkets).map(([id, m]) => [id, withObserved(m)]))
+      : rawMarkets
 
     // A second, independent projection built entirely from real per-play
     // EPA (see epaModel.js) rather than the Elo model's win/loss margins —
@@ -178,7 +217,8 @@ export function useDataset() {
       oddsMeta: slate.oddsMeta ?? null,
       dataMode
     }
-  }, [slate, settings, current])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- historyTick isn't read directly; it forces this memo to re-run getHistory() after a new real snapshot lands.
+  }, [slate, settings, current, historyTick])
 }
 
 /**
