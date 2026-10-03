@@ -1,0 +1,38 @@
+name: Update team efficiency snapshot
+
+# Keeps src/data/generated/team-efficiency.json current with nflverse's
+# public play-by-play release, which updates after each week's games.
+# Same pattern as update-player-stats.yml: commits straight to main since
+# this is a data refresh, not a code change, and is idempotent — a no-op
+# week produces no diff and no commit.
+on:
+  schedule:
+    - cron: '15 12 * * 2,5'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run team-efficiency
+
+      - name: Commit if the snapshot changed
+        run: |
+          if git diff --quiet -- src/data/generated/team-efficiency.json; then
+            echo "No change in team efficiency this run."
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add src/data/generated/team-efficiency.json
+          git commit -m 'Update team efficiency snapshot'
+          git push

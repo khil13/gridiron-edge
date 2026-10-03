@@ -467,7 +467,66 @@ function ModelTab({ game, data }) {
           </tbody>
         </table>
       </div>
+      <ModelAgreementPanel game={game} />
     </section>
+  )
+}
+
+/**
+ * Two genuinely independent projections, side by side — the power-rating
+ * model above (built from who-beat-whom-by-how-much) and a second model
+ * built entirely from real per-play EPA (epaModel.js), which never looks
+ * at a result's margin at all. Omitted for preseason, where there is no
+ * real-season EPA data to build the second model from at all.
+ */
+function ModelAgreementPanel({ game }) {
+  const agreement = game.modelAgreement
+  if (!agreement) {
+    return (
+      <p className="dim" style={{ fontSize: 12, margin: 'var(--s3) 0 0', maxWidth: '70ch' }}>
+        {game.preseason
+          ? 'No second opinion yet — the EPA model needs real regular-season play-by-play, which preseason games do not have.'
+          : "No second opinion yet — at least one team hasn't played enough real games this season or last for the EPA model to read."}
+      </p>
+    )
+  }
+
+  const toneFor = { high: 'edge', medium: 'chalk', low: 'live' }[agreement.agreement]
+  const label = { high: 'Models agree', medium: 'Models lean the same way', low: 'Models disagree' }[agreement.agreement]
+
+  return (
+    <div style={{ marginTop: 'var(--s4)', paddingTop: 'var(--s4)', borderTop: '1px solid var(--line)' }}>
+      <div className="row spread-between gap-3" style={{ marginBottom: 'var(--s3)' }}>
+        <div className="eyebrow">Second opinion — real per-play EPA, not win/loss margins</div>
+        <Badge tone={toneFor}>{label}</Badge>
+      </div>
+      <div className="tbl-scroll">
+        <table className="tbl">
+          <thead><tr><th>Model</th><th>Margin</th><th>Win prob.</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Power rating (Elo)</td>
+              <td className="num">{fmtSigned(agreement.models.elo.margin)}</td>
+              <td className="num">{fmtPct(agreement.models.elo.homeWinProb)}</td>
+            </tr>
+            <tr>
+              <td>Real EPA/play</td>
+              <td className="num">{fmtSigned(agreement.models.epa.margin)}</td>
+              <td className="num">{fmtPct(agreement.models.epa.homeWinProb)}</td>
+            </tr>
+            <tr style={{ fontWeight: 600 }}>
+              <td>Consensus</td>
+              <td className="num">{fmtSigned(agreement.consensusMargin)}</td>
+              <td className="num">{fmtPct(agreement.consensusWinProb)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p className="dim" style={{ fontSize: 11, margin: 'var(--s2) 0 0' }}>
+        {agreement.disagreementPoints.toFixed(1)} points apart. The two models share almost no inputs — agreement here
+        is a real signal, not a tuned ensemble, and disagreement is shown rather than averaged away.
+      </p>
+    </div>
   )
 }
 
