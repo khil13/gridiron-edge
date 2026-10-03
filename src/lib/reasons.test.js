@@ -98,6 +98,24 @@ describe('reasonsForTouchdownPick', () => {
     expect(bullets).toContain('Gains 4.2 more yards after the catch than expected (Next Gen Stats, 2024).')
   })
 
+  it('cites target share of the team\'s air yards for a pass-catcher, when present', () => {
+    const pick = {
+      game,
+      entry: {
+        team: 'DET',
+        model: {
+          role: 'WR1', depthKnown: true, stats: { games: 16, tds: 8 },
+          ngs: { season: 2024, targetShareAirYards: 28.1, avgSeparation: 3.3, yacAboveExpectation: 4.2 }
+        }
+      }
+    }
+    const bullets = reasonsForTouchdownPick(pick)
+    expect(bullets).toContain("Commands 28.1% of the team's intended air yards (Next Gen Stats, 2024).")
+    // Capped at two NGS bullets — target share takes priority over YAC when all three exist.
+    expect(bullets).toContain('Averages 3.3 yards of separation (Next Gen Stats, 2024).')
+    expect(bullets).not.toContain('Gains 4.2 more yards after the catch than expected (Next Gen Stats, 2024).')
+  })
+
   it('cites Next Gen Stats rush yards over expected and stacked-box rate for a runner', () => {
     const pick = {
       game: { home: 'CIN', away: 'DET' },
