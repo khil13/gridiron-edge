@@ -11,7 +11,7 @@ import {
   projectFirstQuarter, VOLUME_MARKETS, analyseAnytimeTouchdowns, normPropName
 } from '../lib/props.js'
 import { impliedProb, expectedValue, kelly, validPrice, PRICE_MAX } from '../lib/odds.js'
-import { fmtOdds, fmtPct, fmtMoney, fmtSigned } from '../lib/format.js'
+import { fmtOdds, fmtPct, fmtMoney, fmtSigned, ordinal } from '../lib/format.js'
 
 /**
  * Touchdown props.
@@ -238,8 +238,9 @@ function analyse({ game, proj, settings, ratings, rosters, props, entered = {} }
   for (const p of rosters.players) {
     const teamPoints = p.team === game.home ? proj.homeTeamTotal : proj.awayTeamTotal
     const teamAverage = teamAverages[p.team] ?? 22
+    const opponent = p.team === game.home ? game.away : game.home
     for (const market of availableMarkets(p)) {
-      const v = projectVolume(p, market, { teamPoints, teamAverage })
+      const v = projectVolume(p, market, { teamPoints, teamAverage, opponent })
       if (!v) continue
       volume.push({ player: p, ...v, team: p.team, role: p.role, injury: p.injury })
     }
@@ -746,7 +747,7 @@ function Volume({ analysis, entered, onPrice }) {
         <table className="tbl responsive">
           <thead>
             <tr>
-              <th>Player</th><th>Rate</th><th>Projection</th>
+              <th>Player</th><th>Rate</th><th>Matchup</th><th>Projection</th>
               <th>Line</th><th>Your price</th><th>Over</th><th>EV</th>
             </tr>
           </thead>
@@ -774,6 +775,18 @@ function Volume({ analysis, entered, onPrice }) {
                   </td>
                   <td className="num dim" data-label="Rate">
                     <span>{v.synthetic ? `${v.perGame}/g league avg` : `${v.perGame}/g over ${v.games}`}</span>
+                  </td>
+                  <td className="num" data-label="Matchup">
+                    {v.defense && v.defense.rank != null ? (
+                      <span
+                        className={v.defense.factor > 1 ? 'pos' : v.defense.factor < 1 ? 'neg' : 'dim'}
+                        title={`${v.defense.opponent} has allowed the ${ordinal(v.defense.rank)}-most ${v.market === 'rushingYards' ? 'rushing' : 'receiving'} yards in the league ${v.defense.isPrior ? `last season (${v.defense.season})` : 'this season'}.`}
+                      >
+                        vs #{v.defense.rank} {v.defense.factor !== 1 ? `×${v.defense.factor}` : ''}
+                      </span>
+                    ) : (
+                      <span className="dim">—</span>
+                    )}
                   </td>
                   <td className="num" data-label="Projection">
                     <span>{v.mean} {v.environment !== 1 && <span className="dim">×{v.environment}</span>}</span>
