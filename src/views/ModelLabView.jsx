@@ -11,6 +11,7 @@ import { runBacktest, calibrationBuckets } from '../lib/backtest.js'
 import { dataSources } from '../lib/freshness.js'
 import { SEASON_2025 } from '../data/season2025.js'
 import PLAYER_STATS_META from '../data/generated/player-stats-meta.json'
+import ratingsFile from '../data/generated/ratings.json'
 
 /**
  * Model Lab.
@@ -31,6 +32,19 @@ export default function ModelLabView({ data }) {
   const active = presetFor(settings)
   const backtest = useMemo(() => runBacktest(SEASON_2025.results, {}, settings), [settings])
   const buckets = useMemo(() => calibrationBuckets(backtest.games), [backtest.games])
+
+  // The same replay, but against this season's own real results as they're
+  // actually played — not a fixed historical sample. Unlike the 2025
+  // backtest above, this starts every team from its real opening rating
+  // (the bundled ratings.json this season began from), so there's no
+  // neutral-prior caveat to carry. It grows and can move week to week as
+  // more real games finish; nothing here is re-fit to its own past output,
+  // it is just re-run on more input.
+  const liveBacktest = useMemo(
+    () => runBacktest(data.seasonResults ?? [], ratingsFile.ratings, settings),
+    [data.seasonResults, settings]
+  )
+  const liveBuckets = useMemo(() => calibrationBuckets(liveBacktest.games), [liveBacktest.games])
 
   const qualified = useMemo(
     () => data.board.filter((p) => p.ev >= settings.minEdge),
@@ -513,6 +527,66 @@ export default function ModelLabView({ data }) {
               </tbody>
             </table>
           </div>
+        </div>
+      </section>
+
+      <section className="panel" style={{ marginTop: 'var(--s4)' }}>
+        <div className="panel-head">
+          <div>
+            <div className="eyebrow">Backtest · {data.season} season, live</div>
+            <h2 style={{ fontSize: 'var(--t-lg)', marginTop: 4 }}>Is the model still tracking reality this season?</h2>
+          </div>
+          <Badge tone="quiet">{liveBacktest.games.length} games</Badge>
+        </div>
+        <div style={{ padding: 'var(--s4)' }}>
+          <p className="dim" style={{ fontSize: 12, marginTop: 0, maxWidth: '75ch' }}>
+            The same replay as the 2025 backtest above, run instead against every real game this
+            season has actually finished so far — fetched live, not a fixed sample. Unlike that one,
+            every team here starts from its real opening rating (built from {ratingsFile.basis}), so
+            there is no neutral-prior caveat. This is the ongoing answer to whether the model is
+            still calibrated as the season unfolds, not just a one-time historical check: it grows
+            and can move week to week as more games are played, and nothing here is re-fit to its own
+            past results — it is only ever re-run on more real input.
+          </p>
+
+          {liveBacktest.metrics ? (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 'var(--s3)', margin: 'var(--s4) 0' }}>
+                <Stat label="Winner accuracy" value={fmtPct(liveBacktest.metrics.accuracy)} />
+                <Stat label="Brier score" value={liveBacktest.metrics.brier.toFixed(3)} sub="lower is better · 0.25 = coin flip" />
+                <Stat label="Margin error (avg)" value={`${liveBacktest.metrics.marginMae.toFixed(1)} pts`} />
+                <Stat label="Total error (avg)" value={`${liveBacktest.metrics.totalMae.toFixed(1)} pts`} />
+              </div>
+
+              <div className="tbl-scroll">
+                <table className="tbl">
+                  <thead><tr>
+                    <th style={{ textAlign: 'left' }}>Model said home win %</th>
+                    <th>Games</th><th>Actual home win rate</th>
+                  </tr></thead>
+                  <tbody>
+                    {liveBuckets.map((b) => (
+                      <tr key={b.lo}>
+                        <td style={{ textAlign: 'left' }} className="mono">{fmtPct(b.lo)}–{fmtPct(b.hi)}</td>
+                        <td className="num dim">{b.n}</td>
+                        <td className="num">{fmtPct(b.actualWinRate)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="dim" style={{ fontSize: 11, marginTop: 'var(--s3)', marginBottom: 0 }}>
+                Early in a season this sample is small — read every row here as a direction, not a
+                verdict, until more weeks are played. Compare these numbers against the 2025 backtest
+                above over time: a real, sustained gap between the two is the actual signal this panel
+                exists to catch.
+              </p>
+            </>
+          ) : (
+            <p className="dim" style={{ fontSize: 12 }}>
+              No finished games yet this season to measure the model against.
+            </p>
+          )}
         </div>
       </section>
 
