@@ -7,7 +7,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { loadSlate, dataMode, REFRESH_MS } from '../data/provider.js'
 import { fetchGameSummary, fetchSeasonResults } from '../data/providers/espnProvider.js'
-import { applyResults } from './ratings.js'
+import { fetchGameWeather } from '../data/providers/weatherProvider.js'
+import { stadiumFor } from '../data/stadiums.js'
+import { applyResults, restDaysFor } from './ratings.js'
 import { load, save } from './storage.js'
 import { buildMarkets } from '../data/markets.js'
 import { projectGame, powerRankings } from './model.js'
@@ -78,8 +80,12 @@ export function useDataset() {
     // Preseason results say little about a roster's real strength, so the
     // model deliberately pulls its own projections toward a pick'em.
     const project = (game) => {
-      const base = projectGame(game, ratings, settings)
-      if (!base) return null
+      const history = current.history ?? []
+      const homeRestDays = restDaysFor(game.home, game.kickoff, history)
+      const awayRestDays = restDaysFor(game.away, game.kickoff, history)
+      const projected = projectGame({ ...game, homeRestDays, awayRestDays }, ratings, settings)
+      if (!projected) return null
+      const base = { ...projected, homeRestDays, awayRestDays }
       if (!game.preseason) return base
       const k = 1 - (settings.preseasonShrink ?? 0)
       const margin = base.margin * k
@@ -190,6 +196,42 @@ export function useGameSummary(game, source) {
   }, [eligible, game?.id, game?.status])
 
   return state
+}
+
+/**
+ * Real forecast for a game's venue, fetched lazily when a game page opens.
+ *
+ * Skipped entirely for a dome (weather is never a factor there) and for a
+ * neutral-site game (stadiums.js has no source for where that actually is,
+ * so there is nothing honest to fetch). A single fetch, not polled — a
+ * forecast does not meaningfully change minute to minute the way a score
+ * does, and Open-Meteo's own update cadence is hourly at best.
+ */
+export function useGameWeather(game) {
+  const stadium = game?.home ? stadiumFor(game.home) : null
+  const roof = stadium?.roof ?? null
+  const eligible = !!game && !game.neutral && !!stadium && roof !== 'dome'
+
+  const [state, setState] = useState({ loading: false, weather: null, error: null })
+
+  useEffect(() => {
+    if (!eligible) {
+      setState({ loading: false, weather: null, error: null })
+      return
+    }
+
+    const controller = new AbortController()
+    let alive = true
+    setState({ loading: true, weather: null, error: null })
+
+    fetchGameWeather({ lat: stadium.lat, lon: stadium.lon, kickoff: game.kickoff, signal: controller.signal })
+      .then((weather) => { if (alive) setState({ loading: false, weather, error: null }) })
+      .catch((err) => { if (alive) setState({ loading: false, weather: null, error: err.message }) })
+
+    return () => { alive = false; controller.abort() }
+  }, [eligible, game?.id, game?.kickoff, stadium?.lat, stadium?.lon])
+
+  return { ...state, roof }
 }
 
 /**

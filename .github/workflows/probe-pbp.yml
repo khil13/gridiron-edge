@@ -1,0 +1,69 @@
+name: Probe nflverse play-by-play release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: List pbp-related releases
+        run: |
+          curl -s "https://api.github.com/repos/nflverse/nflverse-data/releases" \
+            | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+for r in data:
+    tag = r.get('tag_name', '')
+    if 'pbp' in tag.lower() or 'play_by_play' in tag.lower() or 'stats_team' in tag.lower() or 'team_stats' in tag.lower():
+        print('TAG:', tag)
+        for a in r.get('assets', []):
+            print('  asset:', a['name'], a['size'])
+"
+
+      - name: Find the csv.gz asset for the current pbp release and inspect its header
+        run: |
+          RELEASE_JSON=$(curl -s "https://api.github.com/repos/nflverse/nflverse-data/releases/tags/pbp")
+          echo "$RELEASE_JSON" | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+for a in data.get('assets', []):
+    print(a['name'], a['size'])
+" || echo "no pbp tag found by that name"
+
+      - name: Download latest season pbp csv.gz and inspect columns + sample rows
+        run: |
+          for season in 2026 2025; do
+            URL="https://github.com/nflverse/nflverse-data/releases/download/pbp/play_by_play_${season}.csv.gz"
+            echo "=== trying $URL ==="
+            curl -sIL "$URL" | head -5
+            STATUS=$(curl -s -o /tmp/pbp.csv.gz -w "%{http_code}" -L "$URL")
+            echo "status: $STATUS"
+            if [ "$STATUS" = "200" ]; then
+              echo "=== found season $season, size: ==="
+              ls -la /tmp/pbp.csv.gz
+              echo "=== header (column names) ==="
+              gunzip -c /tmp/pbp.csv.gz | head -1 | tr ',' '\n' | nl | grep -iE "epa|success|posteam|defteam|play_type|^down$|ydstogo|yards_gained|touchdown|^pass$|^rush$|qb_epa|cpoe|wp$|wpa|season_type|week|game_id|yards_to_go|penalty|turnover|interception|fumble|sack|explosive|first_down|drive|pace|seconds_remaining|game_seconds_remaining|half_seconds_remaining|shotgun|no_huddle|qtr|score_differential"
+              echo "=== row count ==="
+              gunzip -c /tmp/pbp.csv.gz | wc -l
+              echo "=== sample data row (first real row) ==="
+              gunzip -c /tmp/pbp.csv.gz | sed -n '2p' | cut -c1-500
+              break
+            fi
+          done
+
+      - name: Check for a lighter pre-aggregated team-level stats release
+        run: |
+          for tag in stats_team stats_team_week team_stats; do
+            echo "=== release tag: $tag ==="
+            curl -s "https://api.github.com/repos/nflverse/nflverse-data/releases/tags/$tag" \
+              | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+if 'assets' not in data:
+    print('  (no such release)')
+else:
+    for a in data['assets'][:10]:
+        print(' ', a['name'], a['size'])
+" 2>/dev/null || echo "  (error)"
+          done

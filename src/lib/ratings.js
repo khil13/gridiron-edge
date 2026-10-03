@@ -147,5 +147,34 @@ export function movers(ratings, count = 5) {
   }
 }
 
+/**
+ * Days of rest a team enters a game with, computed from games already
+ * played this season — the same replay history applyResults() produces to
+ * keep ratings current, so this costs no extra request.
+ *
+ * projectGame() has accepted homeRestDays/awayRestDays since the model was
+ * written, but nothing ever computed them, so the rest adjustment in
+ * settings.restPointsPerDay silently never fired — every projection used
+ * the 7/7 default no matter how the two teams' schedules actually compared.
+ *
+ * A team's first game of the season (or any game with no earlier result in
+ * `history`, including every preseason/bundled game) has nothing real to
+ * measure rest from — returning the neutral default there is honest; a
+ * number estimated from last season's finale would not be.
+ */
+export function restDaysFor(abbr, kickoff, history) {
+  const kickoffMs = new Date(kickoff).getTime()
+  if (!Number.isFinite(kickoffMs) || !history?.length) return 7
+
+  let lastMs = null
+  for (const g of history) {
+    if (g.home !== abbr && g.away !== abbr) continue
+    const t = new Date(g.kickoff).getTime()
+    if (!Number.isFinite(t) || t >= kickoffMs) continue
+    if (lastMs == null || t > lastMs) lastMs = t
+  }
+  return lastMs == null ? 7 : Math.round((kickoffMs - lastMs) / 86400000)
+}
+
 const round1 = (v) => Math.round(v * 10) / 10
 const round2 = (v) => Math.round(v * 100) / 100

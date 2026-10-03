@@ -7,7 +7,8 @@ import { IconBack } from '../components/Icons.jsx'
 import { getTeam } from '../data/teams.js'
 import { recordOf } from '../data/season2025.js'
 import { useStore } from '../lib/store.jsx'
-import { useGameSummary } from '../lib/useDataset.js'
+import { useGameSummary, useGameWeather } from '../lib/useDataset.js'
+import { travelMilesFor } from '../data/stadiums.js'
 import { groupTeamStats } from '../lib/boxscore.js'
 import FieldGraphic from '../components/FieldGraphic.jsx'
 import PropsTab from './PropsTab.jsx'
@@ -415,17 +416,28 @@ function holdOf(book) {
 function ModelTab({ game, data }) {
   const proj = game.projection
   const { settings } = useStore()
+  const { weather, loading: weatherLoading, error: weatherError, roof } = useGameWeather(game)
   if (!proj) return <Empty title="No projection">This game has teams the rating file does not cover.</Empty>
 
   const hr = data.ratings[game.home]
   const ar = data.ratings[game.away]
+  const travelMiles = travelMilesFor(game.away, game.home, { neutral: game.neutral })
 
   const rows = [
     ['Home rating', hr.elo.toFixed(0), `${fmtSigned(hr.pointsVsAverage)} pts vs average`],
     ['Away rating', ar.elo.toFixed(0), `${fmtSigned(ar.pointsVsAverage)} pts vs average`],
     ['Rating gap', fmtSigned((hr.elo - ar.elo) / settings.eloPerPoint), `${settings.eloPerPoint} Elo = 1 point`],
     ['Home field', fmtSigned(proj.hfa), game.neutral ? 'Neutral site' : 'Applied to the home side'],
-    ['Rest', fmtSigned(proj.rest, 2), `${settings.restPointsPerDay} pts per day of extra rest`],
+    [
+      'Rest', fmtSigned(proj.rest, 2),
+      proj.homeRestDays != null && proj.awayRestDays != null
+        ? `${game.home} ${proj.homeRestDays}d · ${game.away} ${proj.awayRestDays}d since their last game`
+        : `${settings.restPointsPerDay} pts per day of extra rest`
+    ],
+    travelMiles != null && [
+      'Travel', `${travelMiles} mi`, `${game.away} flying in to face ${game.home} at home — not factored into the number above, shown for context`
+    ],
+    weatherRow({ roof, weather, loading: weatherLoading, error: weatherError }),
     proj.shrunk && ['Preseason shrink', `×${(1 - settings.preseasonShrink).toFixed(2)}`, 'Starters play limited snaps'],
     ['Projected margin', fmtSigned(proj.margin), `${game.home} perspective`],
     ['Projected total', proj.total.toFixed(1), 'Blended scoring rates, regressed to league mean'],
@@ -457,6 +469,32 @@ function ModelTab({ game, data }) {
       </div>
     </section>
   )
+}
+
+/**
+ * Weather row for the model-inputs table — real conditions from
+ * weatherProvider.js, never a guess. A dome gets a one-line explanation
+ * instead of a row that would otherwise just be empty space; an unreachable
+ * forecast says so rather than silently vanishing.
+ */
+function weatherRow({ roof, weather, loading, error }) {
+  if (roof === 'dome') {
+    return ['Weather', 'Dome', 'Climate-controlled — not a factor in this game']
+  }
+  if (loading) return ['Weather', '…', 'Fetching the forecast']
+  if (error) return ['Weather', '—', `Forecast unavailable (${error})`]
+  if (!weather) return false
+  const parts = []
+  if (weather.tempF != null) parts.push(`${Math.round(weather.tempF)}°F`)
+  if (weather.windMph != null) parts.push(`${Math.round(weather.windMph)} mph wind`)
+  if (weather.precipProbability != null) parts.push(`${Math.round(weather.precipProbability)}% precip`)
+  const headline = weather.condition
+    ? `${weather.condition}${parts.length ? ', ' + parts.join(' · ') : ''}`
+    : parts.join(' · ') || '—'
+  const note = roof === 'retractable'
+    ? "Forecast for kickoff — this venue's roof may close in bad weather, which would remove this as a factor"
+    : 'Forecast for kickoff, from Open-Meteo'
+  return ['Weather', headline, note]
 }
 
 /* ---------------- Live box score ---------------- */
