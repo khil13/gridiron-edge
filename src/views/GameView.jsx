@@ -14,6 +14,7 @@ import FieldGraphic from '../components/FieldGraphic.jsx'
 import PropsTab from './PropsTab.jsx'
 import { toSlipLeg } from '../lib/edges.js'
 import { winProbabilityPath, liveWinProbability } from '../lib/model.js'
+import { QB_OUT_POINTS } from '../lib/injuries.js'
 import {
   fmtOdds, fmtSpread, fmtPct, fmtSigned, fmtKickoff, fmtDay, fmtTime, fmtMoney, readable
 } from '../lib/format.js'
@@ -113,6 +114,14 @@ export default function GameView({ game, data }) {
               homeColor={home.primary}
               awayColor={away.primary}
             />
+            {(proj.qbOut?.home || proj.qbOut?.away) && (
+              <p className="dim" style={{ fontSize: 11, marginBottom: 0, marginTop: 6 }}>
+                {proj.qbOut.home && `${home.abbr}'s starting QB (${proj.qbOut.home.name}) is Out.`}
+                {proj.qbOut.home && proj.qbOut.away && ' '}
+                {proj.qbOut.away && `${away.abbr}'s starting QB (${proj.qbOut.away.name}) is Out.`}
+                {' '}The number above is adjusted for it — see the Model tab for how much.
+              </p>
+            )}
             {live?.redZonePossession && (
               <p className="dim" style={{ fontSize: 11, marginBottom: 0, marginTop: 6 }}>
                 {possessionSide === 'home' ? home.abbr : away.abbr} has the ball in the red zone — the
@@ -453,6 +462,14 @@ function ModelTab({ game, data }) {
       'Travel', `${travelMiles} mi`, `${game.away} flying in to face ${game.home} at home — not factored into the number above, shown for context`
     ],
     weatherRow({ roof, weather, loading: weatherLoading, error: weatherError }),
+    (proj.qbOut?.home || proj.qbOut?.away) && [
+      'Starting QB out',
+      fmtSigned((proj.qbOut.away ? QB_OUT_POINTS : 0) - (proj.qbOut.home ? QB_OUT_POINTS : 0)),
+      [
+        proj.qbOut.home && `${game.home}: ${proj.qbOut.home.name}${proj.qbOut.home.injury ? ` (${proj.qbOut.home.injury})` : ''}`,
+        proj.qbOut.away && `${game.away}: ${proj.qbOut.away.name}${proj.qbOut.away.injury ? ` (${proj.qbOut.away.injury})` : ''}`
+      ].filter(Boolean).join(' · ') + ` — a fixed ${QB_OUT_POINTS}-point estimate, not a player-specific one`
+    ],
     proj.shrunk && ['Preseason shrink', `×${(1 - settings.preseasonShrink).toFixed(2)}`, 'Starters play limited snaps'],
     ['Projected margin', fmtSigned(proj.margin), `${game.home} perspective`],
     ['Projected total', proj.total.toFixed(1), 'Blended scoring rates, regressed to league mean'],

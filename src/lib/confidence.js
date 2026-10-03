@@ -22,6 +22,10 @@
  *     of situation a single point estimate hides
  *   - preseason, where the model already shrinks its own output because
  *     it knows the rosters aren't real yet
+ *   - a starting QB ruled out (injuries.js) — the projection already
+ *     shifted for it with a flat, conservative estimate, but this app has
+ *     no real way to tell "replaced by a solid backup" from "replaced by
+ *     a third-stringer," which is real, unresolved uncertainty
  */
 
 const LEVELS = ['low', 'medium', 'high']
@@ -40,7 +44,7 @@ function downgrade(level, steps = 1) {
  * @param {object} opts.ratings          data.ratings, for each team's `synthetic` flag
  * @returns {{ level: 'high'|'medium'|'low', factors: string[] }}
  */
-export function confidenceFor({ game, epaProjection, modelAgreement, simulation, ratings }) {
+export function confidenceFor({ game, epaProjection, modelAgreement, simulation, ratings, qbOut }) {
   const factors = []
   let level = 'high'
 
@@ -49,6 +53,12 @@ export function confidenceFor({ game, epaProjection, modelAgreement, simulation,
       level: 'low',
       factors: ['Preseason: rosters and depth charts are not real yet, and the model already shrinks its own output to say so.']
     }
+  }
+
+  if (qbOut?.home || qbOut?.away) {
+    const which = qbOut.home && qbOut.away ? 'Both starting QBs are' : 'A starting QB is'
+    factors.push(`${which} out — the projection already shifted for it, but how good the backup actually is isn't something this can know.`)
+    level = downgrade(level, 2)
   }
 
   const home = ratings?.[game?.home]

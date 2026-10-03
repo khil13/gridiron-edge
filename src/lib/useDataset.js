@@ -17,10 +17,12 @@ import { projectGameEpa, blendedSeasonEfficiency } from './epaModel.js'
 import { combineProjections } from './modelAgreement.js'
 import { simulateGame } from './simulation.js'
 import { confidenceFor } from './confidence.js'
+import { applyInjuryAdjustment } from './injuries.js'
 import { computeEdges, consensusPlays } from './edges.js'
 import { useStore } from './store.jsx'
 import ratingsFile from '../data/generated/ratings.json'
 import teamEfficiencyFile from '../data/generated/team-efficiency.json'
+import injuryReportFile from '../data/generated/injury-report.json'
 
 export function useSlate(oddsKey) {
   const [state, setState] = useState({ loading: true, games: [], warnings: [], source: 'bundled', label: '' })
@@ -121,14 +123,19 @@ export function useDataset() {
     const projectEpa = (game) => (game.preseason ? null : projectGameEpa(game, efficiencyTable, settings))
 
     const games = slate.games.map((game) => {
-      const projection = project(game)
+      // A real, bounded shift when a team's starting QB is ruled out (see
+      // injuries.js) — applied before anything downstream (edges, the
+      // simulation, confidence) reads the margin, so a QB-out game is
+      // priced and simulated against the adjusted number, not the one
+      // that ignores it.
+      const projection = applyInjuryAdjustment(game, project(game), injuryReportFile, settings)
       const epaProjection = projectEpa(game)
       const modelAgreement = combineProjections(projection, epaProjection, settings)
       // Real Monte Carlo (see simulation.js) from the same team totals the
       // headline projection already produced — shows the distribution
       // around that number rather than just the number itself.
       const simulation = simulateGame(projection)
-      const confidence = confidenceFor({ game, epaProjection, modelAgreement, simulation, ratings })
+      const confidence = confidenceFor({ game, epaProjection, modelAgreement, simulation, ratings, qbOut: projection?.qbOut })
       const market = markets[game.id] || null
       const plays = market ? consensusPlays(game, market, projection, settings) : []
       const allPlays = market ? computeEdges(game, market, projection, settings) : []
