@@ -165,6 +165,7 @@ export function useDataset() {
         asOf: current.asOf
       },
       rankings: powerRankings(ratings),
+      efficiencyTable,
       board,
       simulatedPrices: !slate.markets,
       oddsMeta: slate.oddsMeta ?? null,
