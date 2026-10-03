@@ -5,8 +5,10 @@ import { useStore } from '../lib/store.jsx'
 import { PRESETS, presetFor } from '../lib/model.js'
 import { americanToDecimal } from '../lib/odds.js'
 import { buildBackup, downloadBackup, restoreBackup, readBackupFile } from '../lib/backup.js'
-import { fmtSigned, fmtSpread, fmtMoney, fmtKickoff } from '../lib/format.js'
+import { fmtSigned, fmtSpread, fmtMoney, fmtKickoff, fmtPct } from '../lib/format.js'
 import { href } from '../lib/router.js'
+import { runBacktest, calibrationBuckets } from '../lib/backtest.js'
+import { SEASON_2025 } from '../data/season2025.js'
 import PLAYER_STATS_META from '../data/generated/player-stats-meta.json'
 
 /**
@@ -26,6 +28,8 @@ export default function ModelLabView({ data }) {
   const set = (key) => (value) => dispatch({ type: 'setting', key, value })
 
   const active = presetFor(settings)
+  const backtest = useMemo(() => runBacktest(SEASON_2025.results, {}, settings), [settings])
+  const buckets = useMemo(() => calibrationBuckets(backtest.games), [backtest.games])
 
   const qualified = useMemo(
     () => data.board.filter((p) => p.ev >= settings.minEdge),
@@ -425,6 +429,90 @@ export default function ModelLabView({ data }) {
         </section>
       </div>
 
+      <section className="panel" style={{ marginTop: 'var(--s4)' }}>
+        <div className="panel-head">
+          <div>
+            <div className="eyebrow">Backtest · real 2025 results</div>
+            <h2 style={{ fontSize: 'var(--t-lg)', marginTop: 4 }}>Did the model's pregame number match what happened?</h2>
+          </div>
+          <Badge tone="quiet">{backtest.games.length} games</Badge>
+        </div>
+        <div style={{ padding: 'var(--s4)' }}>
+          <p className="dim" style={{ fontSize: 12, marginTop: 0, maxWidth: '75ch' }}>
+            Every real, finished game currently bundled in this app — the 2025 Week 18 slate and the
+            full 2025 postseason, {backtest.games.length} games in total — replayed through this
+            exact model with the current settings. Each game is projected from only what was true
+            before it kicked off, then its real result updates the ratings for the next one; nothing
+            here has ever seen a game's own score before predicting it, and running it again produces
+            the identical numbers below. There is no bundled result from earlier in the 2025 season,
+            so every team starts this replay from a neutral rating rather than its real opening
+            strength — treat the first game or two each team plays here as the model knowing the
+            least about it, same as a real new season would.
+          </p>
+
+          {backtest.metrics ? (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 'var(--s3)', margin: 'var(--s4) 0' }}>
+                <Stat label="Winner accuracy" value={fmtPct(backtest.metrics.accuracy)} />
+                <Stat label="Brier score" value={backtest.metrics.brier.toFixed(3)} sub="lower is better · 0.25 = coin flip" />
+                <Stat label="Margin error (avg)" value={`${backtest.metrics.marginMae.toFixed(1)} pts`} />
+                <Stat label="Total error (avg)" value={`${backtest.metrics.totalMae.toFixed(1)} pts`} />
+              </div>
+
+              <div className="tbl-scroll">
+                <table className="tbl">
+                  <thead><tr>
+                    <th style={{ textAlign: 'left' }}>Model said home win %</th>
+                    <th>Games</th><th>Actual home win rate</th>
+                  </tr></thead>
+                  <tbody>
+                    {buckets.map((b) => (
+                      <tr key={b.lo}>
+                        <td style={{ textAlign: 'left' }} className="mono">{fmtPct(b.lo)}–{fmtPct(b.hi)}</td>
+                        <td className="num dim">{b.n}</td>
+                        <td className="num">{fmtPct(b.actualWinRate)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="dim" style={{ fontSize: 11, marginTop: 'var(--s3)', marginBottom: 0 }}>
+                A well-calibrated model's actual win rate tracks its own predicted range in every row.
+                With only {backtest.metrics.n} scored games each bucket is thin — read this as a direction,
+                not a verdict, until more real seasons are bundled.
+              </p>
+            </>
+          ) : (
+            <p className="dim" style={{ fontSize: 12 }}>No scoreable games in the bundled result set.</p>
+          )}
+
+          <div className="tbl-scroll" style={{ maxHeight: 320, overflowY: 'auto', marginTop: 'var(--s4)' }}>
+            <table className="tbl">
+              <thead><tr>
+                <th style={{ textAlign: 'left' }}>Game</th>
+                <th className="hide-sm">Round</th>
+                <th>Model margin</th><th>Actual margin</th><th>Win %</th><th>Correct</th>
+              </tr></thead>
+              <tbody>
+                {backtest.games.map((g) => (
+                  <tr key={g.gameId}>
+                    <td style={{ textAlign: 'left', fontSize: 11 }} className="mono">{g.away} @ {g.home}</td>
+                    <td className="dim hide-sm" style={{ fontSize: 11 }}>{g.round}</td>
+                    <td className="num model">{fmtSigned(g.predictedMargin)}</td>
+                    <td className="num">{fmtSigned(g.actualMargin)}</td>
+                    <td className="num dim">{fmtPct(g.predictedHomeWinProb)}</td>
+                    <td className="num">
+                      {g.correctWinner === null ? <span className="dim">—</span>
+                        : g.correctWinner ? <span className="pos">✓</span> : <span className="neg">✗</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
       <section className="panel" style={{ marginTop: 'var(--s4)', padding: 'var(--s5)' }}>
         <h2 style={{ fontSize: 'var(--t-base)', marginBottom: 'var(--s3)' }}>How the ratings were built</h2>
         <p className="dim" style={{ fontSize: 13, margin: 0, maxWidth: '70ch' }}>
@@ -464,6 +552,16 @@ const DEVIG_NOTES = {
   additive: 'Subtracts the margin evenly. Distorts longshots least at short prices.',
   power: 'Solves an exponent so probabilities sum to one. Handles longshot bias.',
   shin: 'Models the book\u2019s exposure to informed money. Usually closest to the true close.'
+}
+
+function Stat({ label, value, sub }) {
+  return (
+    <div style={{ padding: 'var(--s3)', border: '1px solid var(--line)', borderRadius: 'var(--r-md)' }}>
+      <div className="eyebrow" style={{ marginBottom: 4 }}>{label}</div>
+      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'var(--t-xl)' }}>{value}</div>
+      {sub && <div className="dim mono" style={{ fontSize: 11 }}>{sub}</div>}
+    </div>
+  )
 }
 
 function Explained({ title, note, children }) {
