@@ -10,6 +10,7 @@
     "preview": "vite preview --port 4173",
     "ratings": "node scripts/build-ratings.mjs",
     "player-stats": "node scripts/fetch-player-stats.mjs",
+    "team-efficiency": "node scripts/fetch-team-efficiency.mjs",
     "test": "vitest run",
     "lint": "eslint ."
   },

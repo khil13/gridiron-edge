@@ -13,9 +13,12 @@ import { applyResults, restDaysFor } from './ratings.js'
 import { load, save } from './storage.js'
 import { buildMarkets } from '../data/markets.js'
 import { projectGame, powerRankings } from './model.js'
+import { projectGameEpa, blendedSeasonEfficiency } from './epaModel.js'
+import { combineProjections } from './modelAgreement.js'
 import { computeEdges, consensusPlays } from './edges.js'
 import { useStore } from './store.jsx'
 import ratingsFile from '../data/generated/ratings.json'
+import teamEfficiencyFile from '../data/generated/team-efficiency.json'
 
 export function useSlate(oddsKey) {
   const [state, setState] = useState({ loading: true, games: [], warnings: [], source: 'bundled', label: '' })
@@ -108,14 +111,25 @@ export function useDataset() {
 
     const markets = slate.markets || buildMarkets(slate.games, project)
 
+    // A second, independent projection built entirely from real per-play
+    // EPA (see epaModel.js) rather than the Elo model's win/loss margins —
+    // genuinely different inputs, so where the two agree or disagree is a
+    // real signal rather than one model quoting itself twice.
+    const efficiencyTable = blendedSeasonEfficiency(teamEfficiencyFile.seasons, teamEfficiencyFile.latestSeason)
+    const projectEpa = (game) => (game.preseason ? null : projectGameEpa(game, efficiencyTable, settings))
+
     const games = slate.games.map((game) => {
       const projection = project(game)
+      const epaProjection = projectEpa(game)
+      const modelAgreement = combineProjections(projection, epaProjection, settings)
       const market = markets[game.id] || null
       const plays = market ? consensusPlays(game, market, projection, settings) : []
       const allPlays = market ? computeEdges(game, market, projection, settings) : []
       return {
         ...game,
         projection,
+        epaProjection,
+        modelAgreement,
         market,
         plays,
         topPlay: plays.find((p) => p.qualified) || plays[0] || null,
