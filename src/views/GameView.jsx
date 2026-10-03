@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import TeamMark from '../components/TeamMark.jsx'
 import EdgeRail from '../components/EdgeRail.jsx'
-import { WinProbChart, Sparkline, ProbBar, StatBar } from '../components/Charts.jsx'
+import { WinProbChart, Sparkline, ProbBar, StatBar, Histogram } from '../components/Charts.jsx'
 import { Tabs, Badge, Empty } from '../components/Controls.jsx'
 import { IconBack } from '../components/Icons.jsx'
 import { getTeam } from '../data/teams.js'
@@ -468,7 +468,74 @@ function ModelTab({ game, data }) {
         </table>
       </div>
       <ModelAgreementPanel game={game} />
+      <SimulationPanel game={game} />
+      <ConfidenceNote game={game} />
     </section>
+  )
+}
+
+/**
+ * Real Monte Carlo output (simulation.js) — thousands of simulated games
+ * from the same team totals the headline projection already uses, shown as
+ * a distribution rather than compressed back down to one number.
+ */
+function SimulationPanel({ game }) {
+  const sim = game.simulation
+  if (!sim) return null
+
+  const home = getTeam(game.home)
+  const away = getTeam(game.away)
+  const gap = sim.analyticalWinProb != null ? Math.abs(sim.homeWinProb - sim.analyticalWinProb) : null
+
+  return (
+    <div style={{ marginTop: 'var(--s4)', paddingTop: 'var(--s4)', borderTop: '1px solid var(--line)' }}>
+      <div className="eyebrow" style={{ marginBottom: 'var(--s3)' }}>
+        {sim.iterations.toLocaleString()} simulated games — real distribution, not one number
+      </div>
+      <div className="row gap-4" style={{ flexWrap: 'wrap' }}>
+        <div style={{ flex: '1 1 220px', minWidth: 200 }}>
+          <div className="dim" style={{ fontSize: 11, marginBottom: 4 }}>
+            Margin ({home.abbr} perspective) — median {fmtSigned(sim.margin.median)}, middle 50% {fmtSigned(sim.margin.p25)} to {fmtSigned(sim.margin.p75)}
+          </div>
+          <Histogram bins={sim.margin.histogram} markValue={0} markLabel="Pick'em" color={home.primary} />
+        </div>
+        <div style={{ flex: '1 1 220px', minWidth: 200 }}>
+          <div className="dim" style={{ fontSize: 11, marginBottom: 4 }}>
+            Total — median {sim.total.median}, middle 50% {sim.total.p25} to {sim.total.p75}
+          </div>
+          <Histogram bins={sim.total.histogram} color="var(--gold)" />
+        </div>
+      </div>
+      <p className="dim" style={{ fontSize: 11, margin: 'var(--s3) 0 0' }}>
+        Simulated win probability {fmtPct(sim.homeWinProb)} for {home.abbr} ({away.abbr} {fmtPct(sim.awayWinProb)}
+        {sim.pushProb > 0.005 ? `, ${fmtPct(sim.pushProb)} push` : ''}).
+        {gap != null && (
+          gap >= 0.02
+            ? ` The closed-form formula says ${fmtPct(sim.analyticalWinProb)} — a ${Math.round(gap * 100)}-point gap worth noting.`
+            : ` Matches the closed-form formula (${fmtPct(sim.analyticalWinProb)}) closely.`
+        )}
+      </p>
+    </div>
+  )
+}
+
+/** A plain statement of how much to trust this projection, and why — see confidence.js. */
+function ConfidenceNote({ game }) {
+  const c = game.confidence
+  if (!c) return null
+  const toneFor = { high: 'edge', medium: 'chalk', low: 'live' }[c.level]
+  const label = { high: 'High confidence', medium: 'Medium confidence', low: 'Low confidence' }[c.level]
+
+  return (
+    <div style={{ marginTop: 'var(--s4)', paddingTop: 'var(--s4)', borderTop: '1px solid var(--line)' }}>
+      <div className="row gap-3" style={{ alignItems: 'center', marginBottom: 'var(--s2)' }}>
+        <Badge tone={toneFor}>{label}</Badge>
+        <span className="dim" style={{ fontSize: 11 }}>in this projection</span>
+      </div>
+      <ul style={{ margin: 0, paddingLeft: 18, fontSize: 11 }} className="dim">
+        {c.factors.map((f) => <li key={f} style={{ marginBottom: 2 }}>{f}</li>)}
+      </ul>
+    </div>
   )
 }
 

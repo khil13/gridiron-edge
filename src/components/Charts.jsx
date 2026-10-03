@@ -77,6 +77,44 @@ export function ProbBar({ home, away, homeColor, awayColor }) {
   )
 }
 
+/**
+ * A simulated distribution — simulation.js's margin/total/score histograms
+ * — as vertical bars. A single projection number hides how much spread
+ * sits around it; this is the "show the distribution, not just one number"
+ * counterpart to that number.
+ */
+export function Histogram({ bins, markValue, markLabel, height = 90, color = 'var(--gold)' }) {
+  if (!bins?.length) return null
+  const max = Math.max(...bins.map((b) => b.count), 1)
+  const n = bins.length
+  const gap = 0.12
+  const barW = (100 / n) * (1 - gap)
+
+  const markX = markValue != null
+    ? (() => {
+        const lo = bins[0].lo
+        const hi = bins[bins.length - 1].hi
+        if (hi === lo) return null
+        return ((markValue - lo) / (hi - lo)) * 100
+      })()
+    : null
+
+  return (
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height }} role="img"
+         aria-label="Simulated distribution">
+      {bins.map((b, i) => {
+        const h = (b.count / max) * 92
+        const x = (i / n) * 100 + (100 / n) * (gap / 2)
+        return <rect key={b.lo} x={x} y={100 - h} width={barW} height={h} fill={readable(color)} opacity="0.55" />
+      })}
+      {markX != null && markX >= 0 && markX <= 100 && (
+        <line x1={markX} x2={markX} y1="0" y2="100" stroke="var(--bone)" strokeWidth="1.2"
+              vectorEffect="non-scaling-stroke" strokeDasharray="2 1.5" aria-label={markLabel} />
+      )}
+    </svg>
+  )
+}
+
 /** Head-to-head stat comparison row. */
 export function StatBar({ label, away, home, awayColor, homeColor, format = (v) => v }) {
   const total = Math.abs(away) + Math.abs(home) || 1
