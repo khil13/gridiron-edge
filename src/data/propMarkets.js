@@ -126,8 +126,9 @@ export function buildPropOffers({ game, proj, rosters, ratings }) {
   for (const player of rosters.players) {
     const teamPoints = player.team === game.home ? proj.homeTeamTotal : proj.awayTeamTotal
     const opponent = player.team === game.home ? game.away : game.home
+    const marginForTeam = player.team === game.home ? proj.margin : -proj.margin
     for (const marketDef of availableMarkets(player)) {
-      const v = projectVolume(player, marketDef, { teamPoints, teamAverage: teamAverage(player.team), opponent })
+      const v = projectVolume(player, marketDef, { teamPoints, teamAverage: teamAverage(player.team), opponent, marginForTeam })
       // A synthetic (positional-average) projection is not this player's own
       // rate — no genuine line can be built against it, live or simulated.
       if (!v || v.synthetic) continue

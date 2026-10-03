@@ -395,20 +395,46 @@ export const VOLUME_PRIORS = {
  * weeks), and it is left off entirely rather than guessed at when the
  * opponent has no games on record yet.
  *
- * Both adjustments are deliberately damped. Game totals and a single
- * defense's season rate both move more than any individual's share of
- * them, so passing either ratio through in full would overstate every
- * projection against a bad defense in a shootout and understate it against
- * a good one in a defensive game.
+ * A fourth, optional input layers on top of those: expected game script.
+ * Teams projected to trail throw more to catch up; teams projected to lead
+ * run more to shorten the game — a well-established, real NFL pattern, not
+ * a measurement of these specific teams (this app has no play-by-play with
+ * game state to measure pass-rate-over-expected directly). Built from the
+ * model's own projected margin, which is already real; the direction and
+ * rough size of the effect is general football knowledge, so it is kept
+ * small and clearly labelled as a modelling assumption rather than
+ * presented as data.
+ *
+ * All three adjustments are deliberately damped. Game totals, a single
+ * defense's season rate, and a projected margin all move more than any
+ * individual's share of them, so passing any of these ratios through in
+ * full would overstate every projection.
  */
 export const ENVIRONMENT_DAMPING = 0.6
 export const DEFENSE_DAMPING = 0.4
+export const GAME_SCRIPT_MAX_SWING = 0.15
+export const GAME_SCRIPT_MARGIN_CAP = 21 // a three-possession game; beyond this the script is already as lopsided as it gets
 
 const DEFENSE_SIDE = { rushingYards: 'rushing', receivingYards: 'receiving' }
+const GAME_SCRIPT_SIDE = {
+  passingYards: 'passing', passingAttempts: 'passing', receivingYards: 'passing', receptions: 'passing',
+  rushingYards: 'rushing', rushingAttempts: 'rushing'
+}
 
 const clampDefenseRatio = (r) => Math.max(0.8, Math.min(1.25, r))
+const clampGameScriptRatio = (r) => Math.max(1 - GAME_SCRIPT_MAX_SWING, Math.min(1 + GAME_SCRIPT_MAX_SWING, r))
 
-export function projectVolume(player, market, { teamPoints, teamAverage, opponent }) {
+/**
+ * -1 (big underdog) to +1 (big favorite), from this team's own projected
+ * margin (positive = projected to win by that much). Capped at a
+ * three-possession game — beyond that the script is already as lopsided as
+ * this model treats it, rather than letting a 35-point projection claim an
+ * even bigger effect than a 21-point one.
+ */
+const scriptRatio = (marginForTeam) =>
+  Math.max(-1, Math.min(1, marginForTeam / GAME_SCRIPT_MARGIN_CAP))
+
+export function projectVolume(player, market, { teamPoints, teamAverage, opponent, marginForTeam }) {
   const stats = player.stats
   const games = stats?.games
   const total = stats?.[market.stat]
@@ -436,7 +462,16 @@ export function projectVolume(player, market, { teamPoints, teamAverage, opponen
   const defense = side && opponent ? allowedYardsRatio(opponent, side) : null
   const defenseFactor = defense ? clampDefenseRatio(1 + (defense.ratio - 1) * DEFENSE_DAMPING) : 1
 
-  const mean = perGame * clampRatio(damped) * defenseFactor
+  const scriptSide = GAME_SCRIPT_SIDE[market.stat]
+  const hasScript = scriptSide && Number.isFinite(marginForTeam)
+  // Trailing (negative margin) favors the passing side and works against the
+  // rushing side; leading does the opposite.
+  const scriptDirection = scriptSide === 'passing' ? -1 : 1
+  const scriptFactor = hasScript
+    ? clampGameScriptRatio(1 + scriptDirection * scriptRatio(marginForTeam) * GAME_SCRIPT_MAX_SWING)
+    : 1
+
+  const mean = perGame * clampRatio(damped) * defenseFactor * scriptFactor
 
   return {
     market: market.key,
@@ -448,6 +483,7 @@ export function projectVolume(player, market, { teamPoints, teamAverage, opponen
     defense: defense
       ? { factor: round2(defenseFactor), rank: defense.rank, isPrior: defense.isPrior, season: defense.season, opponent }
       : null,
+    gameScript: hasScript ? { factor: round2(scriptFactor), marginForTeam: round1(marginForTeam) } : null,
     mean: round1(mean),
     variability: VARIABILITY[market.key] ?? null,
     /** @param {number} line */
@@ -527,7 +563,8 @@ export function volumePlaysForGame({ game, proj, rosters, offers, ratings }) {
 
     const teamPoints = player.team === game.home ? proj.homeTeamTotal : proj.awayTeamTotal
     const opponent = player.team === game.home ? game.away : game.home
-    const v = projectVolume(player, marketDef, { teamPoints, teamAverage: teamAverage(player.team), opponent })
+    const marginForTeam = player.team === game.home ? proj.margin : -proj.margin
+    const v = projectVolume(player, marketDef, { teamPoints, teamAverage: teamAverage(player.team), opponent, marginForTeam })
     if (!v || v.synthetic) continue
     const outcome = v.over(g.line)
     if (!outcome) continue
