@@ -1,11 +1,15 @@
 import { useState, useMemo } from 'react'
 import TeamMark from '../components/TeamMark.jsx'
 import { Segmented, Badge } from '../components/Controls.jsx'
-import { SEASON_2025 } from '../data/season2025.js'
-import { getTeam, DIVISIONS, CONFERENCES } from '../data/teams.js'
-import { fmtSigned, tint } from '../lib/format.js'
+import { StatBar } from '../components/Charts.jsx'
+import { SEASON_2025, recordOf } from '../data/season2025.js'
+import { TEAMS, getTeam, DIVISIONS, CONFERENCES } from '../data/teams.js'
+import { fmtSigned, fmtPct, tint } from '../lib/format.js'
 import { movers } from '../lib/ratings.js'
 import { href } from '../lib/router.js'
+import { useStore } from '../lib/store.jsx'
+import { projectGame } from '../lib/model.js'
+import { projectGameEpa } from '../lib/epaModel.js'
 
 /**
  * Teams.
@@ -26,7 +30,9 @@ import { href } from '../lib/router.js'
 export default function TeamsView({ data, initialView }) {
   // Addressable so the power table can be linked to directly, e.g. from
   // Model lab's explanation of where the ratings come from.
-  const [view, setView] = useState(initialView === 'power' ? 'power' : 'standings')
+  const [view, setView] = useState(
+    initialView === 'power' ? 'power' : initialView === 'compare' ? 'compare' : 'standings'
+  )
   const [conf, setConf] = useState('AFC')
 
   return (
@@ -36,9 +42,11 @@ export default function TeamsView({ data, initialView }) {
           <div className="eyebrow">
             {view === 'standings'
               ? `2025 final · ${SEASON_2025.champion} won Super Bowl LX`
-              : data.ratingsState?.applied
-                ? `Current ratings · ${data.ratingsState.applied} games replayed`
-                : '2026 opening ratings · all 32 ranked'}
+              : view === 'compare'
+                ? 'Head to head'
+                : data.ratingsState?.applied
+                  ? `Current ratings · ${data.ratingsState.applied} games replayed`
+                  : '2026 opening ratings · all 32 ranked'}
           </div>
           <h1 className="page-title">Teams</h1>
         </div>
@@ -49,7 +57,8 @@ export default function TeamsView({ data, initialView }) {
             onChange={setView}
             options={[
               { value: 'standings', label: 'Standings' },
-              { value: 'power', label: 'Power' }
+              { value: 'power', label: 'Power' },
+              { value: 'compare', label: 'Compare' }
             ]}
           />
           {view === 'standings' && (
@@ -63,7 +72,9 @@ export default function TeamsView({ data, initialView }) {
         </div>
       </header>
 
-      {view === 'standings' ? <Standings conf={conf} data={data} /> : <Power data={data} />}
+      {view === 'standings' ? <Standings conf={conf} data={data} />
+        : view === 'power' ? <Power data={data} />
+        : <Compare data={data} />}
     </div>
   )
 }
@@ -261,6 +272,165 @@ function Power({ data }) {
         <span className="mono" style={{ color: 'var(--gold)' }}>npm run ratings</span>, and tune
         how they convert to a spread under <a href={href('model')} style={{ color: 'var(--gold)' }}>Model lab</a>.
       </p>
+    </>
+  )
+}
+
+/* ---------- Compare: any two teams, head to head ---------- */
+
+const TEAM_OPTIONS = Object.values(TEAMS).sort((a, b) => a.full.localeCompare(b.full))
+
+function Compare({ data }) {
+  const { settings } = useStore()
+  const [teamA, setTeamA] = useState(data.rankings[0]?.abbr ?? 'KC')
+  const [teamB, setTeamB] = useState(data.rankings[1]?.abbr ?? 'BUF')
+  const [site, setSite] = useState('neutral')
+
+  const a = getTeam(teamA)
+  const b = getTeam(teamB)
+  const ratingA = data.ratings[teamA]
+  const ratingB = data.ratings[teamB]
+  const effA = data.efficiencyTable?.[teamA]
+  const effB = data.efficiencyTable?.[teamB]
+  const recA = recordOf(teamA)
+  const recB = recordOf(teamB)
+
+  const matchup = useMemo(() => {
+    const homeAbbr = site === 'b' ? teamB : teamA
+    const awayAbbr = site === 'b' ? teamA : teamB
+    const neutral = site === 'neutral'
+    const game = { home: homeAbbr, away: awayAbbr, neutral, homeRestDays: 7, awayRestDays: 7 }
+    return {
+      homeAbbr,
+      awayAbbr,
+      elo: projectGame(game, data.ratings, settings),
+      epa: data.efficiencyTable ? projectGameEpa(game, data.efficiencyTable, settings) : null
+    }
+  }, [teamA, teamB, site, data.ratings, data.efficiencyTable, settings])
+
+  const rows = [
+    { label: 'Power rating (vs average)', va: ratingA?.pointsVsAverage, vb: ratingB?.pointsVsAverage, fmt: fmtSigned },
+    { label: 'Points per game', va: ratingA?.ppg, vb: ratingB?.ppg, fmt: (v) => v.toFixed(1) },
+    { label: 'Points allowed per game', va: ratingA?.papg, vb: ratingB?.papg, fmt: (v) => v.toFixed(1) },
+    { label: 'EPA per play, offense', va: effA?.epaPerPlayOff, vb: effB?.epaPerPlayOff, fmt: (v) => v.toFixed(3) },
+    { label: 'EPA per play, defense', va: effA?.epaPerPlayDef, vb: effB?.epaPerPlayDef, fmt: (v) => v.toFixed(3) },
+    { label: 'Success rate, offense', va: effA?.successRateOff, vb: effB?.successRateOff, fmt: (v) => fmtPct(v, 0) },
+    { label: 'Red zone TD rate', va: effA?.redZoneTdRateOff, vb: effB?.redZoneTdRateOff, fmt: (v) => fmtPct(v, 0) },
+    { label: 'Third down rate, offense', va: effA?.thirdDownRateOff, vb: effB?.thirdDownRateOff, fmt: (v) => fmtPct(v, 0) }
+  ].filter((r) => r.va != null && r.vb != null)
+
+  return (
+    <>
+      <section className="panel" style={{ marginBottom: 'var(--s4)' }}>
+        <div style={{ padding: 'var(--s4)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--s3)' }}>
+          <div className="field">
+            <label><span>Team A</span></label>
+            <select value={teamA} onChange={(e) => setTeamA(e.target.value)}>
+              {TEAM_OPTIONS.map((t) => <option key={t.abbr} value={t.abbr}>{t.full}</option>)}
+            </select>
+          </div>
+          <div className="field">
+            <label><span>Team B</span></label>
+            <select value={teamB} onChange={(e) => setTeamB(e.target.value)}>
+              {TEAM_OPTIONS.map((t) => <option key={t.abbr} value={t.abbr}>{t.full}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div className="row" style={{ padding: '0 var(--s4) var(--s4)', justifyContent: 'space-between' }}>
+          <a href={href(`team/${teamA}`)} className="row gap-3">
+            <TeamMark abbr={teamA} size={28} />
+            <span>
+              <span className="team-name" style={{ display: 'block' }}>{a.full}</span>
+              {recA && <span className="dim mono" style={{ fontSize: 11 }}>{recA.w}-{recA.l} · {recA.result}</span>}
+            </span>
+          </a>
+          <a href={href(`team/${teamB}`)} className="row gap-3" style={{ flexDirection: 'row-reverse', textAlign: 'right' }}>
+            <TeamMark abbr={teamB} size={28} />
+            <span>
+              <span className="team-name" style={{ display: 'block' }}>{b.full}</span>
+              {recB && <span className="dim mono" style={{ fontSize: 11 }}>{recB.w}-{recB.l} · {recB.result}</span>}
+            </span>
+          </a>
+        </div>
+      </section>
+
+      {teamA === teamB ? (
+        <p className="dim" style={{ fontSize: 12 }}>Pick two different teams to compare.</p>
+      ) : (
+        <>
+          <section className="panel" style={{ marginBottom: 'var(--s4)' }}>
+            <div className="panel-head">
+              <h2 style={{ fontSize: 'var(--t-base)' }}>Stat for stat</h2>
+              <span className="eyebrow">Real, bundled data</span>
+            </div>
+            <div style={{ padding: 'var(--s4)', display: 'grid', gap: 'var(--s3)' }}>
+              {rows.map((r) => (
+                <StatBar
+                  key={r.label}
+                  label={r.label}
+                  away={r.va}
+                  home={r.vb}
+                  awayColor={a.primary}
+                  homeColor={b.primary}
+                  format={r.fmt}
+                />
+              ))}
+              {!rows.length && (
+                <p className="dim" style={{ fontSize: 12, margin: 0 }}>No comparable stats available for one of these teams yet.</p>
+              )}
+            </div>
+          </section>
+
+          <section className="panel">
+            <div className="panel-head">
+              <div>
+                <div className="eyebrow">If they played</div>
+                <h2 style={{ fontSize: 'var(--t-base)', marginTop: 4 }}>Model projection</h2>
+              </div>
+              <Segmented
+                label="Site"
+                value={site}
+                onChange={setSite}
+                options={[
+                  { value: 'neutral', label: 'Neutral' },
+                  { value: 'a', label: `${teamA} home` },
+                  { value: 'b', label: `${teamB} home` }
+                ]}
+              />
+            </div>
+            <div style={{ padding: 'var(--s4)', display: 'grid', gap: 'var(--s3)' }}>
+              {matchup.elo ? (
+                <p style={{ margin: 0, fontSize: 13 }}>
+                  <strong>Power rating model:</strong>{' '}
+                  {matchup.elo.margin >= 0 ? matchup.homeAbbr : matchup.awayAbbr} favoured by{' '}
+                  {Math.abs(matchup.elo.margin).toFixed(1)} over{' '}
+                  {matchup.elo.margin >= 0 ? matchup.awayAbbr : matchup.homeAbbr}
+                  {' '}({fmtPct(matchup.elo.margin >= 0 ? matchup.elo.homeWinProb : matchup.elo.awayWinProb)} win probability),
+                  projected total {matchup.elo.total.toFixed(1)}.
+                </p>
+              ) : (
+                <p className="dim" style={{ fontSize: 12, margin: 0 }}>No power rating available for this matchup.</p>
+              )}
+              {matchup.epa ? (
+                <p style={{ margin: 0, fontSize: 13 }}>
+                  <strong>EPA model:</strong>{' '}
+                  {matchup.epa.margin >= 0 ? matchup.homeAbbr : matchup.awayAbbr} favoured by{' '}
+                  {Math.abs(matchup.epa.margin).toFixed(1)} over{' '}
+                  {matchup.epa.margin >= 0 ? matchup.awayAbbr : matchup.homeAbbr}
+                  {' '}({fmtPct(matchup.epa.margin >= 0 ? matchup.epa.homeWinProb : matchup.epa.awayWinProb)} win probability).
+                </p>
+              ) : (
+                <p className="dim" style={{ fontSize: 12, margin: 0 }}>No EPA data available for this matchup.</p>
+              )}
+              <p className="dim" style={{ fontSize: 11, margin: 0 }}>
+                A hypothetical matchup built from each team&apos;s current rating — not a scheduled game, and not
+                shown anywhere else in the app as a real projection.
+              </p>
+            </div>
+          </section>
+        </>
+      )}
     </>
   )
 }
