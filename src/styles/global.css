@@ -641,6 +641,14 @@ table.tbl td.num { font-family: var(--font-mono); }
 @media (max-width: 860px) {
   :root { --shell-max: 100%; }
   .page { padding: var(--s4) var(--s3) 96px; }
+  /* The bottom padding above only guards the very end of a page. The fixed
+     nav rail below also sits over whatever the browser scrolls to the
+     bottom edge mid-page — a keyboard user tabbing to a focusable element,
+     or any future in-page anchor jump — since nothing otherwise reserves
+     its height as scroll space. Confirmed live: without this, scrolling an
+     element into view that lands at the viewport's bottom edge put it
+     genuinely behind the nav bar, not just visually crowded. */
+  html { scroll-padding-bottom: 80px; }
   .page-title { font-size: var(--t-xl); }
   .card-grid { grid-template-columns: 1fr; gap: var(--s3); }
 
