@@ -251,8 +251,19 @@ export function minutesRemaining(period, clock) {
   return Math.max(0, (4 - period) * 15 + inQuarter)
 }
 
+// A red-zone possession scores on the clear majority of real NFL drives —
+// a field goal at worst, a touchdown often. That is real, well-established
+// signal, but this app has no play-by-play feed to fit a proper
+// field-position expected-points curve from (the kind real win-probability
+// models use), so rather than guess at one from a single yard-line number
+// whose exact convention isn't safe to assume, only the one situation that
+// is unambiguous regardless of that convention — red zone or not — moves
+// the number, and only by a small, fixed amount.
+const REDZONE_POSSESSION_POINTS = 2
+
 /**
- * Live win probability from the score and the clock.
+ * Live win probability from the score, the clock, and — when available —
+ * who is driving and where.
  *
  * The pregame number stops being true the moment a game kicks off, and
  * leaving it on screen while a team leads by ten is worse than showing
@@ -264,14 +275,25 @@ export function minutesRemaining(period, clock) {
  * worth far more with five minutes left than with fifty, and the square root
  * is what encodes that.
  *
- * It does not know about possession, timeouts, or field position, so it is
- * least reliable in exactly the situations people care most about — a
- * one-score game inside two minutes.
+ * It still does not know about timeouts or down-and-distance outside the
+ * red zone, so it is still least reliable in exactly the situations people
+ * care most about — a one-score game inside two minutes with the ball
+ * between the 20s.
+ *
+ * @param {{isRedZone: boolean, possessionSide: 'home'|'away'|null}|null} situation
+ *   From espnProvider.js's parseSituation(), translated to home/away by the
+ *   caller (this function stays score-only otherwise, so it does not need
+ *   to know either team's real abbreviation).
  */
-export function liveWinProbability(homeScore, awayScore, period, clock, pregameMargin, s = DEFAULT_SETTINGS) {
+export function liveWinProbability(homeScore, awayScore, period, clock, pregameMargin, s = DEFAULT_SETTINGS, situation = null) {
   const left = minutesRemaining(period, clock)
   const fraction = Math.max(0, Math.min(1, left / 60))
-  const current = (homeScore ?? 0) - (awayScore ?? 0)
+  let current = (homeScore ?? 0) - (awayScore ?? 0)
+
+  const redZonePossession = !!(situation?.isRedZone && situation?.possessionSide)
+  if (redZonePossession) {
+    current += situation.possessionSide === 'home' ? REDZONE_POSSESSION_POINTS : -REDZONE_POSSESSION_POINTS
+  }
 
   // What is still to come, if the teams play to their projection.
   const expectedRest = pregameMargin * fraction
@@ -285,6 +307,7 @@ export function liveWinProbability(homeScore, awayScore, period, clock, pregameM
     home: Math.min(0.999, Math.max(0.001, p)),
     away: Math.min(0.999, Math.max(0.001, 1 - p)),
     minutesLeft: Math.round(left * 10) / 10,
+    redZonePossession,
     // A game inside two minutes and one score turns on things this cannot
     // see, so the UI can soften the claim.
     lowConfidence: left < 2 && Math.abs(current) <= 8
