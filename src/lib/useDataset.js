@@ -215,7 +215,13 @@ export function useDataset() {
       board,
       simulatedPrices: !slate.markets,
       oddsMeta: slate.oddsMeta ?? null,
-      dataMode
+      dataMode,
+      // This season's real finished games (not the bundled 2025 sample) —
+      // already fetched for the ratings replay above, reused here so
+      // ModelLabView can backtest the model against what has actually
+      // happened so far this season without a second fetch.
+      seasonResults: current.games ?? [],
+      season
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- historyTick isn't read directly; it forces this memo to re-run getHistory() after a new real snapshot lands.
   }, [slate, settings, current, historyTick])
@@ -377,7 +383,7 @@ export function useCurrentRatings(opening, settings, source, season, throughWeek
   return useMemo(() => {
     if (!fetchState.games) {
       return {
-        loading: fetchState.loading, ratings: opening, applied: 0,
+        loading: fetchState.loading, ratings: opening, applied: 0, games: [],
         error: fetchState.error, live: fetchState.live, asOf: fetchState.asOf
       }
     }
@@ -387,6 +393,11 @@ export function useCurrentRatings(opening, settings, source, season, throughWeek
       ratings: replayed.ratings,
       applied: replayed.applied,
       history: replayed.history,
+      // The real finished games themselves (home/away/kickoff/scores), not
+      // just what applyResults() derived from them — a live, in-season
+      // backtest (ModelLabView.jsx) needs the raw games to re-project each
+      // one pregame, which applyResults()'s own `history` doesn't carry.
+      games: fetchState.games,
       error: fetchState.error,
       live: fetchState.live,
       asOf: fetchState.asOf
