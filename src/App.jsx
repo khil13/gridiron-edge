@@ -1,14 +1,21 @@
+import { lazy, Suspense } from 'react'
 import { useRoute } from './lib/router.js'
 import { useDataset } from './lib/useDataset.js'
 import AppShell from './components/AppShell.jsx'
 import ScoresView from './views/ScoresView.jsx'
-import GameView from './views/GameView.jsx'
-import CardView from './views/CardView.jsx'
-import OddsBoardView from './views/OddsBoardView.jsx'
-import TeamsView from './views/TeamsView.jsx'
-import TeamView from './views/TeamView.jsx'
-import ModelLabView from './views/ModelLabView.jsx'
 import { Empty } from './components/Controls.jsx'
+
+// Scores is the landing page — nearly every visit hits it, so it stays in
+// the main bundle. Everything else is a tap away at the earliest, so it is
+// only fetched once a visitor actually asks for it: Model Lab's internals
+// and the per-game props/model panels are real weight (projections,
+// simulation, charts) that most visits never touch at all.
+const GameView = lazy(() => import('./views/GameView.jsx'))
+const CardView = lazy(() => import('./views/CardView.jsx'))
+const OddsBoardView = lazy(() => import('./views/OddsBoardView.jsx'))
+const TeamsView = lazy(() => import('./views/TeamsView.jsx'))
+const TeamView = lazy(() => import('./views/TeamView.jsx'))
+const ModelLabView = lazy(() => import('./views/ModelLabView.jsx'))
 
 export default function App() {
   const route = useRoute()
@@ -23,7 +30,9 @@ export default function App() {
       {data.loading ? (
         <div className="page"><Empty title="Loading the slate">Pulling games, ratings and prices.</Empty></div>
       ) : (
-        <Router route={route} data={data} />
+        <Suspense fallback={<div className="page"><Empty title="Loading">Pulling this page's own code.</Empty></div>}>
+          <Router route={route} data={data} />
+        </Suspense>
       )}
     </AppShell>
   )
