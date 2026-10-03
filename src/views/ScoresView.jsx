@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import GameCard from '../components/GameCard.jsx'
 import { Tabs, Empty, Badge } from '../components/Controls.jsx'
 import { fmtDay, dayKey, relativeDay, fmtOdds } from '../lib/format.js'
+import { getTeam } from '../data/teams.js'
 import { href } from '../lib/router.js'
 
 /**
@@ -11,17 +12,35 @@ import { href } from '../lib/router.js'
  */
 export default function ScoresView({ data }) {
   const [filter, setFilter] = useState('all')
+  const [search, setSearch] = useState('')
+
+  // Matches an abbreviation, a city, or a nickname — "chi", "bears" and
+  // "chicago" all find the same game, since nobody reliably remembers which
+  // of those the app expects.
+  const searched = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return data.games
+    const teamMatches = (abbr) => {
+      const team = getTeam(abbr)
+      return (
+        abbr.toLowerCase().includes(q) ||
+        team.location.toLowerCase().includes(q) ||
+        team.name.toLowerCase().includes(q)
+      )
+    }
+    return data.games.filter((g) => teamMatches(g.home) || teamMatches(g.away))
+  }, [data.games, search])
 
   const counts = useMemo(() => ({
-    all: data.games.length,
-    live: data.games.filter((g) => g.status === 'live').length,
-    scheduled: data.games.filter((g) => g.status === 'scheduled').length,
-    final: data.games.filter((g) => g.status === 'final').length
-  }), [data.games])
+    all: searched.length,
+    live: searched.filter((g) => g.status === 'live').length,
+    scheduled: searched.filter((g) => g.status === 'scheduled').length,
+    final: searched.filter((g) => g.status === 'final').length
+  }), [searched])
 
   const visible = useMemo(
-    () => (filter === 'all' ? data.games : data.games.filter((g) => g.status === filter)),
-    [data.games, filter]
+    () => (filter === 'all' ? searched : searched.filter((g) => g.status === filter)),
+    [searched, filter]
   )
 
   const byDay = useMemo(() => {
@@ -50,16 +69,29 @@ export default function ScoresView({ data }) {
           </div>
           <h1 className="page-title">Scores</h1>
         </div>
-        <Tabs
-          value={filter}
-          onChange={setFilter}
-          tabs={[
-            { value: 'all', label: 'All', count: counts.all },
-            { value: 'live', label: 'Live', count: counts.live },
-            { value: 'scheduled', label: 'Upcoming', count: counts.scheduled },
-            { value: 'final', label: 'Final', count: counts.final }
-          ]}
-        />
+        <div className="row gap-3" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div className="field" style={{ minWidth: 160 }}>
+            <label><span>Find a team</span></label>
+            <input
+              type="text"
+              placeholder="Bears, CHI, Chicago..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              autoComplete="off"
+              spellCheck="false"
+            />
+          </div>
+          <Tabs
+            value={filter}
+            onChange={setFilter}
+            tabs={[
+              { value: 'all', label: 'All', count: counts.all },
+              { value: 'live', label: 'Live', count: counts.live },
+              { value: 'scheduled', label: 'Upcoming', count: counts.scheduled },
+              { value: 'final', label: 'Final', count: counts.final }
+            ]}
+          />
+        </div>
       </header>
 
       {data.warnings?.map((w) => {
@@ -117,12 +149,14 @@ export default function ScoresView({ data }) {
       )}
 
       {byDay.length === 0 && (
-        <Empty title={filter === 'live' ? 'Nothing in progress right now' : 'No games match that filter'}>
-          {filter === 'live'
-            ? data.source === 'espn'
-              ? 'Scores are coming from ESPN and no game is currently being played. This page refreshes itself while a game is live.'
-              : 'This build is showing the bundled slate, which has fixed results and never goes live.'
-            : 'Try the All tab, or check back when the next slate posts.'}
+        <Empty title={search.trim() ? `No match for "${search.trim()}"` : filter === 'live' ? 'Nothing in progress right now' : 'No games match that filter'}>
+          {search.trim()
+            ? 'Try a team’s city, name, or abbreviation — or clear the search to see the full slate.'
+            : filter === 'live'
+              ? data.source === 'espn'
+                ? 'Scores are coming from ESPN and no game is currently being played. This page refreshes itself while a game is live.'
+                : 'This build is showing the bundled slate, which has fixed results and never goes live.'
+              : 'Try the All tab, or check back when the next slate posts.'}
         </Empty>
       )}
 
