@@ -103,6 +103,15 @@ export const poissonPush = (lambda, line) =>
 /* ---------- Player projections ---------- */
 
 /**
+ * The real, official NFL designation for "will not play this game" — not
+ * Questionable or Doubtful, which the roster feed's own comment already
+ * notes might still suit up. Shared by the touchdown pool (below) and the
+ * volume table (PropsTab.jsx) so a ruled-out player is dropped from both
+ * the same way, from the same signal.
+ */
+export const isRuledOut = (status) => /^out$/i.test(String(status || '').trim())
+
+/**
  * Project every listed player's anytime-touchdown probability.
  *
  * @param {Array}  players  [{ id, name, team, role, tds }]
@@ -284,6 +293,9 @@ export const normPropName = (n) =>
  * (bankroll, Kelly fraction) this module has no business knowing about.
  */
 export function analyseAnytimeTouchdowns({ game, proj, rosters, props }) {
+  // teamTds/games are season history — a ruled-out player's real games
+  // played while healthy still belong in that total, so these are computed
+  // from the full roster, not the pool he's about to be dropped from below.
   const homeGames = teamGameData(rosters.players, game.home)
   const awayGames = teamGameData(rosters.players, game.away)
   const teamCtx = {
@@ -291,9 +303,17 @@ export function analyseAnytimeTouchdowns({ game, proj, rosters, props }) {
     [game.away]: { expectedTds: expectedTouchdowns(proj.awayTeamTotal), ...awayGames }
   }
 
+  // A player ruled out cannot score. Dropping him from the pool before
+  // projecting — rather than projecting him anyway and only flagging it in
+  // the UI afterward — lets normaliseField's existing per-team rescale do
+  // the honest thing: the teammates who are actually playing pick up his
+  // vacated share of the team's expected touchdowns, the same real
+  // mechanism that already keeps the field summing to expectedTds.
+  const available = rosters.players.filter((p) => !isRuledOut(p.injury))
+
   const projected = normaliseField(
     projectAnytimeTouchdowns(
-      rosters.players.map((p) => ({ ...p, tds: p.tds ?? 0 })),
+      available.map((p) => ({ ...p, tds: p.tds ?? 0 })),
       teamCtx
     ),
     teamCtx
@@ -558,6 +578,10 @@ export function volumePlaysForGame({ game, proj, rosters, offers, ratings }) {
     if (g.over == null || g.under == null) continue
     const player = byPlayer.get(normPropName(g.player))
     if (!player) continue
+    // A book slow to pull a scratched player's line is still pricing a
+    // player who cannot play — no genuine edge exists against that, real
+    // price or not.
+    if (isRuledOut(player.injury)) continue
     const marketDef = VOLUME_MARKETS.find((m) => m.key === g.market)
     if (!marketDef) continue
 
