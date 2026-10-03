@@ -19,6 +19,7 @@
  */
 
 import { expectedValue, impliedProb, devig } from './odds.js'
+import { allowedYardsRatio } from './teamDefense.js'
 
 /**
  * Points to touchdowns.
@@ -382,20 +383,32 @@ export const VOLUME_PRIORS = {
 /**
  * Project a player's volume statistic for one game.
  *
- * Two inputs, both real: the player's per-game rate this season, and how
- * this game's environment compares with the games behind that rate. A
- * receiver on a team projected for 30 points against a season average of 20
- * gets scaled up, because more possessions and more scoring means more
- * production to go around.
+ * Three inputs, all real: the player's per-game rate this season, how this
+ * game's environment compares with the games behind that rate, and — for
+ * rushing and receiving yards, the only sides team-defense.json actually
+ * covers — how this specific opponent's real defense has fared against
+ * that side of the ball this season. A receiver facing a defense that
+ * allows well above the league average on that side gets scaled up; one
+ * facing a stingy defense gets scaled down. This is the real, bundled
+ * version of "history vs the team they're playing" — the opponent's own
+ * games, not this one player's (too thin a sample to mean anything most
+ * weeks), and it is left off entirely rather than guessed at when the
+ * opponent has no games on record yet.
  *
- * The environment adjustment is deliberately damped. Game totals move more
- * than any individual's share of them, so passing the full ratio through
- * would overstate every projection in a shootout and understate it in a
- * defensive game.
+ * Both adjustments are deliberately damped. Game totals and a single
+ * defense's season rate both move more than any individual's share of
+ * them, so passing either ratio through in full would overstate every
+ * projection against a bad defense in a shootout and understate it against
+ * a good one in a defensive game.
  */
 export const ENVIRONMENT_DAMPING = 0.6
+export const DEFENSE_DAMPING = 0.4
 
-export function projectVolume(player, market, { teamPoints, teamAverage }) {
+const DEFENSE_SIDE = { rushingYards: 'rushing', receivingYards: 'receiving' }
+
+const clampDefenseRatio = (r) => Math.max(0.8, Math.min(1.25, r))
+
+export function projectVolume(player, market, { teamPoints, teamAverage, opponent }) {
   const stats = player.stats
   const games = stats?.games
   const total = stats?.[market.stat]
@@ -418,7 +431,12 @@ export function projectVolume(player, market, { teamPoints, teamAverage }) {
 
   const ratio = teamAverage > 0 ? teamPoints / teamAverage : 1
   const damped = 1 + (ratio - 1) * ENVIRONMENT_DAMPING
-  const mean = perGame * clampRatio(damped)
+
+  const side = DEFENSE_SIDE[market.stat]
+  const defense = side && opponent ? allowedYardsRatio(opponent, side) : null
+  const defenseFactor = defense ? clampDefenseRatio(1 + (defense.ratio - 1) * DEFENSE_DAMPING) : 1
+
+  const mean = perGame * clampRatio(damped) * defenseFactor
 
   return {
     market: market.key,
@@ -427,6 +445,9 @@ export function projectVolume(player, market, { teamPoints, teamAverage }) {
     games: games ?? 0,
     synthetic,
     environment: round2(damped),
+    defense: defense
+      ? { factor: round2(defenseFactor), rank: defense.rank, isPrior: defense.isPrior, season: defense.season, opponent }
+      : null,
     mean: round1(mean),
     variability: VARIABILITY[market.key] ?? null,
     /** @param {number} line */
@@ -505,7 +526,8 @@ export function volumePlaysForGame({ game, proj, rosters, offers, ratings }) {
     if (!marketDef) continue
 
     const teamPoints = player.team === game.home ? proj.homeTeamTotal : proj.awayTeamTotal
-    const v = projectVolume(player, marketDef, { teamPoints, teamAverage: teamAverage(player.team) })
+    const opponent = player.team === game.home ? game.away : game.home
+    const v = projectVolume(player, marketDef, { teamPoints, teamAverage: teamAverage(player.team), opponent })
     if (!v || v.synthetic) continue
     const outcome = v.over(g.line)
     if (!outcome) continue

@@ -17,15 +17,7 @@
  */
 
 import { ordinal } from './format.js'
-import TEAM_DEFENSE from '../data/generated/team-defense.json'
-
-/** A team's allowed-production stats, preferring this season, falling back one year. */
-function defenseStatsFor(team) {
-  const current = TEAM_DEFENSE.seasons?.[TEAM_DEFENSE.latestSeason]?.[team]
-  if (current?.games > 0) return { data: current, isPrior: false }
-  const prior = TEAM_DEFENSE.seasons?.[TEAM_DEFENSE.latestSeason - 1]?.[team]
-  return prior?.games > 0 ? { data: prior, isPrior: true } : null
-}
+import { defenseStatsFor } from './teamDefense.js'
 
 /** Which side of the ball a position's production comes from. */
 const sideFor = (positionGroup) =>
