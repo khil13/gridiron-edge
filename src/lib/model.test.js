@@ -140,4 +140,30 @@ describe('liveWinProbability', () => {
     const { home, away } = liveWinProbability(10, 24, 3, '5:00', -2, DEFAULT_SETTINGS)
     expect(home + away).toBeCloseTo(1, 6)
   })
+
+  it('is unaffected by a missing or empty situation (default stays backward compatible)', () => {
+    const base = liveWinProbability(14, 14, 2, '7:00', 0, DEFAULT_SETTINGS)
+    const explicitNull = liveWinProbability(14, 14, 2, '7:00', 0, DEFAULT_SETTINGS, null)
+    const noPossession = liveWinProbability(14, 14, 2, '7:00', 0, DEFAULT_SETTINGS, { isRedZone: true, possessionSide: null })
+    expect(explicitNull.home).toBe(base.home)
+    expect(noPossession.home).toBe(base.home)
+    expect(base.redZonePossession).toBe(false)
+  })
+
+  it('favours whichever side is actually driving in the red zone, tied game otherwise', () => {
+    const homeDriving = liveWinProbability(14, 14, 2, '7:00', 0, DEFAULT_SETTINGS, { isRedZone: true, possessionSide: 'home' })
+    const awayDriving = liveWinProbability(14, 14, 2, '7:00', 0, DEFAULT_SETTINGS, { isRedZone: true, possessionSide: 'away' })
+    expect(homeDriving.home).toBeGreaterThan(0.5)
+    expect(awayDriving.home).toBeLessThan(0.5)
+    // Symmetric around a coin flip since the game itself is dead even.
+    expect(homeDriving.home + awayDriving.home).toBeCloseTo(1, 6)
+    expect(homeDriving.redZonePossession).toBe(true)
+  })
+
+  it('does not adjust for possession outside the red zone', () => {
+    const base = liveWinProbability(14, 14, 2, '7:00', 0, DEFAULT_SETTINGS)
+    const midfield = liveWinProbability(14, 14, 2, '7:00', 0, DEFAULT_SETTINGS, { isRedZone: false, possessionSide: 'home' })
+    expect(midfield.home).toBe(base.home)
+    expect(midfield.redZonePossession).toBe(false)
+  })
 })

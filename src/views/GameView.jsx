@@ -28,14 +28,23 @@ export default function GameView({ game, data }) {
   const isLive = game.status === 'live'
   const proj = game.projection
 
+  // Fetched once here (rather than inside StatsTab) so the live win
+  // probability above can use the real possession/red-zone situation too,
+  // not just whichever tab happens to be open.
+  const gameSummary = useGameSummary(game, data.source)
+  const situation = gameSummary.summary?.situation ?? null
+  const possessionSide =
+    situation?.possession === game.home ? 'home' : situation?.possession === game.away ? 'away' : null
+
   // A pregame probability left on screen during a live game reads as a
   // current estimate, which is worse than showing nothing.
   const live = useMemo(() => {
     if (!isLive || !proj) return null
     return liveWinProbability(
-      game.homeScore, game.awayScore, game.period, game.clock, proj.margin, settings
+      game.homeScore, game.awayScore, game.period, game.clock, proj.margin, settings,
+      situation ? { isRedZone: situation.isRedZone, possessionSide } : null
     )
-  }, [isLive, proj, game.homeScore, game.awayScore, game.period, game.clock, settings])
+  }, [isLive, proj, game.homeScore, game.awayScore, game.period, game.clock, settings, situation, possessionSide])
 
   const path = useMemo(() => {
     if (!isFinal || !proj) return null
@@ -104,10 +113,16 @@ export default function GameView({ game, data }) {
               homeColor={home.primary}
               awayColor={away.primary}
             />
+            {live?.redZonePossession && (
+              <p className="dim" style={{ fontSize: 11, marginBottom: 0, marginTop: 6 }}>
+                {possessionSide === 'home' ? home.abbr : away.abbr} has the ball in the red zone — the
+                number above is nudged toward them for it.
+              </p>
+            )}
             {live?.lowConfidence && (
               <p className="dim" style={{ fontSize: 11, marginBottom: 0, marginTop: 6 }}>
-                One score inside two minutes turns on possession, timeouts and field position,
-                none of which this sees. Treat the number loosely.
+                One score inside two minutes turns on timeouts and exact field position outside the
+                red zone, neither of which this sees. Treat the number loosely.
               </p>
             )}
           </div>
@@ -128,7 +143,7 @@ export default function GameView({ game, data }) {
 
       <div style={{ marginTop: 'var(--s4)' }}>
         {tab === 'overview' && <Overview game={game} path={path} data={data} />}
-        {tab === 'stats' && <StatsTab game={game} data={data} />}
+        {tab === 'stats' && <StatsTab game={game} data={data} gameSummary={gameSummary} />}
         {tab === 'props' && <PropsTab game={game} data={data} />}
         {tab === 'odds' && <OddsTab game={game} />}
         {tab === 'model' && <ModelTab game={game} data={data} />}
@@ -632,8 +647,10 @@ function weatherRow({ roof, weather, loading, error }) {
  * has not filled a section in yet, that block is omitted rather than shown
  * empty or faked.
  */
-function StatsTab({ game, data }) {
-  const { loading, summary, error } = useGameSummary(game, data.source)
+function StatsTab({ game, data, gameSummary }) {
+  // Fetched once by the parent GameView (the live win probability header
+  // needs the same situation data), passed down rather than re-fetched.
+  const { loading, summary, error } = gameSummary
   const home = getTeam(game.home)
   const away = getTeam(game.away)
 
