@@ -239,8 +239,9 @@ function analyse({ game, proj, settings, ratings, rosters, props, entered = {} }
     const teamPoints = p.team === game.home ? proj.homeTeamTotal : proj.awayTeamTotal
     const teamAverage = teamAverages[p.team] ?? 22
     const opponent = p.team === game.home ? game.away : game.home
+    const marginForTeam = p.team === game.home ? proj.margin : -proj.margin
     for (const market of availableMarkets(p)) {
-      const v = projectVolume(p, market, { teamPoints, teamAverage, opponent })
+      const v = projectVolume(p, market, { teamPoints, teamAverage, opponent, marginForTeam })
       if (!v) continue
       volume.push({ player: p, ...v, team: p.team, role: p.role, injury: p.injury })
     }
@@ -789,7 +790,17 @@ function Volume({ analysis, entered, onPrice }) {
                     )}
                   </td>
                   <td className="num" data-label="Projection">
-                    <span>{v.mean} {v.environment !== 1 && <span className="dim">×{v.environment}</span>}</span>
+                    <span>
+                      {v.mean} {v.environment !== 1 && <span className="dim">×{v.environment}</span>}
+                      {v.gameScript && v.gameScript.factor !== 1 && (
+                        <span
+                          className="dim"
+                          title={`${v.team} is projected to ${v.gameScript.marginForTeam >= 0 ? 'win' : 'trail'} by ${Math.abs(v.gameScript.marginForTeam)} — a general tendency for ${v.gameScript.marginForTeam >= 0 ? 'leading' : 'trailing'} teams to ${v.market === 'rushingYards' || v.market === 'rushingAttempts' ? (v.gameScript.marginForTeam >= 0 ? 'run more' : 'run less') : (v.gameScript.marginForTeam >= 0 ? 'pass less' : 'pass more')}, not a measurement of this team specifically.`}
+                        >
+                          {' '}×{v.gameScript.factor} script
+                        </span>
+                      )}
+                    </span>
                   </td>
                   <td data-label="Line">
                     <input
@@ -848,9 +859,13 @@ function Volume({ analysis, entered, onPrice }) {
       <p className="dim" style={{ fontSize: 11, padding: 'var(--s3) var(--s4)', margin: 0, maxWidth: '80ch' }}>
         Yardage is modelled with a right-skewed distribution rather than a bell curve, because
         that is how it behaves: a floor at zero and a long tail. A symmetric curve would put
-        real probability below zero yards and misprice both sides. The multiplier shown next to
-        a projection is how far this game&apos;s expected scoring sits from the team&apos;s
-        season average, damped — a shootout lifts everyone, but not proportionally.
+        real probability below zero yards and misprice both sides. The first multiplier shown
+        next to a projection is how far this game&apos;s expected scoring sits from the
+        team&apos;s season average, damped — a shootout lifts everyone, but not proportionally.
+        A second &quot;script&quot; multiplier, when shown, nudges passing volume up and rushing
+        volume down for a team projected to trail (and the reverse for a team projected to lead)
+        — a real, well-known tendency in how teams actually call plays, not a number measured
+        from these two teams specifically, so it is kept small and capped.
       </p>
     </section>
   )
