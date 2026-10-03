@@ -15,6 +15,8 @@ import { buildMarkets } from '../data/markets.js'
 import { projectGame, powerRankings } from './model.js'
 import { projectGameEpa, blendedSeasonEfficiency } from './epaModel.js'
 import { combineProjections } from './modelAgreement.js'
+import { simulateGame } from './simulation.js'
+import { confidenceFor } from './confidence.js'
 import { computeEdges, consensusPlays } from './edges.js'
 import { useStore } from './store.jsx'
 import ratingsFile from '../data/generated/ratings.json'
@@ -122,6 +124,11 @@ export function useDataset() {
       const projection = project(game)
       const epaProjection = projectEpa(game)
       const modelAgreement = combineProjections(projection, epaProjection, settings)
+      // Real Monte Carlo (see simulation.js) from the same team totals the
+      // headline projection already produced — shows the distribution
+      // around that number rather than just the number itself.
+      const simulation = simulateGame(projection)
+      const confidence = confidenceFor({ game, epaProjection, modelAgreement, simulation, ratings })
       const market = markets[game.id] || null
       const plays = market ? consensusPlays(game, market, projection, settings) : []
       const allPlays = market ? computeEdges(game, market, projection, settings) : []
@@ -130,6 +137,8 @@ export function useDataset() {
         projection,
         epaProjection,
         modelAgreement,
+        simulation,
+        confidence,
         market,
         plays,
         topPlay: plays.find((p) => p.qualified) || plays[0] || null,
