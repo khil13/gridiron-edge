@@ -1,0 +1,40 @@
+name: Update injury report snapshot
+
+# Keeps src/data/generated/injury-report.json current with nflverse's public
+# injuries release. Teams file official practice/game-status reports
+# Wednesday through Friday during a game week (with Sunday morning's report
+# being the last word before early games), so this runs on that cadence
+# rather than the twice-a-week cadence the other snapshots use. Commits
+# straight to main (no PR) since this is a data refresh, not a code change,
+# and is idempotent — a no-op day produces no diff and no commit.
+on:
+  schedule:
+    - cron: '30 13 * * 3,4,5,0'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run injury-report
+
+      - name: Commit if the report changed
+        run: |
+          if git diff --quiet -- src/data/generated/injury-report.json; then
+            echo "No change in the injury report this run."
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add src/data/generated/injury-report.json
+          git commit -m 'Update injury report snapshot'
+          git push

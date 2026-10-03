@@ -11,6 +11,7 @@
     "ratings": "node scripts/build-ratings.mjs",
     "player-stats": "node scripts/fetch-player-stats.mjs",
     "team-efficiency": "node scripts/fetch-team-efficiency.mjs",
+    "injury-report": "node scripts/fetch-injury-report.mjs",
     "test": "vitest run",
     "lint": "eslint ."
   },

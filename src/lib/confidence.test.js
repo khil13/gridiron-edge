@@ -63,6 +63,19 @@ describe('confidenceFor', () => {
     expect(result.level).not.toBe('high')
   })
 
+  it('downgrades when a starting QB is out, even if everything else looks clean', () => {
+    const clean = confidenceFor({
+      game, ratings, epaProjection: { margin: 3 }, modelAgreement: agreement(1, 'high')
+    })
+    const qbOut = confidenceFor({
+      game, ratings, epaProjection: { margin: 3 }, modelAgreement: agreement(1, 'high'),
+      qbOut: { home: { name: 'Someone', injury: 'Knee' }, away: null }
+    })
+    expect(clean.level).toBe('high')
+    expect(LEVEL_RANK[qbOut.level]).toBeLessThan(LEVEL_RANK[clean.level])
+    expect(qbOut.factors.some((f) => f.includes('starting QB'))).toBe(true)
+  })
+
   it('never claims high confidence just because a projection is far from the market — nothing here looks at market data at all', () => {
     // Sanity check on design intent: confidenceFor's signature doesn't even
     // accept a market/edge argument, so there is nothing for "far from the
