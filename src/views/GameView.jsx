@@ -282,19 +282,21 @@ function Overview({ game, path, data }) {
         </div>
       </section>
 
-      {game.market?.movement?.length > 0 && (
+      {game.market && (game.market.movement?.length > 0 || game.market.observedOnly) && (
         <section className="panel">
           <div className="panel-head">
             <div>
               <div className="eyebrow">Line movement</div>
               <h2 style={{ fontSize: 'var(--t-lg)', marginTop: 4 }}>
-                {fmtSpread(game.market.open.spreadHome)} → {fmtSpread(game.market.consensus.spreadHome)}
+                {game.market.movement?.length > 0
+                  ? `${fmtSpread(game.market.open.spreadHome)} → ${fmtSpread(game.market.consensus.spreadHome)}`
+                  : fmtSpread(game.market.consensus.spreadHome)}
               </h2>
             </div>
             {game.market.simulated ? (
               <Badge tone="quiet">Simulated</Badge>
             ) : (
-              <span className="mono dim" style={{ fontSize: 11 }}>{home.abbr} spread</span>
+              <Badge tone="edge">Observed live</Badge>
             )}
           </div>
           <div style={{ padding: 'var(--s4)' }}>
@@ -307,14 +309,23 @@ function Overview({ game, path, data }) {
               </>
             ) : (
               <p className="dim" style={{ fontSize: 12, margin: 0 }}>
-                The number has not moved since it was posted. Either the market is confident or
-                nobody has bet into it yet.
+                {game.market.simulated
+                  ? 'The number has not moved since it was posted. Either the market is confident or nobody has bet into it yet.'
+                  : game.market.observedCount > 0
+                    ? 'Tracking this game’s real price — no move yet since this session started watching.'
+                    : 'Just started tracking this game’s real price. Check back as it updates.'}
               </p>
             )}
-            {game.market.simulated && (
+            {game.market.simulated ? (
               <p className="dim" style={{ fontSize: 11, marginTop: 'var(--s3)', marginBottom: 0 }}>
                 This app has no real historical odds feed, so this curve is generated toward the
                 current simulated price rather than observed — not real market movement.
+              </p>
+            ) : (
+              <p className="dim" style={{ fontSize: 11, marginTop: 'var(--s3)', marginBottom: 0 }}>
+                Real price points seen while this session had the game open — not the market&apos;s
+                full history since it opened, which needs a paid historical-odds feed this app
+                doesn&apos;t have.
               </p>
             )}
           </div>
