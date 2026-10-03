@@ -8,7 +8,7 @@ import { fetchGameRosters } from '../data/providers/playerData.js'
 import { fetchGameProps, PROPS_CREDIT_COST } from '../data/providers/oddsApiProvider.js'
 import {
   projectPassingTouchdowns, projectVolume, availableMarkets,
-  projectFirstQuarter, VOLUME_MARKETS, analyseAnytimeTouchdowns, normPropName
+  projectFirstQuarter, VOLUME_MARKETS, analyseAnytimeTouchdowns, normPropName, isRuledOut
 } from '../lib/props.js'
 import { impliedProb, expectedValue, kelly, validPrice, PRICE_MAX } from '../lib/odds.js'
 import { fmtOdds, fmtPct, fmtMoney, fmtSigned, ordinal } from '../lib/format.js'
@@ -235,7 +235,12 @@ function analyse({ game, proj, settings, ratings, rosters, props, entered = {} }
   }
 
   const volume = []
-  for (const p of rosters.players) {
+  // A ruled-out player gets no row at all — his season rate scaled "as if
+  // he's playing today" would be actively misleading next to a real EV and
+  // stake, not just a number worth a caveat badge. Questionable/Doubtful
+  // still show: the Caveats panel's own warning about inactives applies to
+  // them, since they might genuinely still play.
+  for (const p of rosters.players.filter((p) => !isRuledOut(p.injury))) {
     const teamPoints = p.team === game.home ? proj.homeTeamTotal : proj.awayTeamTotal
     const teamAverage = teamAverages[p.team] ?? 22
     const opponent = p.team === game.home ? game.away : game.home
@@ -406,6 +411,7 @@ function PlayerCompare({ rosters, game }) {
 
 function Caveats({ analysis, game, rosters }) {
   const injured = rosters.players.filter((p) => p.injury && !/active/i.test(p.injury))
+  const ruledOut = rosters.players.filter((p) => isRuledOut(p.injury))
   return (
     <section className="panel" style={{ borderColor: 'rgba(242,193,78,0.35)' }}>
       <div className="panel-head">
@@ -415,10 +421,14 @@ function Caveats({ analysis, game, rosters }) {
       <div style={{ padding: 'var(--s4)' }}>
         <ul className="dim" style={{ fontSize: 12, margin: 0, paddingLeft: '1.1rem', lineHeight: 1.7, maxWidth: '78ch' }}>
           <li>
-            <strong style={{ color: 'var(--bone-dim)' }}>Nobody knows who is playing.</strong>{' '}
-            Inactives post ninety minutes before kickoff. A player who is scratched will still
-            show a large edge here, and it is not one.
-            {injured.length > 0 && ` ${injured.length} player${injured.length === 1 ? ' is' : 's are'} currently carrying an injury designation.`}
+            <strong style={{ color: 'var(--bone-dim)' }}>Nobody knows who is actually active.</strong>{' '}
+            Inactives post ninety minutes before kickoff, well after this week&apos;s official
+            injury report — a healthy scratch or a Questionable who doesn&apos;t suit up will
+            still show a real-looking edge here, and it is not one.
+            {ruledOut.length > 0
+              ? ` ${ruledOut.length} player${ruledOut.length === 1 ? ' is' : 's are'} already officially ruled Out this week and ${ruledOut.length === 1 ? 'is' : 'are'} left off these tables entirely — ${ruledOut.length === 1 ? 'his' : 'their'} teammates' touchdown shares are rescaled up to cover it, which is as far as that can honestly go without inventing per-player replacement rates for yardage.`
+              : ''}
+            {injured.length > ruledOut.length && ` ${injured.length - ruledOut.length} more player${injured.length - ruledOut.length === 1 ? ' is' : 's are'} Questionable or Doubtful and still shown as-is.`}
           </li>
           <li>
             <strong style={{ color: 'var(--bone-dim)' }}>The hold is enormous.</strong>{' '}

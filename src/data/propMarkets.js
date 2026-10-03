@@ -16,7 +16,7 @@ import { mulberry32 } from '../lib/model.js'
 import { probToAmerican } from '../lib/odds.js'
 import {
   expectedTouchdowns, projectAnytimeTouchdowns, normaliseField, teamGameData,
-  projectVolume, availableMarkets, expectedScorers
+  projectVolume, availableMarkets, expectedScorers, isRuledOut
 } from '../lib/props.js'
 import { overProbabilityFor } from '../lib/distributions.js'
 import { SPORTSBOOKS } from './schedule.js'
@@ -70,8 +70,13 @@ export function buildPropOffers({ game, proj, rosters, ratings }) {
     [game.away]: { expectedTds: expectedTouchdowns(proj.awayTeamTotal), ...awayGames }
   }
 
+  // Same real signal and same redistribution mechanism as props.js's
+  // analyseAnytimeTouchdowns() — a ruled-out player is dropped before
+  // projecting, so the simulated board his teammates face reflects him
+  // actually being out, not the model quietly pricing a scratch.
+  const available = rosters.players.filter((p) => !isRuledOut(p.injury))
   const projected = normaliseField(
-    projectAnytimeTouchdowns(rosters.players.map((p) => ({ ...p, tds: p.tds ?? 0 })), teamCtx),
+    projectAnytimeTouchdowns(available.map((p) => ({ ...p, tds: p.tds ?? 0 })), teamCtx),
     teamCtx
   )
 
@@ -123,7 +128,7 @@ export function buildPropOffers({ game, proj, rosters, ratings }) {
 
   const teamAverage = (team) => ratings?.[team]?.ppg ?? 22
   const volume = []
-  for (const player of rosters.players) {
+  for (const player of available) {
     const teamPoints = player.team === game.home ? proj.homeTeamTotal : proj.awayTeamTotal
     const opponent = player.team === game.home ? game.away : game.home
     const marginForTeam = player.team === game.home ? proj.margin : -proj.margin
