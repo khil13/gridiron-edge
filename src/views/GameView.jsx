@@ -291,7 +291,11 @@ function Overview({ game, path, data }) {
                 {fmtSpread(game.market.open.spreadHome)} → {fmtSpread(game.market.consensus.spreadHome)}
               </h2>
             </div>
-            <span className="mono dim" style={{ fontSize: 11 }}>{home.abbr} spread</span>
+            {game.market.simulated ? (
+              <Badge tone="quiet">Simulated</Badge>
+            ) : (
+              <span className="mono dim" style={{ fontSize: 11 }}>{home.abbr} spread</span>
+            )}
           </div>
           <div style={{ padding: 'var(--s4)' }}>
             {moved(game.market.movement) ? (
@@ -305,6 +309,12 @@ function Overview({ game, path, data }) {
               <p className="dim" style={{ fontSize: 12, margin: 0 }}>
                 The number has not moved since it was posted. Either the market is confident or
                 nobody has bet into it yet.
+              </p>
+            )}
+            {game.market.simulated && (
+              <p className="dim" style={{ fontSize: 11, marginTop: 'var(--s3)', marginBottom: 0 }}>
+                This app has no real historical odds feed, so this curve is generated toward the
+                current simulated price rather than observed — not real market movement.
               </p>
             )}
           </div>
