@@ -4,7 +4,7 @@ import { Segmented, Badge } from '../components/Controls.jsx'
 import { StatBar } from '../components/Charts.jsx'
 import { SEASON_2025, recordOf } from '../data/season2025.js'
 import { TEAMS, getTeam, DIVISIONS, CONFERENCES } from '../data/teams.js'
-import { fmtSigned, fmtPct, tint } from '../lib/format.js'
+import { fmtSigned, fmtPct, fmtRecord, tint } from '../lib/format.js'
 import { movers } from '../lib/ratings.js'
 import { href } from '../lib/router.js'
 import { useStore } from '../lib/store.jsx'
@@ -228,7 +228,14 @@ function Power({ data }) {
                 <TeamMark abbr={r.abbr} size={24} />
                 <span className="grow truncate">
                   <span className="team-name">{team.name}</span>
-                  <span className="team-rec"> {r.wins}-{r.losses}</span>
+                  {/* applyResults() tracks this season's replayed record in
+                      w/l/t, separately from the opening file's own wins/losses
+                      (last season's final record) — it never overwrites those,
+                      so reading wins/losses here always showed last season's
+                      record next to a rating that had already moved on. */}
+                  <span className="team-rec">
+                    {' '}{state.applied ? fmtRecord(r.w, r.l, r.t) : fmtRecord(r.wins, r.losses)}
+                  </span>
                 </span>
 
                 {/* A centre line with bars either side reads faster than a
