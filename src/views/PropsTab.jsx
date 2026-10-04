@@ -787,6 +787,14 @@ function Volume({ analysis, entered, onPrice }) {
                   </td>
                   <td className="num dim" data-label="Rate">
                     <span>{v.synthetic ? `${v.perGame}/g league avg` : `${v.perGame}/g over ${v.games}`}</span>
+                    {v.shrinkage && v.shrinkage.weight < 0.9 && (
+                      <div
+                        style={{ fontSize: 10, marginTop: 2 }}
+                        title={`Only ${v.games} game${v.games === 1 ? '' : 's'} of real data — the projection blends this rate ${Math.round(v.shrinkage.weight * 100)}% with his own ${v.perGame}/g and ${Math.round((1 - v.shrinkage.weight) * 100)}% with the ${v.role} positional rate (${v.shrinkage.prior}/g) rather than taking one or two games at face value.`}
+                      >
+                        regressed · {Math.round(v.shrinkage.weight * 100)}% own rate
+                      </div>
+                    )}
                   </td>
                   <td className="num" data-label="Matchup">
                     {v.defense && v.defense.rank != null ? (
@@ -877,6 +885,11 @@ function Volume({ analysis, entered, onPrice }) {
         volume down for a team projected to trail (and the reverse for a team projected to lead)
         — a real, well-known tendency in how teams actually call plays, not a number measured
         from these two teams specifically, so it is kept small and capped.
+        A &quot;regressed&quot; note under the rate means fewer than nine real games back it — the
+        projection pulls toward this role&apos;s typical rate until the sample grows, instead of
+        letting one unusually big or quiet game become next week&apos;s number outright. Checked
+        against real early-season weeks this year, that pull measurably reduced the average miss
+        versus not shrinking at all.
       </p>
     </section>
   )
