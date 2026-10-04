@@ -12,6 +12,7 @@ import {
 } from '../lib/props.js'
 import { impliedProb, expectedValue, kelly, validPrice, PRICE_MAX } from '../lib/odds.js'
 import { fmtOdds, fmtPct, fmtMoney, fmtSigned, ordinal } from '../lib/format.js'
+import { IMPLAUSIBLE_EV } from '../lib/card.js'
 
 /**
  * Touchdown props.
@@ -773,6 +774,12 @@ function Volume({ analysis, entered, onPrice }) {
               const hasPrice = validPrice(price)
               const outcome = hasLine ? v.over(line) : null
               const ev = outcome && hasPrice ? expectedValue(outcome.win, price, outcome.push) : null
+              // Same bar card.js's tierForVolume() already uses for this exact
+              // market type (yardage/volume carries far less hold than a
+              // touchdown board, so a real edge this large essentially never
+              // happens) — an EV past it is almost always a mistyped line or
+              // price, not a gift, and is flagged rather than shown as green.
+              const implausible = ev != null && ev >= IMPLAUSIBLE_EV
 
               return (
                 <tr key={`${v.market}-${v.player.id}`}>
@@ -843,10 +850,12 @@ function Volume({ analysis, entered, onPrice }) {
                     {outcome ? fmtPct(outcome.win, 1) : '—'}
                   </td>
                   <td
-                    className={`num ${ev == null ? 'dim' : ev > 0 ? 'pos' : 'neg'}`}
+                    className={`num ${ev == null ? 'dim' : implausible ? 'neg' : ev > 0 ? 'pos' : 'neg'}`}
                     data-label="EV"
                   >
-                    {ev == null ? '—' : `${ev > 0 ? '+' : ''}${(ev * 100).toFixed(1)}%`}
+                    {ev == null ? '—' : implausible
+                      ? <span title="An edge this large on a yardage line almost never happens for real — double-check the line and price you typed against the actual sportsbook before trusting this.">check line/price</span>
+                      : `${ev > 0 ? '+' : ''}${(ev * 100).toFixed(1)}%`}
                   </td>
                 </tr>
               )
@@ -890,6 +899,10 @@ function Volume({ analysis, entered, onPrice }) {
         letting one unusually big or quiet game become next week&apos;s number outright. Checked
         against real early-season weeks this year, that pull measurably reduced the average miss
         versus not shrinking at all.
+        A line showing &quot;check line/price&quot; instead of an EV number isn&apos;t a bigger
+        edge — a real sportsbook mispricing a yardage line by that much essentially never happens,
+        so an EV this large almost always means the line or price typed in doesn&apos;t match what
+        the book actually posted. Double-check both before trusting it.
       </p>
     </section>
   )
