@@ -168,6 +168,24 @@ export function pickBestProp(candidates) {
 }
 
 /**
+ * A stable identity for "the same real signal," independent of which book
+ * is pricing it or the exact half-yard line two books happen to quote.
+ * Confirmed live: the same player's same side of the same market, posted by
+ * two different books a point apart, otherwise ranks as two separate
+ * candidates and can fill BOTH of a game's leg slots by itself — "Lamar
+ * Jackson Under ~232 passing yards" twice, crowding out every other real
+ * market on that game. Touchdown candidates have no line to vary, so the
+ * player alone identifies the signal there.
+ */
+function propSignal(candidate) {
+  if (candidate.kind === 'td') return `td:${candidate.entry.key}`
+  // volumePlaysForGame()'s key is `${player}:${market}:${side}:${line}` —
+  // drop the line so two books' slightly different numbers still collapse.
+  const [player, market, side] = candidate.entry.key.split(':')
+  return `volume:${player}:${market}:${side}`
+}
+
+/**
  * Every qualifying prop leg for one game, not just the single best.
  *
  * "One play per game" (see the top of this file) exists to stop a spread
@@ -180,11 +198,22 @@ export function pickBestProp(candidates) {
  * player on the same field also cleared the bar. Capped at maxPerGame so a
  * single high-scoring game can't fill the whole card by itself.
  *
+ * It does still collapse to one leg per real signal first (see propSignal())
+ * — the best-priced book wins — before ranking, so two books on the same
+ * player/market/side only ever cost one slot, leaving room for whatever
+ * else on the game actually cleared the bar.
+ *
  * The exclusions are unchanged from pickBestProp(): a flagged "Check model"
  * candidate is still never shown, at any rank.
  */
 export function pickPropsForGame(candidates, maxPerGame = 2) {
-  return [...qualifyingProps(candidates)].sort((a, b) => b.entry.ev - a.entry.ev).slice(0, maxPerGame)
+  const bestBySignal = new Map()
+  for (const c of qualifyingProps(candidates)) {
+    const signal = propSignal(c)
+    const current = bestBySignal.get(signal)
+    if (!current || c.entry.ev > current.entry.ev) bestBySignal.set(signal, c)
+  }
+  return [...bestBySignal.values()].sort((a, b) => b.entry.ev - a.entry.ev).slice(0, maxPerGame)
 }
 
 /**

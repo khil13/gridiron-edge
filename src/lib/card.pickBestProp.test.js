@@ -5,6 +5,15 @@ const clean = (ev, units = 1) => ({ tier: { units, suspicious: false }, entry: {
 const flagged = (ev) => ({ tier: { units: 1, suspicious: true }, entry: { ev } })
 const noPlay = () => ({ tier: { units: 0, suspicious: false }, entry: { ev: 0 } })
 
+// pickPropsForGame() identifies a real signal from kind + entry.key (see
+// propSignal() in card.js) — these build candidates that carry one, the
+// same shape real TD/volume candidates do in production.
+let autoId = 0
+const tdCandidate = (ev, player = `player${autoId++}`) =>
+  ({ kind: 'td', tier: { units: 1, suspicious: false }, entry: { ev, key: player } })
+const volumeCandidate = (ev, { player = `player${autoId++}`, market = 'receivingYards', side = 'over', line = 50.5 } = {}) =>
+  ({ kind: 'volume', tier: { units: 1, suspicious: false }, entry: { ev, key: `${player}:${market}:${side}:${line}` } })
+
 describe('pickBestProp', () => {
   it('returns null when nothing qualifies', () => {
     expect(pickBestProp([noPlay(), noPlay()])).toBeNull()
@@ -37,12 +46,12 @@ describe('pickBestProp', () => {
 
 describe('pickPropsForGame', () => {
   it('returns every qualifying candidate, not just the best, up to the cap', () => {
-    const legs = pickPropsForGame([clean(0.02), clean(0.08), clean(0.05)], 2)
+    const legs = pickPropsForGame([tdCandidate(0.02), tdCandidate(0.08), tdCandidate(0.05)], 2)
     expect(legs.map((l) => l.entry.ev)).toEqual([0.08, 0.05])
   })
 
   it('still excludes flagged candidates at any rank', () => {
-    const legs = pickPropsForGame([flagged(2.5), clean(0.04), clean(0.02)])
+    const legs = pickPropsForGame([flagged(2.5), tdCandidate(0.04), tdCandidate(0.02)])
     expect(legs.every((l) => !l.tier.suspicious)).toBe(true)
     expect(legs.map((l) => l.entry.ev)).toEqual([0.04, 0.02])
   })
@@ -52,8 +61,51 @@ describe('pickPropsForGame', () => {
   })
 
   it('defaults to a max of two legs per game', () => {
-    const legs = pickPropsForGame([clean(0.01), clean(0.02), clean(0.03), clean(0.04)])
+    const legs = pickPropsForGame([tdCandidate(0.01), tdCandidate(0.02), tdCandidate(0.03), tdCandidate(0.04)])
     expect(legs).toHaveLength(2)
+  })
+
+  describe('collapsing the same real signal across books', () => {
+    // Confirmed live: two books quoting the same player's same side of the
+    // same market, a line apart, otherwise rank as two separate candidates
+    // and can fill BOTH of a game's slots with what is really one opinion.
+    it('keeps only the best-EV book when two books quote the same player/market/side', () => {
+      const worse = volumeCandidate(0.04, { player: 'lamar jackson', market: 'passingYards', side: 'under', line: 231.5 })
+      const better = volumeCandidate(0.07, { player: 'lamar jackson', market: 'passingYards', side: 'under', line: 232.5 })
+      const legs = pickPropsForGame([worse, better])
+      expect(legs).toHaveLength(1)
+      expect(legs[0].entry.ev).toBe(0.07)
+    })
+
+    it('leaves room for a genuinely different market once the duplicate collapses', () => {
+      const bookA = volumeCandidate(0.07, { player: 'lamar jackson', market: 'passingYards', side: 'under', line: 231.5 })
+      const bookB = volumeCandidate(0.06, { player: 'lamar jackson', market: 'passingYards', side: 'under', line: 232.5 })
+      const rushing = volumeCandidate(0.03, { player: 'derrick henry', market: 'rushingYards' })
+      const legs = pickPropsForGame([bookA, bookB, rushing])
+      expect(legs).toHaveLength(2)
+      expect(legs.map((l) => l.entry.key)).toContain(rushing.entry.key)
+    })
+
+    it('treats the Over and the Under on the same player/market as different signals', () => {
+      const over = volumeCandidate(0.05, { player: 'ceedee lamb', market: 'receivingYards', side: 'over' })
+      const under = volumeCandidate(0.04, { player: 'ceedee lamb', market: 'receivingYards', side: 'under' })
+      const legs = pickPropsForGame([over, under])
+      expect(legs).toHaveLength(2)
+    })
+
+    it('treats a touchdown lean and a volume lean on the same player as different signals', () => {
+      const td = tdCandidate(0.05, 'jahmyr gibbs')
+      const volume = volumeCandidate(0.04, { player: 'jahmyr gibbs', market: 'rushingYards' })
+      const legs = pickPropsForGame([td, volume])
+      expect(legs).toHaveLength(2)
+    })
+
+    it('keeps the best book even when the better-priced one is not the first candidate seen', () => {
+      const better = volumeCandidate(0.09, { player: 'tyreek hill', market: 'receivingYards', side: 'over' })
+      const worse = volumeCandidate(0.03, { player: 'tyreek hill', market: 'receivingYards', side: 'over' })
+      const legs = pickPropsForGame([worse, better])
+      expect(legs[0].entry.ev).toBe(0.09)
+    })
   })
 })
 
