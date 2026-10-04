@@ -1,527 +1,372 @@
 {
-  "generatedAt": "2026-08-08T23:59:33.334Z",
+  "generatedAt": "2026-10-04T05:59:48.103Z",
   "season": 2026,
-  "basis": "2025 final records + postseason results",
+  "basis": "2025 season replayed game-by-game through the real Elo update (margin of victory included), not a win%-only snapshot",
   "method": {
-    "winPctScale": 600,
-    "playoffWinBonus": 15,
-    "titleBonus": 25,
+    "source": "https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv",
+    "regularSeasonGames": 272,
+    "postseasonGames": 13,
+    "eloSettings": {
+      "homeField": 1.6,
+      "kFactor": 20,
+      "marginMultiplier": true
+    },
     "offseasonRegression": 0.25,
     "eloPerPoint": 25
   },
-  "note": "ppg, papg and pace are derived from the rating, not observed. Replace them with real box-score data before trusting any projected total.",
+  "note": "ppg and papg are each team's real 2025 regular-season scoring average. elo is the real 2025 season replayed game-by-game through updateElo(), then regressed 25% toward the mean for the offseason.",
   "ratings": {
-    "NE": {
-      "elo": 1679.3,
-      "endOfSeasonElo": 1739.1,
-      "pointsVsAverage": 7.17,
-      "ppg": 22.9,
-      "papg": 16.6,
-      "pace": 0.888,
-      "wins": 14,
-      "losses": 3,
-      "playoffWins": 3,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
+    "PHI": {
+      "elo": 1513.6,
+      "endOfSeasonElo": 1518.1,
+      "pointsVsAverage": 0.54,
+      "ppg": 22.3,
+      "papg": 19.1,
+      "wins": 11,
+      "losses": 6,
+      "playoffWins": 0,
+      "synthetic": []
     },
-    "BUF": {
-      "elo": 1603.9,
-      "endOfSeasonElo": 1638.5,
-      "pointsVsAverage": 4.16,
-      "ppg": 26.3,
-      "papg": 21.8,
-      "pace": 1.089,
-      "wins": 12,
-      "losses": 5,
-      "playoffWins": 1,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
+    "DAL": {
+      "elo": 1451.5,
+      "endOfSeasonElo": 1435.3,
+      "pointsVsAverage": -1.94,
+      "ppg": 27.7,
+      "papg": 30.1,
+      "wins": 7,
+      "losses": 9,
+      "playoffWins": 0,
+      "synthetic": []
+    },
+    "LAC": {
+      "elo": 1523.4,
+      "endOfSeasonElo": 1531.2,
+      "pointsVsAverage": 0.94,
+      "ppg": 21.6,
+      "papg": 20,
+      "wins": 11,
+      "losses": 6,
+      "playoffWins": 0,
+      "synthetic": []
+    },
+    "KC": {
+      "elo": 1454.6,
+      "endOfSeasonElo": 1439.5,
+      "pointsVsAverage": -1.81,
+      "ppg": 21.3,
+      "papg": 19.3,
+      "wins": 6,
+      "losses": 11,
+      "playoffWins": 0,
+      "synthetic": []
+    },
+    "ATL": {
+      "elo": 1489.3,
+      "endOfSeasonElo": 1485.7,
+      "pointsVsAverage": -0.43,
+      "ppg": 20.8,
+      "papg": 23.6,
+      "wins": 8,
+      "losses": 9,
+      "playoffWins": 0,
+      "synthetic": []
+    },
+    "TB": {
+      "elo": 1463.9,
+      "endOfSeasonElo": 1451.9,
+      "pointsVsAverage": -1.44,
+      "ppg": 22.4,
+      "papg": 24.2,
+      "wins": 8,
+      "losses": 9,
+      "playoffWins": 0,
+      "synthetic": []
+    },
+    "CLE": {
+      "elo": 1435.8,
+      "endOfSeasonElo": 1414.4,
+      "pointsVsAverage": -2.57,
+      "ppg": 16.4,
+      "papg": 22.3,
+      "wins": 5,
+      "losses": 12,
+      "playoffWins": 0,
+      "synthetic": []
+    },
+    "CIN": {
+      "elo": 1458.6,
+      "endOfSeasonElo": 1444.8,
+      "pointsVsAverage": -1.65,
+      "ppg": 24.4,
+      "papg": 28.9,
+      "wins": 6,
+      "losses": 11,
+      "playoffWins": 0,
+      "synthetic": []
+    },
+    "IND": {
+      "elo": 1481.2,
+      "endOfSeasonElo": 1475,
+      "pointsVsAverage": -0.75,
+      "ppg": 27.4,
+      "papg": 24.2,
+      "wins": 8,
+      "losses": 9,
+      "playoffWins": 0,
+      "synthetic": []
     },
     "MIA": {
-      "elo": 1460.3,
-      "endOfSeasonElo": 1447.1,
-      "pointsVsAverage": -1.59,
-      "ppg": 18.9,
-      "papg": 20.3,
-      "pace": 0.895,
+      "elo": 1450.8,
+      "endOfSeasonElo": 1434.4,
+      "pointsVsAverage": -1.97,
+      "ppg": 20.4,
+      "papg": 24.9,
       "wins": 7,
       "losses": 10,
       "playoffWins": 0,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
-    },
-    "NYJ": {
-      "elo": 1354.4,
-      "endOfSeasonElo": 1305.9,
-      "pointsVsAverage": -5.82,
-      "ppg": 21.3,
-      "papg": 27.7,
-      "pace": 1.09,
-      "wins": 3,
-      "losses": 14,
-      "playoffWins": 0,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
-    },
-    "PIT": {
-      "elo": 1539.7,
-      "endOfSeasonElo": 1552.9,
-      "pointsVsAverage": 1.59,
-      "ppg": 22.1,
-      "papg": 20.5,
-      "pace": 0.96,
-      "wins": 10,
-      "losses": 7,
-      "playoffWins": 0,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
-    },
-    "BAL": {
-      "elo": 1486.8,
-      "endOfSeasonElo": 1482.4,
-      "pointsVsAverage": -0.53,
-      "ppg": 21.2,
-      "papg": 21.7,
-      "pace": 0.974,
-      "wins": 8,
-      "losses": 9,
-      "playoffWins": 0,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
-    },
-    "CIN": {
-      "elo": 1433.8,
-      "endOfSeasonElo": 1411.8,
-      "pointsVsAverage": -2.65,
-      "ppg": 19.8,
-      "papg": 22.3,
-      "pace": 0.947,
-      "wins": 6,
-      "losses": 11,
-      "playoffWins": 0,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
-    },
-    "CLE": {
-      "elo": 1407.4,
-      "endOfSeasonElo": 1376.5,
-      "pointsVsAverage": -3.71,
-      "ppg": 21.5,
-      "papg": 25.4,
-      "pace": 1.057,
-      "wins": 5,
-      "losses": 12,
-      "playoffWins": 0,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
+      "synthetic": []
     },
     "JAC": {
-      "elo": 1619.1,
-      "endOfSeasonElo": 1658.8,
-      "pointsVsAverage": 4.76,
-      "ppg": 24.6,
-      "papg": 20,
-      "pace": 0.979,
+      "elo": 1597.5,
+      "endOfSeasonElo": 1630,
+      "pointsVsAverage": 3.9,
+      "ppg": 27.9,
+      "papg": 19.8,
       "wins": 13,
       "losses": 4,
       "playoffWins": 0,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
-    },
-    "HOU": {
-      "elo": 1603.9,
-      "endOfSeasonElo": 1638.5,
-      "pointsVsAverage": 4.16,
-      "ppg": 25.4,
-      "papg": 21.1,
-      "pace": 1.051,
-      "wins": 12,
-      "losses": 5,
-      "playoffWins": 1,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
-    },
-    "IND": {
-      "elo": 1486.8,
-      "endOfSeasonElo": 1482.4,
-      "pointsVsAverage": -0.53,
-      "ppg": 20.9,
-      "papg": 21.4,
-      "pace": 0.955,
-      "wins": 8,
-      "losses": 9,
-      "playoffWins": 0,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
-    },
-    "TEN": {
-      "elo": 1354.4,
-      "endOfSeasonElo": 1305.9,
-      "pointsVsAverage": -5.82,
-      "ppg": 21.3,
-      "papg": 27.5,
-      "pace": 1.066,
-      "wins": 3,
-      "losses": 14,
-      "playoffWins": 0,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
-    },
-    "DEN": {
-      "elo": 1656.8,
-      "endOfSeasonElo": 1709.1,
-      "pointsVsAverage": 6.27,
-      "ppg": 26,
-      "papg": 19.4,
-      "pace": 1.044,
-      "wins": 14,
-      "losses": 3,
-      "playoffWins": 1,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
-    },
-    "LAC": {
-      "elo": 1566.2,
-      "endOfSeasonElo": 1588.2,
-      "pointsVsAverage": 2.65,
-      "ppg": 25.4,
-      "papg": 22.5,
-      "pace": 1.087,
-      "wins": 11,
-      "losses": 6,
-      "playoffWins": 0,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
-    },
-    "KC": {
-      "elo": 1433.8,
-      "endOfSeasonElo": 1411.8,
-      "pointsVsAverage": -2.65,
-      "ppg": 20.2,
-      "papg": 22.8,
-      "pace": 0.991,
-      "wins": 6,
-      "losses": 11,
-      "playoffWins": 0,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
-    },
-    "LV": {
-      "elo": 1354.4,
-      "endOfSeasonElo": 1305.9,
-      "pointsVsAverage": -5.82,
-      "ppg": 20.9,
-      "papg": 27.3,
-      "pace": 1.095,
-      "wins": 3,
-      "losses": 14,
-      "playoffWins": 0,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
-    },
-    "PHI": {
-      "elo": 1566.2,
-      "endOfSeasonElo": 1588.2,
-      "pointsVsAverage": 2.65,
-      "ppg": 26,
-      "papg": 23.1,
-      "pace": 1.114,
-      "wins": 11,
-      "losses": 6,
-      "playoffWins": 0,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
-    },
-    "DAL": {
-      "elo": 1471.9,
-      "endOfSeasonElo": 1462.5,
-      "pointsVsAverage": -1.12,
-      "ppg": 23.7,
-      "papg": 24.9,
-      "pace": 1.095,
-      "wins": 7,
-      "losses": 9,
-      "playoffWins": 0,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
-    },
-    "WAS": {
-      "elo": 1407.4,
-      "endOfSeasonElo": 1376.5,
-      "pointsVsAverage": -3.71,
-      "ppg": 20.8,
-      "papg": 24.5,
-      "pace": 1.01,
-      "wins": 5,
-      "losses": 12,
-      "playoffWins": 0,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
-    },
-    "NYG": {
-      "elo": 1380.9,
-      "endOfSeasonElo": 1341.2,
-      "pointsVsAverage": -4.76,
-      "ppg": 16.7,
-      "papg": 20.9,
-      "pace": 0.879,
-      "wins": 4,
-      "losses": 13,
-      "playoffWins": 0,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
-    },
-    "CHI": {
-      "elo": 1577.4,
-      "endOfSeasonElo": 1603.2,
-      "pointsVsAverage": 3.1,
-      "ppg": 22.5,
-      "papg": 19.5,
-      "pace": 0.97,
-      "wins": 11,
-      "losses": 6,
-      "playoffWins": 1,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
-    },
-    "GB": {
-      "elo": 1528.1,
-      "endOfSeasonElo": 1537.5,
-      "pointsVsAverage": 1.13,
-      "ppg": 24.7,
-      "papg": 23.5,
-      "pace": 1.095,
-      "wins": 9,
-      "losses": 7,
-      "playoffWins": 0,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
-    },
-    "MIN": {
-      "elo": 1513.2,
-      "endOfSeasonElo": 1517.6,
-      "pointsVsAverage": 0.53,
-      "ppg": 25.2,
-      "papg": 24.6,
-      "pace": 1.13,
-      "wins": 9,
-      "losses": 8,
-      "playoffWins": 0,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
-    },
-    "DET": {
-      "elo": 1513.2,
-      "endOfSeasonElo": 1517.6,
-      "pointsVsAverage": 0.53,
-      "ppg": 23.2,
-      "papg": 22.6,
-      "pace": 1.037,
-      "wins": 9,
-      "losses": 8,
-      "playoffWins": 0,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
+      "synthetic": []
     },
     "CAR": {
-      "elo": 1486.8,
-      "endOfSeasonElo": 1482.4,
-      "pointsVsAverage": -0.53,
-      "ppg": 19.7,
-      "papg": 20.2,
-      "pace": 0.903,
+      "elo": 1453.8,
+      "endOfSeasonElo": 1438.4,
+      "pointsVsAverage": -1.85,
+      "ppg": 18.3,
+      "papg": 22.4,
       "wins": 8,
       "losses": 9,
       "playoffWins": 0,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
+      "synthetic": []
     },
-    "TB": {
-      "elo": 1486.8,
-      "endOfSeasonElo": 1482.4,
-      "pointsVsAverage": -0.53,
-      "ppg": 24.6,
-      "papg": 25.2,
-      "pace": 1.128,
-      "wins": 8,
-      "losses": 9,
-      "playoffWins": 0,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
-    },
-    "ATL": {
-      "elo": 1486.8,
-      "endOfSeasonElo": 1482.4,
-      "pointsVsAverage": -0.53,
-      "ppg": 24.4,
-      "papg": 25,
-      "pace": 1.115,
-      "wins": 8,
-      "losses": 9,
-      "playoffWins": 0,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
-    },
-    "NO": {
-      "elo": 1433.8,
-      "endOfSeasonElo": 1411.8,
-      "pointsVsAverage": -2.65,
-      "ppg": 20.7,
-      "papg": 23.4,
-      "pace": 1.002,
-      "wins": 6,
-      "losses": 11,
-      "playoffWins": 0,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
-    },
-    "SEA": {
-      "elo": 1698.1,
-      "endOfSeasonElo": 1764.1,
-      "pointsVsAverage": 7.92,
-      "ppg": 22.1,
-      "papg": 15.1,
-      "pace": 0.889,
+    "NE": {
+      "elo": 1627.3,
+      "endOfSeasonElo": 1669.8,
+      "pointsVsAverage": 5.09,
+      "ppg": 28.8,
+      "papg": 18.8,
       "wins": 14,
       "losses": 3,
       "playoffWins": 3,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
+      "synthetic": []
     },
-    "LA": {
-      "elo": 1615.1,
-      "endOfSeasonElo": 1653.5,
-      "pointsVsAverage": 4.61,
-      "ppg": 25.8,
-      "papg": 20.8,
-      "pace": 1.084,
-      "wins": 12,
-      "losses": 5,
-      "playoffWins": 2,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
-    },
-    "SF": {
-      "elo": 1603.9,
-      "endOfSeasonElo": 1638.5,
-      "pointsVsAverage": 4.16,
-      "ppg": 22.5,
-      "papg": 18.6,
-      "pace": 0.948,
-      "wins": 12,
-      "losses": 5,
-      "playoffWins": 1,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
-    },
-    "ARI": {
-      "elo": 1354.4,
-      "endOfSeasonElo": 1305.9,
-      "pointsVsAverage": -5.82,
-      "ppg": 21.6,
-      "papg": 28.1,
-      "pace": 1.116,
+    "LV": {
+      "elo": 1356.4,
+      "endOfSeasonElo": 1308.5,
+      "pointsVsAverage": -5.74,
+      "ppg": 14.2,
+      "papg": 25.4,
       "wins": 3,
       "losses": 14,
       "playoffWins": 0,
-      "synthetic": [
-        "ppg",
-        "papg",
-        "pace"
-      ]
+      "synthetic": []
+    },
+    "NO": {
+      "elo": 1461.1,
+      "endOfSeasonElo": 1448.2,
+      "pointsVsAverage": -1.55,
+      "ppg": 18,
+      "papg": 22.5,
+      "wins": 6,
+      "losses": 11,
+      "playoffWins": 0,
+      "synthetic": []
+    },
+    "ARI": {
+      "elo": 1389.5,
+      "endOfSeasonElo": 1352.7,
+      "pointsVsAverage": -4.42,
+      "ppg": 20.9,
+      "papg": 28.7,
+      "wins": 3,
+      "losses": 14,
+      "playoffWins": 0,
+      "synthetic": []
+    },
+    "NYJ": {
+      "elo": 1362.8,
+      "endOfSeasonElo": 1317,
+      "pointsVsAverage": -5.49,
+      "ppg": 17.6,
+      "papg": 29.6,
+      "wins": 3,
+      "losses": 14,
+      "playoffWins": 0,
+      "synthetic": []
+    },
+    "PIT": {
+      "elo": 1499.3,
+      "endOfSeasonElo": 1499.1,
+      "pointsVsAverage": -0.03,
+      "ppg": 23.4,
+      "papg": 22.8,
+      "wins": 10,
+      "losses": 7,
+      "playoffWins": 0,
+      "synthetic": []
+    },
+    "WAS": {
+      "elo": 1432,
+      "endOfSeasonElo": 1409.4,
+      "pointsVsAverage": -2.72,
+      "ppg": 20.9,
+      "papg": 26.5,
+      "wins": 5,
+      "losses": 12,
+      "playoffWins": 0,
+      "synthetic": []
+    },
+    "NYG": {
+      "elo": 1433.6,
+      "endOfSeasonElo": 1411.4,
+      "pointsVsAverage": -2.66,
+      "ppg": 22.4,
+      "papg": 25.8,
+      "wins": 4,
+      "losses": 13,
+      "playoffWins": 0,
+      "synthetic": []
+    },
+    "DEN": {
+      "elo": 1604.3,
+      "endOfSeasonElo": 1639.1,
+      "pointsVsAverage": 4.17,
+      "ppg": 23.6,
+      "papg": 18.3,
+      "wins": 14,
+      "losses": 3,
+      "playoffWins": 1,
+      "synthetic": []
+    },
+    "TEN": {
+      "elo": 1381.2,
+      "endOfSeasonElo": 1341.6,
+      "pointsVsAverage": -4.75,
+      "ppg": 16.7,
+      "papg": 28.1,
+      "wins": 3,
+      "losses": 14,
+      "playoffWins": 0,
+      "synthetic": []
+    },
+    "SEA": {
+      "elo": 1699,
+      "endOfSeasonElo": 1765.4,
+      "pointsVsAverage": 7.96,
+      "ppg": 28.4,
+      "papg": 17.2,
+      "wins": 14,
+      "losses": 3,
+      "playoffWins": 3,
+      "synthetic": []
+    },
+    "SF": {
+      "elo": 1572.3,
+      "endOfSeasonElo": 1596.5,
+      "pointsVsAverage": 2.89,
+      "ppg": 25.7,
+      "papg": 21.8,
+      "wins": 12,
+      "losses": 5,
+      "playoffWins": 1,
+      "synthetic": []
+    },
+    "GB": {
+      "elo": 1498.8,
+      "endOfSeasonElo": 1498.4,
+      "pointsVsAverage": -0.05,
+      "ppg": 23,
+      "papg": 21.2,
+      "wins": 9,
+      "losses": 7,
+      "playoffWins": 0,
+      "synthetic": []
+    },
+    "DET": {
+      "elo": 1517.9,
+      "endOfSeasonElo": 1523.8,
+      "pointsVsAverage": 0.72,
+      "ppg": 28.3,
+      "papg": 24.3,
+      "wins": 9,
+      "losses": 8,
+      "playoffWins": 0,
+      "synthetic": []
+    },
+    "LA": {
+      "elo": 1611.9,
+      "endOfSeasonElo": 1649.2,
+      "pointsVsAverage": 4.48,
+      "ppg": 30.5,
+      "papg": 20.4,
+      "wins": 12,
+      "losses": 5,
+      "playoffWins": 2,
+      "synthetic": []
+    },
+    "HOU": {
+      "elo": 1608.9,
+      "endOfSeasonElo": 1645.2,
+      "pointsVsAverage": 4.36,
+      "ppg": 23.8,
+      "papg": 17.4,
+      "wins": 12,
+      "losses": 5,
+      "playoffWins": 1,
+      "synthetic": []
+    },
+    "BUF": {
+      "elo": 1587.6,
+      "endOfSeasonElo": 1616.8,
+      "pointsVsAverage": 3.5,
+      "ppg": 28.3,
+      "papg": 21.5,
+      "wins": 12,
+      "losses": 5,
+      "playoffWins": 1,
+      "synthetic": []
+    },
+    "BAL": {
+      "elo": 1513.2,
+      "endOfSeasonElo": 1517.6,
+      "pointsVsAverage": 0.53,
+      "ppg": 24.9,
+      "papg": 23.4,
+      "wins": 8,
+      "losses": 9,
+      "playoffWins": 0,
+      "synthetic": []
+    },
+    "CHI": {
+      "elo": 1537.4,
+      "endOfSeasonElo": 1549.8,
+      "pointsVsAverage": 1.49,
+      "ppg": 25.9,
+      "papg": 24.4,
+      "wins": 11,
+      "losses": 6,
+      "playoffWins": 1,
+      "synthetic": []
+    },
+    "MIN": {
+      "elo": 1531.4,
+      "endOfSeasonElo": 1541.9,
+      "pointsVsAverage": 1.26,
+      "ppg": 20.2,
+      "papg": 19.6,
+      "wins": 9,
+      "losses": 8,
+      "playoffWins": 0,
+      "synthetic": []
     }
   }
 }
