@@ -226,6 +226,34 @@ export function sortPropPicks(picks) {
 }
 
 /**
+ * The single most notable main-player read for a game, regardless of
+ * whether it clears the betting bar — used only when nothing on the game
+ * qualified a real pick, so a game with real main players and real data
+ * never goes silent purely because the simulated board (see propMarkets.js)
+ * didn't happen to disagree with the model by enough today. That is not a
+ * data problem, just a market with no real disagreement to price — and the
+ * Card already shows exactly this for a game's spread/total/moneyline as a
+ * zero-unit lean (see buildCard()). Props never had the equivalent, so a
+ * main player with a perfectly real projection could vanish from the Card
+ * entirely on a day the random simulated noise didn't swing his way.
+ *
+ * Still excludes a flagged "Check model" candidate — a number that large is
+ * evidence of a bad input, not a read worth showing even unstaked.
+ */
+export function bestPropLean(candidates) {
+  const eligible = candidates.filter((c) => !c.tier.suspicious)
+  if (!eligible.length) return null
+  return [...eligible].sort((a, b) => b.entry.ev - a.entry.ev)[0]
+}
+
+/** Why a prop lean carries no stake — the prop equivalent of leanReason() above. */
+export function leanReasonForProp(entry) {
+  if (!entry || entry.ev == null) return 'No priced market'
+  if (entry.ev <= 0) return 'Model agrees with the simulated market — no edge to pay the hold'
+  return `Edge too thin at ${(entry.ev * 100).toFixed(1)}% EV`
+}
+
+/**
  * Why a read is not worth a stake. Being specific here is the difference
  * between a card that teaches you something and one that just says no.
  */
