@@ -13,7 +13,8 @@ vi.mock('../generated/player-stats.json', () => ({
     seasons: {
       [LATEST_SEASON]: {
         'cin star wr|WR': { games: 8, tds: 6, receivingYards: 900, receptions: 60, targets: 90, rushingYards: 0, rushingAttempts: 0, passingYards: 0, passingAttempts: 0, passingTouchdowns: 0 },
-        'det star wr|WR': { games: 8, tds: 3, receivingYards: 500, receptions: 40, targets: 60, rushingYards: 0, rushingAttempts: 0, passingYards: 0, passingAttempts: 0, passingTouchdowns: 0 }
+        'det star wr|WR': { games: 8, tds: 3, receivingYards: 500, receptions: 40, targets: 60, rushingYards: 0, rushingAttempts: 0, passingYards: 0, passingAttempts: 0, passingTouchdowns: 0 },
+        'cin star rb|RB': { games: 8, tds: 5, receivingYards: 100, receptions: 15, targets: 20, rushingYards: 700, rushingAttempts: 160, passingYards: 0, passingAttempts: 0, passingTouchdowns: 0 }
       },
       [LATEST_SEASON - 1]: {
         'cin star wr|WR': { games: 17, tds: 9, receivingYards: 1200, receptions: 95, targets: 140, rushingYards: 0, rushingAttempts: 0, passingYards: 0, passingAttempts: 0, passingTouchdowns: 0 },
@@ -196,6 +197,49 @@ describe('fetchGameRosters with the bundled stats snapshot', () => {
     // feed never carries NGS itself, so this is the only place it can come
     // from regardless of which branch supplied the season totals.
     expect(cinStar.ngs).toEqual({ season: 2024, avgSeparation: 3.3, yacAboveExpectation: 4.2 })
+  })
+
+  it('still backfills a teammate from the bundled snapshot even when another player on the same roster already has embedded ESPN stats', async () => {
+    // Confirmed live as a real bug, not a hypothetical: ESPN's per-athlete
+    // stats are populated inconsistently (a QB with a passing line, a
+    // receiver with nothing at all, on the same roster fetch). The previous
+    // behavior checked "does ANYONE on this team already have stats" once
+    // for the whole roster, so Cin Star WR having ESPN stats here used to
+    // silently block Cin Star RB — who ESPN left completely empty — from
+    // ever reaching his own real bundled rate. The check must be per player.
+    const withStats = {
+      athletes: [{
+        items: [
+          {
+            id: '10', displayName: 'Cin Star WR', position: { abbreviation: 'WR' }, status: { name: 'Active' },
+            statistics: {
+              categories: [{
+                name: 'receiving',
+                stats: [{ name: 'gamesPlayed', value: 8 }, { name: 'receivingYards', value: 700 }]
+              }]
+            }
+          },
+          // No `statistics` at all — ESPN's feed simply didn't populate this
+          // player, which is the common case, not the exception.
+          { id: '11', displayName: 'Cin Star RB', position: { abbreviation: 'RB' }, status: { name: 'Active' } }
+        ]
+      }]
+    }
+    const fetchMock = mockFetchRouter([
+      [/\/teams\/cin\/roster/, async () => ({ ok: true, json: async () => withStats })],
+      [/\/teams\/det\/roster/, async () => ({ ok: true, json: async () => rosterJson([{ id: 20, name: 'Det Star WR' }]) })],
+      [/depthcharts/, async () => ({ ok: false, status: 404 })]
+    ])
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await fetchGameRosters(game)
+
+    const cinRb = result.players.find((p) => p.name === 'Cin Star RB')
+    expect(cinRb.stats?.rushingYards).toBe(700)
+    expect(cinRb.stats?.games).toBe(8)
+    // His teammate's own embedded stats are unaffected by this.
+    const cinWr = result.players.find((p) => p.name === 'Cin Star WR')
+    expect(cinWr.stats.receivingYards).toBe(700)
   })
 
   it('attaches Next Gen Stats via the bundled-snapshot branch too', async () => {
