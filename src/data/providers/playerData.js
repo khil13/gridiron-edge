@@ -325,15 +325,24 @@ export async function fetchGameRosters(game, { signal, season } = {}) {
   // The ESPN roster feed itself sometimes embeds season stats already; the
   // bundled snapshot only needs to fill in players who don't have any.
   // Next Gen Stats is attached regardless — it is not part of what makes a
-  // roster "usable" (ESPN's feed never carries it), so it would otherwise
+  // player "usable" (ESPN's feed never carries it), so it would otherwise
   // never reach a player whose season totals came from ESPN's own feed.
+  //
+  // This check used to run once per ROSTER (skip the bundled snapshot for
+  // everyone if ANY teammate already had ESPN stats), on the theory that a
+  // team whose feed is populated at all can be trusted for the whole roster.
+  // Confirmed live as the cause of real main players going missing from
+  // props: ESPN's per-athlete stats are populated inconsistently (this
+  // file's own header notes as much), so one player with even a partial
+  // embedded line — a QB's passing total, say — silently blocked every
+  // teammate ESPN left completely empty from ever reaching the bundled
+  // nflverse data that actually had them. The check belongs per PLAYER.
   const withStatic = async (roster) => {
-    const skipTotals = usable(roster)
     let priorSeason = false
     const players = await Promise.all(roster.players.map(async (p) => {
       const ngs = await staticNgs(p.name, p.position)
       const withNgs = ngs ? { ...p, ngs } : p
-      if (skipTotals) return withNgs
+      if ((p.stats?.games ?? 0) >= 1) return withNgs
       const found = await staticStats(p.name, p.position, statsSeason)
       if (!found) return withNgs
       if (found.priorSeason) priorSeason = true
