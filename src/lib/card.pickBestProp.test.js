@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { pickBestProp, pickPropsForGame, sortPropPicks, isMainPlayer } from './card.js'
+import { pickBestProp, pickPropsForGame, sortPropPicks, isMainPlayer, bestPropLean, leanReasonForProp } from './card.js'
 
 const clean = (ev, units = 1) => ({ tier: { units, suspicious: false }, entry: { ev } })
 const flagged = (ev) => ({ tier: { units: 1, suspicious: true }, entry: { ev } })
-const noPlay = () => ({ tier: { units: 0, suspicious: false }, entry: { ev: 0 } })
+const noPlay = (ev = 0) => ({ tier: { units: 0, suspicious: false }, entry: { ev } })
 
 // pickPropsForGame() identifies a real signal from kind + entry.key (see
 // propSignal() in card.js) — these build candidates that carry one, the
@@ -145,5 +145,54 @@ describe('sortPropPicks', () => {
     const copy = [...picks]
     sortPropPicks(picks)
     expect(picks).toEqual(copy)
+  })
+})
+
+describe('bestPropLean', () => {
+  // Confirmed live as the real-world case this exists for: a main player
+  // with a perfectly real, correctly-projected rate still generates no
+  // qualifying pick most days, because with no odds key the "market" is
+  // just the model's own number plus small random noise — so a game can
+  // go from "nothing posted" to "a real player, zero edge" and still show
+  // nothing at all unless something surfaces that unstaked read.
+  it('picks the highest-EV candidate even when nothing qualifies', () => {
+    const lean = bestPropLean([noPlay(-0.03), noPlay(0.008), noPlay(-0.01)])
+    expect(lean.entry.ev).toBe(0.008)
+  })
+
+  it('returns null when every candidate is flagged', () => {
+    expect(bestPropLean([flagged(2.5), flagged(1.8)])).toBeNull()
+  })
+
+  it('returns null given no candidates at all', () => {
+    expect(bestPropLean([])).toBeNull()
+  })
+
+  it('never returns a flagged candidate, even if its EV is highest', () => {
+    const lean = bestPropLean([flagged(2.5), noPlay(-0.02)])
+    expect(lean.entry.ev).toBe(-0.02)
+  })
+
+  it('still returns a real qualifying candidate if one is present among the pool', () => {
+    // bestPropLean() itself does not check tier.units — pickPropsForGame()
+    // is what callers use first for real picks; this is only the fallback
+    // path, but it should not break if a qualifying candidate is passed in.
+    const lean = bestPropLean([noPlay(-0.01), clean(0.05)])
+    expect(lean.entry.ev).toBe(0.05)
+  })
+})
+
+describe('leanReasonForProp', () => {
+  it('explains a lean with no real market disagreement', () => {
+    expect(leanReasonForProp({ ev: -0.01 })).toMatch(/agrees with the simulated market/)
+  })
+
+  it('explains a lean whose edge was too thin to clear the bar', () => {
+    expect(leanReasonForProp({ ev: 0.008 })).toBe('Edge too thin at 0.8% EV')
+  })
+
+  it('handles a missing entry without throwing', () => {
+    expect(leanReasonForProp(null)).toBe('No priced market')
+    expect(leanReasonForProp({ ev: null })).toBe('No priced market')
   })
 })

@@ -4,7 +4,7 @@ import EdgeRail from '../components/EdgeRail.jsx'
 import { Badge, Empty, Tabs } from '../components/Controls.jsx'
 import { useStore } from '../lib/store.jsx'
 import { toSlipLeg } from '../lib/edges.js'
-import { buildCard, daysFrom, confidenceOf, lockCard, tierForProp, tierForVolume, pickPropsForGame, sortPropPicks, isMainPlayer } from '../lib/card.js'
+import { buildCard, daysFrom, confidenceOf, lockCard, tierForProp, tierForVolume, pickPropsForGame, sortPropPicks, isMainPlayer, bestPropLean, leanReasonForProp } from '../lib/card.js'
 import { analyseAnytimeTouchdowns, volumePlaysForGame } from '../lib/props.js'
 import { reasonsForPick } from '../lib/reasons.js'
 import { fetchGameRosters } from '../data/providers/playerData.js'
@@ -152,6 +152,19 @@ export default function CardView({ data }) {
       const legs = pickPropsForGame(candidates)
       if (!legs.length) {
         if (candidates.some((c) => c.tier.units > 0)) flaggedOnly++
+        // Nothing qualified a real pick — show this game's most notable
+        // main-player read anyway, unstaked, the same way a game with no
+        // spread/total edge still shows a zero-unit lean rather than
+        // nothing at all. Without this, a main player with a perfectly
+        // real projection simply disappears on a day the simulated board
+        // didn't happen to disagree with the model enough.
+        const lean = bestPropLean(candidates)
+        if (lean) {
+          picks.push({
+            game, kind: lean.kind, entry: lean.entry, tier: lean.tier, stake: 0,
+            reason: leanReasonForProp(lean.entry)
+          })
+        }
         continue
       }
       for (const leg of legs) {
@@ -862,10 +875,11 @@ function PlayCard({ entry, dispatch, ratings }) {
 const shortMarketLabel = (label) => label.replace(' yards', ' yds')
 
 function PropPlayCard({ pick, dispatch }) {
-  const { game, kind, entry, tier, stake } = pick
+  const { game, kind, entry, tier, stake, reason } = pick
   const homeTeam = getTeam(game.home)
   const awayTeam = getTeam(game.away)
   const isVolume = kind === 'volume'
+  const isLean = tier.units === 0
   const reasons = reasonsForPick(pick)
 
   const modelProb = isVolume ? entry.modelProb : entry.model.prob
@@ -897,6 +911,7 @@ function PropPlayCard({ pick, dispatch }) {
     <article
       className={`panel play-card${tier.units >= 2 ? ' play-card--best' : ''}${tier.suspicious ? ' play-card--suspicious' : ''}`}
       style={{
+        opacity: isLean ? 0.72 : 1,
         '--gcard-away': readable(awayTeam.primary),
         '--gcard-home': readable(homeTeam.primary)
       }}
@@ -918,7 +933,7 @@ function PropPlayCard({ pick, dispatch }) {
         >
           <div style={{ minWidth: 200 }}>
             <div className="row gap-3" style={{ marginBottom: 6 }}>
-              <Badge tone={tier.tone}>{`${tier.units}u · ${tier.label}`}</Badge>
+              <Badge tone={tier.tone}>{isLean ? 'Lean · no stake' : `${tier.units}u · ${tier.label}`}</Badge>
               <Badge tone="quiet">{badgeLabel}</Badge>
             </div>
             <h3 style={{ fontSize: 'var(--t-xl)' }}>
@@ -944,7 +959,7 @@ function PropPlayCard({ pick, dispatch }) {
               value={`${entry.ev >= 0 ? '+' : ''}${(entry.ev * 100).toFixed(1)}%`}
               tone={entry.ev > 0 ? 'pos' : 'neg'}
             />
-            <Metric label="Stake" value={fmtMoney(stake)} />
+            <Metric label="Stake" value={isLean ? '—' : fmtMoney(stake)} dim={isLean} />
           </div>
         </div>
 
@@ -964,6 +979,7 @@ function PropPlayCard({ pick, dispatch }) {
 
         <div className="row spread-between gap-3" style={{ flexWrap: 'wrap' }}>
           <p className="dim grow" style={{ fontSize: 11, margin: 0, minWidth: 240 }}>
+            {isLean && <span>{reason}. Shown as the model's read on this player, not as a bet. </span>}
             {tier.suspicious && (
               <span className="neg">
                 {isVolume
@@ -977,7 +993,7 @@ function PropPlayCard({ pick, dispatch }) {
           </p>
           <div className="row gap-2">
             <a className="btn ghost" href={href(`game/${game.id}`)}>Game</a>
-            <button className="btn" onClick={add}>Add</button>
+            {!isLean && <button className="btn" onClick={add}>Add</button>}
           </div>
         </div>
       </div>
