@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-06T18:23:21.626Z",
+  "generatedAt": "2026-10-09T18:22:03.852Z",
   "source": "https://github.com/nflverse/nflverse-data (pbp release, regular season)",
   "definitions": {
     "explosivePlayRateOff": "share of offensive plays gaining >=10 yards on a run or >=20 on a pass",
@@ -597,17 +597,17 @@
         "playsPerGame": 60
       },
       "DAL": {
-        "games": 4,
-        "epaPerPlayOff": 0.166,
-        "epaPerPlayDef": 0.201,
-        "successRateOff": 0.478,
-        "successRateDef": 0.525,
-        "explosivePlayRateOff": 0.068,
-        "thirdDownRateOff": 0.531,
-        "thirdDownRateDef": 0.548,
-        "redZoneTdRateOff": 0.667,
-        "turnoverRate": 0.008,
-        "playsPerGame": 62.8
+        "games": 5,
+        "epaPerPlayOff": 0.127,
+        "epaPerPlayDef": 0.193,
+        "successRateOff": 0.479,
+        "successRateDef": 0.518,
+        "explosivePlayRateOff": 0.075,
+        "thirdDownRateOff": 0.508,
+        "thirdDownRateDef": 0.545,
+        "redZoneTdRateOff": 0.696,
+        "turnoverRate": 0.013,
+        "playsPerGame": 61.4
       },
       "KC": {
         "games": 4,
@@ -805,17 +805,17 @@
         "playsPerGame": 61.8
       },
       "TB": {
-        "games": 4,
-        "epaPerPlayOff": -0.154,
-        "epaPerPlayDef": -0.059,
-        "successRateOff": 0.387,
-        "successRateDef": 0.401,
-        "explosivePlayRateOff": 0.071,
-        "thirdDownRateOff": 0.364,
-        "thirdDownRateDef": 0.327,
-        "redZoneTdRateOff": 0.353,
-        "turnoverRate": 0.038,
-        "playsPerGame": 59.5
+        "games": 5,
+        "epaPerPlayOff": -0.088,
+        "epaPerPlayDef": -0.057,
+        "successRateOff": 0.409,
+        "successRateDef": 0.417,
+        "explosivePlayRateOff": 0.08,
+        "thirdDownRateOff": 0.397,
+        "thirdDownRateDef": 0.339,
+        "redZoneTdRateOff": 0.391,
+        "turnoverRate": 0.03,
+        "playsPerGame": 60.2
       },
       "PHI": {
         "games": 4,
