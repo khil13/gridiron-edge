@@ -8,7 +8,7 @@
  * it are always talking about the same real games.
  */
 
-import TEAM_DEFENSE from '../data/generated/team-defense.json'
+import TEAM_DEFENSE from '../data/generated/team-defense.json' with { type: 'json' }
 
 /** A team's allowed-production stats for this game, preferring this season, falling back one year. */
 export function defenseStatsFor(team) {
