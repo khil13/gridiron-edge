@@ -8,7 +8,10 @@ export default [
   {
     files: ['**/*.{js,jsx}'],
     languageOptions: {
-      ecmaVersion: 2022,
+      // 'latest' so import attributes (`with { type: 'json' }` — see
+      // teamDefense.js) parse; 2022 predates that syntax and failed on it
+      // with a hard parse error, not a warning.
+      ecmaVersion: 'latest',
       sourceType: 'module',
       parserOptions: { ecmaFeatures: { jsx: true } },
       globals: { ...globals.browser, ...globals.node }
