@@ -1,10 +1,47 @@
 {
-  "generatedAt": "2026-11-12T20:59:25.607Z",
+  "generatedAt": "2026-11-13T20:34:58.860Z",
   "source": "https://github.com/nflverse/nflverse-data (injuries release)",
   "season": 2026,
   "week": 10,
   "teams": {
+    "DET": [
+      {
+        "name": "D.J. Reed",
+        "position": "CB",
+        "status": "Out",
+        "injury": "Hip",
+        "practiceStatus": "Did Not Participate In Practice"
+      },
+      {
+        "name": "Cade Mays",
+        "position": "C",
+        "status": "Out",
+        "injury": "Ankle",
+        "practiceStatus": "Did Not Participate In Practice"
+      },
+      {
+        "name": "Kerby Joseph",
+        "position": "S",
+        "status": "Out",
+        "injury": "Knee",
+        "practiceStatus": "Full Participation in Practice"
+      }
+    ],
     "NE": [
+      {
+        "name": "Greg Van Roten",
+        "position": "G",
+        "status": "Questionable",
+        "injury": "Hamstring",
+        "practiceStatus": "Full Participation in Practice"
+      },
+      {
+        "name": "Kevin Byard",
+        "position": "S",
+        "status": "Questionable",
+        "injury": "Chest",
+        "practiceStatus": "Full Participation in Practice"
+      },
       {
         "name": "Carlton Davis III",
         "position": "CB",
@@ -13,11 +50,60 @@
         "practiceStatus": "Did Not Participate In Practice"
       },
       {
+        "name": "A.J. Brown",
+        "position": "WR",
+        "status": "Questionable",
+        "injury": "Ankle",
+        "practiceStatus": "Limited Participation in Practice"
+      },
+      {
+        "name": "Reggie Gilliam",
+        "position": "FB",
+        "status": "Questionable",
+        "injury": "Knee",
+        "practiceStatus": "Limited Participation in Practice"
+      },
+      {
+        "name": "Rhamondre Stevenson",
+        "position": "RB",
+        "status": "Questionable",
+        "injury": "Knee",
+        "practiceStatus": "Limited Participation in Practice"
+      },
+      {
+        "name": "Brenden Schooler",
+        "position": "S",
+        "status": "Questionable",
+        "injury": "Hamstring",
+        "practiceStatus": "Limited Participation in Practice"
+      },
+      {
         "name": "Ben Brown",
         "position": "C",
         "status": "Out",
         "injury": "Knee",
         "practiceStatus": "Did Not Participate In Practice"
+      },
+      {
+        "name": "Cameron Latu",
+        "position": "TE",
+        "status": "Questionable",
+        "injury": "Back",
+        "practiceStatus": "Limited Participation in Practice"
+      },
+      {
+        "name": "Charles Woods",
+        "position": "CB",
+        "status": "Questionable",
+        "injury": "Hamstring",
+        "practiceStatus": "Full Participation in Practice"
+      },
+      {
+        "name": "Walter Rouse",
+        "position": "T",
+        "status": "Questionable",
+        "injury": "Concussion",
+        "practiceStatus": "Limited Participation in Practice"
       },
       {
         "name": "TreVeyon Henderson",
