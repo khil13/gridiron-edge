@@ -50,31 +50,58 @@ export const ROLE_PRIORS = {
 }
 
 /**
- * How much to trust observed touchdown share over the prior.
+ * How much to trust a player's observed touchdown rate over the prior.
  *
- * Touchdowns are rare, so a player's share is a very noisy statistic early
- * on: one score in two games is not a 50% share. Weight reaches half at
- * about six team games and approaches full trust near the end of a season.
+ * Touchdowns are rare, so the rate is a very noisy statistic: one score in
+ * two games is not a touchdown-every-other-week player. Weight on the
+ * player's own rate is games / (games + 12) — a quarter at four games, half
+ * at twelve.
+ *
+ * Both the constant and what it is applied to are measured, not assumed.
+ * Walk-forward over every 2025 and 2026 player-week (project from only the
+ * weeks before, compare to who actually scored), the previous version —
+ * player touchdowns / team touchdowns, trusted by TEAM games at
+ * games / (games + 6) — scored WORSE than ignoring the data and using the
+ * positional prior alone (main-player Brier 0.1974 vs 0.1939 in 2025,
+ * 0.1965 vs 0.1907 in 2026): it overreacted, so a player it called 55% to
+ * score did so about 45% of the time, and one it called 6% scored 12-15%.
+ * It also summed touchdowns across seasons — a player with nothing yet this
+ * year carries last season's 17-game total (see playerData.js) — into the
+ * same "team touchdowns" as teammates' three-game totals.
+ *
+ * Per-game rates from each player's own sample, trusted by that player's
+ * own games at K=12, beat both the old version and prior-only in both
+ * seasons (0.1928 and 0.1891), with the average calibration gap for main
+ * players down from 5.0 / 4.5 points to 2.2 / 2.0.
  */
-export function sampleWeight(teamGames) {
-  if (!teamGames || teamGames <= 0) return 0
-  return teamGames / (teamGames + 6)
+export const TD_SHRINKAGE_K = 12
+
+export function sampleWeight(games) {
+  if (!games || games <= 0) return 0
+  return games / (games + TD_SHRINKAGE_K)
 }
 
 /**
- * Blend observed share with the positional prior.
+ * Blend a player's observed share of his team's touchdown rate with the
+ * positional prior.
  *
- * @param {number} playerTds     touchdowns scored by the player
- * @param {number} teamTds       touchdowns scored by the team
- * @param {number} teamGames     games the team has played
- * @param {string} role          key into ROLE_PRIORS
+ * @param {number} playerRate   the player's touchdowns per game, own sample
+ * @param {number} teamRate     the sum of that rate over the team's pool
+ * @param {number} playerGames  games behind the player's own rate
+ * @param {string} role         key into ROLE_PRIORS
  */
-export function touchdownShare(playerTds, teamTds, teamGames, role) {
+export function touchdownShare(playerRate, teamRate, playerGames, role) {
   const prior = ROLE_PRIORS[role] ?? 0.04
-  if (!teamTds || !teamGames) return prior
-  const observed = playerTds / teamTds
-  const w = sampleWeight(teamGames)
+  if (!teamRate || !playerGames) return prior
+  const observed = playerRate / teamRate
+  const w = sampleWeight(playerGames)
   return observed * w + prior * (1 - w)
+}
+
+/** A player's touchdowns per game from his own sample, or 0 with none. */
+export const touchdownRate = (p) => {
+  const games = p?.stats?.games ?? 0
+  return games > 0 ? (p.tds ?? 0) / games : 0
 }
 
 /* ---------- Poisson ---------- */
@@ -114,20 +141,27 @@ export const isRuledOut = (status) => /^out$/i.test(String(status || '').trim())
 /**
  * Project every listed player's anytime-touchdown probability.
  *
- * @param {Array}  players  [{ id, name, team, role, tds }]
+ * @param {Array}  players  [{ id, name, team, role, tds, stats: { games } }]
  * @param {object} teamCtx  { [abbr]: { expectedTds, teamTds, games } }
  */
 export function projectAnytimeTouchdowns(players, teamCtx) {
+  // Each team's touchdown rate as the sum of its own pool's per-game rates
+  // — every player measured over his own games, so a three-game total and
+  // a seventeen-game one are never added together as if they were alike.
+  const teamRate = {}
+  for (const p of players) teamRate[p.team] = (teamRate[p.team] ?? 0) + touchdownRate(p)
+
   return players
     .map((p) => {
       const ctx = teamCtx[p.team]
       if (!ctx || !ctx.expectedTds) return null
 
+      const games = p.stats?.games ?? 0
       // A flat share means the caller could not establish a depth chart, so
       // there is nothing to blend an observed rate against.
       const share = p.flatShare != null
         ? p.flatShare
-        : touchdownShare(p.tds ?? 0, ctx.teamTds, ctx.games, p.role)
+        : touchdownShare(touchdownRate(p), teamRate[p.team], games, p.role)
       const lambda = ctx.expectedTds * share
       return {
         ...p,
@@ -135,7 +169,7 @@ export function projectAnytimeTouchdowns(players, teamCtx) {
         lambda: round3(lambda),
         prob: poissonAtLeastOne(lambda),
         // Carried through so the UI can say how much of this is a guess.
-        sampleWeight: round2(sampleWeight(ctx.games)),
+        sampleWeight: round2(sampleWeight(games)),
         teamGames: ctx.games ?? 0
       }
     })
@@ -360,7 +394,7 @@ export function analyseAnytimeTouchdowns({ game, proj, rosters, props }) {
 /* Yardage, receptions and volume props                                */
 /* ------------------------------------------------------------------ */
 
-import { overProbabilityFor, VARIABILITY } from './distributions.js'
+import { overProbabilityFor, cvFor } from './distributions.js'
 
 /** Markets that can be projected from season rate data. */
 export const VOLUME_MARKETS = [
@@ -415,22 +449,41 @@ export const VOLUME_PRIORS = {
  * weeks), and it is left off entirely rather than guessed at when the
  * opponent has no games on record yet.
  *
- * A fourth, optional input layers on top of those: expected game script.
- * Teams projected to trail throw more to catch up; teams projected to lead
- * run more to shorten the game — a well-established, real NFL pattern, not
- * a measurement of these specific teams (this app has no play-by-play with
- * game state to measure pass-rate-over-expected directly). Built from the
- * model's own projected margin, which is already real; the direction and
- * rough size of the effect is general football knowledge, so it is kept
- * small and clearly labelled as a modelling assumption rather than
- * presented as data.
+ * A fourth, optional input layers on top of those, for rushing markets
+ * only: expected game script. Teams projected to lead run more to shorten
+ * the game; teams projected to trail run less — a well-established, real
+ * NFL pattern, not a measurement of these specific teams (this app has no
+ * play-by-play with game state to measure it directly). Built from the
+ * model's own projected margin, kept small, and clearly labelled as a
+ * modelling assumption rather than presented as data. The mirror-image
+ * boost to a trailing team's passing game was tried and removed: measured
+ * against real results it added error (see ENVIRONMENT_DAMPING below).
  *
  * All three adjustments are deliberately damped. Game totals, a single
  * defense's season rate, and a projected margin all move more than any
  * individual's share of them, so passing any of these ratios through in
  * full would overstate every projection.
+ *
+ * How damped is measured rather than assumed. Walk-forward over 2025 and
+ * 2026 main players, with each game's real pre-kickoff market total and
+ * spread standing in for the projection (a better game read than this
+ * model's own, so the best case for these adjustments):
+ *
+ *   - Environment at the previous 0.6 ADDED error in most markets —
+ *     passing yards MAE 62.3 -> 63.1 (2025) and 61.0 -> 64.4 (2026), rush
+ *     attempts 3.11 -> 3.17 and 3.23 -> 3.31. At 0.15 it is neutral to
+ *     slightly helpful everywhere and never worse than leaving it off.
+ *   - The opponent-defense factor at 0.4 is a small real gain on rushing
+ *     yards in both seasons (17.39 -> 17.34, 17.05 -> 16.90) and a wash on
+ *     receiving. Left as is.
+ *   - Game script helps rushing a little in both seasons (17.39 -> 17.26,
+ *     17.05 -> 16.99) but on the PASSING side it added error in both —
+ *     passing yards 62.3 -> 63.6 and 61.0 -> 61.5 — because a team
+ *     projected to trail is, on average, also the worse offense, which the
+ *     player's own rate already reflects. It now applies to the rushing
+ *     side only.
  */
-export const ENVIRONMENT_DAMPING = 0.6
+export const ENVIRONMENT_DAMPING = 0.15
 export const DEFENSE_DAMPING = 0.4
 export const GAME_SCRIPT_MAX_SWING = 0.15
 export const GAME_SCRIPT_MARGIN_CAP = 21 // a three-possession game; beyond this the script is already as lopsided as it gets
@@ -455,11 +508,34 @@ export const GAME_SCRIPT_MARGIN_CAP = 21 // a three-possession game; beyond this
  */
 export const VOLUME_SHRINKAGE_K = 3
 
+/**
+ * Receiving markets regress toward the player's OWN previous season, not
+ * just his role's league average.
+ *
+ * "A WR1 averages 68 yards" is a weak statement about any particular WR1;
+ * what he did over a full season last year is a much stronger one, and the
+ * bundled snapshot already carries it. So where last season exists, the
+ * prior becomes last season's own per-game rate (itself pulled toward the
+ * role average by PRIOR_SEASON_K games' worth, since roles change), and —
+ * being a better prior — it is held slightly longer (K=5 rather than 3).
+ *
+ * Validated the same walk-forward way, on both seasons: main-player
+ * receiving-yards MAE 21.93 -> 21.48 (2025) and 24.03 -> 22.73 (2026), with
+ * the bias toward over-projecting cut from +2.2 / +2.5 yards to +1.4 /
+ * +0.6; receptions 1.69 -> 1.67 and 1.81 -> 1.73.
+ *
+ * Deliberately NOT applied to rushing or passing: the same test showed no
+ * gain there (rushing yards 17.66 -> 17.74 and 17.47 -> 17.73) — backfield
+ * roles turn over between seasons far more than a receiver's does — so
+ * those keep the role prior alone.
+ */
+export const PLAYER_PRIOR_STATS = new Set(['receivingYards', 'receptions'])
+export const PLAYER_PRIOR_K = 5
+export const PRIOR_SEASON_K = 4
+
 const DEFENSE_SIDE = { rushingYards: 'rushing', receivingYards: 'receiving' }
-const GAME_SCRIPT_SIDE = {
-  passingYards: 'passing', passingAttempts: 'passing', receivingYards: 'passing', receptions: 'passing',
-  rushingYards: 'rushing', rushingAttempts: 'rushing'
-}
+// Rushing side only — see the measurements above ENVIRONMENT_DAMPING.
+const GAME_SCRIPT_SIDE = { rushingYards: 'rushing', rushingAttempts: 'rushing' }
 
 const clampDefenseRatio = (r) => Math.max(0.8, Math.min(1.25, r))
 const clampGameScriptRatio = (r) => Math.max(1 - GAME_SCRIPT_MAX_SWING, Math.min(1 + GAME_SCRIPT_MAX_SWING, r))
@@ -486,11 +562,26 @@ export function projectVolume(player, market, { teamPoints, teamAverage, opponen
   if (games >= 1 && total != null) {
     perGame = total / games // the player's real, observed rate — shown as-is, never shrunk
     synthetic = false
-    const prior = VOLUME_PRIORS[player.role]?.[market.stat]
+    const rolePrior = VOLUME_PRIORS[player.role]?.[market.stat]
+    let prior = rolePrior
+    let k = VOLUME_SHRINKAGE_K
+    let ownPrior = false
+    // Last season's own rate, where this season is the sample being shrunk
+    // (a player whose `stats` already ARE last season's has nothing earlier
+    // bundled to regress toward).
+    const last = player.priorStats
+    if (PLAYER_PRIOR_STATS.has(market.stat) && !player.statsPriorSeason && last?.games > 0 && last[market.stat] != null) {
+      const lastRate = last[market.stat] / last.games
+      prior = rolePrior == null
+        ? lastRate
+        : (last.games * lastRate + PRIOR_SEASON_K * rolePrior) / (last.games + PRIOR_SEASON_K)
+      k = PLAYER_PRIOR_K
+      ownPrior = true
+    }
     if (prior != null) {
-      const w = games / (games + VOLUME_SHRINKAGE_K)
+      const w = games / (games + k)
       projectedRate = perGame * w + prior * (1 - w)
-      shrinkage = { weight: round2(w), prior: round1(prior) }
+      shrinkage = { weight: round2(w), prior: round1(prior), ownPrior }
     } else {
       projectedRate = perGame
     }
@@ -515,11 +606,9 @@ export function projectVolume(player, market, { teamPoints, teamAverage, opponen
 
   const scriptSide = GAME_SCRIPT_SIDE[market.stat]
   const hasScript = scriptSide && Number.isFinite(marginForTeam)
-  // Trailing (negative margin) favors the passing side and works against the
-  // rushing side; leading does the opposite.
-  const scriptDirection = scriptSide === 'passing' ? -1 : 1
+  // Leading favors the run; trailing works against it.
   const scriptFactor = hasScript
-    ? clampGameScriptRatio(1 + scriptDirection * scriptRatio(marginForTeam) * GAME_SCRIPT_MAX_SWING)
+    ? clampGameScriptRatio(1 + scriptRatio(marginForTeam) * GAME_SCRIPT_MAX_SWING)
     : 1
 
   const mean = projectedRate * clampRatio(damped) * defenseFactor * scriptFactor
@@ -537,7 +626,7 @@ export function projectVolume(player, market, { teamPoints, teamAverage, opponen
       : null,
     gameScript: hasScript ? { factor: round2(scriptFactor), marginForTeam: round1(marginForTeam) } : null,
     mean: round1(mean),
-    variability: VARIABILITY[market.key] ?? null,
+    variability: cvFor(market.key, mean),
     /** @param {number} line */
     over: (line) => overProbabilityFor(market.key, mean, line),
     under: (line) => {

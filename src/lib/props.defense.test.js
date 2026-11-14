@@ -75,8 +75,8 @@ describe('projectVolume — opponent defense adjustment', () => {
 })
 
 describe('projectVolume — game script adjustment', () => {
-  it('scales a trailing team\'s passing volume up', () => {
-    const v = projectVolume(player, receivingYardsMarket, { teamPoints: 22, teamAverage: 22, marginForTeam: -14 })
+  it('scales a leading team\'s rushing volume up', () => {
+    const v = projectVolume(rusher, rushingYardsMarket, { teamPoints: 22, teamAverage: 22, marginForTeam: 14 })
     expect(v.gameScript).not.toBeNull()
     expect(v.gameScript.factor).toBeGreaterThan(1)
     expect(v.mean).toBeGreaterThan(v.perGame)
@@ -88,35 +88,39 @@ describe('projectVolume — game script adjustment', () => {
     expect(v.mean).toBeLessThan(v.perGame)
   })
 
-  it('scales a leading team the opposite way: passing down, rushing up', () => {
-    const pass = projectVolume(player, receivingYardsMarket, { teamPoints: 22, teamAverage: 22, marginForTeam: 14 })
-    const rush = projectVolume(rusher, rushingYardsMarket, { teamPoints: 22, teamAverage: 22, marginForTeam: 14 })
-    expect(pass.gameScript.factor).toBeLessThan(1)
-    expect(rush.gameScript.factor).toBeGreaterThan(1)
+  it('leaves the passing side alone, trailing or leading', () => {
+    // Boosting a trailing team's passing game added error against real
+    // 2025 and 2026 results (see ENVIRONMENT_DAMPING in props.js), so a
+    // projected margin no longer moves a receiving or passing projection.
+    const trailing = projectVolume(player, receivingYardsMarket, { teamPoints: 22, teamAverage: 22, marginForTeam: -14 })
+    const leading = projectVolume(player, receivingYardsMarket, { teamPoints: 22, teamAverage: 22, marginForTeam: 14 })
+    expect(trailing.gameScript).toBeNull()
+    expect(leading.gameScript).toBeNull()
+    expect(trailing.mean).toBe(leading.mean)
   })
 
   it('caps the swing at the documented maximum even for a lopsided margin', () => {
-    const v = projectVolume(player, receivingYardsMarket, { teamPoints: 22, teamAverage: 22, marginForTeam: -35 })
+    const v = projectVolume(rusher, rushingYardsMarket, { teamPoints: 22, teamAverage: 22, marginForTeam: 35 })
     expect(v.gameScript.factor).toBeCloseTo(1 + GAME_SCRIPT_MAX_SWING, 5)
     // A margin beyond the cap should land at exactly the same factor as the cap itself.
-    const atCap = projectVolume(player, receivingYardsMarket, { teamPoints: 22, teamAverage: 22, marginForTeam: -GAME_SCRIPT_MARGIN_CAP })
+    const atCap = projectVolume(rusher, rushingYardsMarket, { teamPoints: 22, teamAverage: 22, marginForTeam: GAME_SCRIPT_MARGIN_CAP })
     expect(v.gameScript.factor).toBeCloseTo(atCap.gameScript.factor, 5)
   })
 
   it('is left off for a close game (zero margin)', () => {
-    const v = projectVolume(player, receivingYardsMarket, { teamPoints: 22, teamAverage: 22, marginForTeam: 0 })
+    const v = projectVolume(rusher, rushingYardsMarket, { teamPoints: 22, teamAverage: 22, marginForTeam: 0 })
     expect(v.gameScript.factor).toBe(1)
   })
 
   it('is left off entirely when no margin is given', () => {
-    const v = projectVolume(player, receivingYardsMarket, { teamPoints: 22, teamAverage: 22 })
+    const v = projectVolume(rusher, rushingYardsMarket, { teamPoints: 22, teamAverage: 22 })
     expect(v.gameScript).toBeNull()
   })
 
   it('combines with the defense and environment adjustments', () => {
-    const base = projectVolume(player, receivingYardsMarket, { teamPoints: 22, teamAverage: 22 })
-    const all = projectVolume(player, receivingYardsMarket, {
-      teamPoints: 22, teamAverage: 22, opponent: 'AAA', marginForTeam: -14
+    const base = projectVolume(rusher, rushingYardsMarket, { teamPoints: 22, teamAverage: 22 })
+    const all = projectVolume(rusher, rushingYardsMarket, {
+      teamPoints: 22, teamAverage: 22, opponent: 'AAA', marginForTeam: 14
     })
     expect(all.defense).not.toBeNull()
     expect(all.gameScript).not.toBeNull()
