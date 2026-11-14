@@ -66,7 +66,9 @@ describe('analyseAnytimeTouchdowns — ruled-out players', () => {
     const detSum = (list) => list.filter((p) => p.team === 'DET').reduce((s, p) => s + p.lambda, 0)
     // The team's total expected touchdowns is conserved either way (that's
     // normaliseField's job); what should move is how it's split up.
-    expect(detSum(healthy)).toBeCloseTo(detSum(withOut), 5)
+    // Each lambda is rounded to three places, so the two sums agree to
+    // within that rounding rather than exactly.
+    expect(detSum(healthy)).toBeCloseTo(detSum(withOut), 2)
 
     const teammate = (list) => list.find((p) => p.name === 'Home Wideout Two')
     expect(teammate(withOut).lambda).toBeGreaterThan(teammate(healthy).lambda)

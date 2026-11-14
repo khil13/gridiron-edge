@@ -135,12 +135,9 @@ export default function PropsTab({ game, data }) {
 /* ---------- the maths, in one place ---------- */
 
 function analyse({ game, proj, settings, ratings, rosters, props, entered = {} }) {
-  // touchdownShare() blends a player's observed share of his team's
-  // touchdowns against the positional prior — but only once it actually
-  // has a team's real touchdown count and games played. Those were never
-  // wired up here, so every player fell back to the prior alone, no matter
-  // how much real season data existed for them. analyseAnytimeTouchdowns()
-  // (in lib/props.js) is the fix, shared with the Card of the day.
+  // analyseAnytimeTouchdowns() (lib/props.js) blends each player's own
+  // per-game touchdown rate against his positional prior — shared with the
+  // Card of the day so the two never drift apart.
   const { anytime: rawAnytime, projected, teamCtx, devig: dv, hasPrices } = analyseAnytimeTouchdowns({ game, proj, rosters, props })
   const byName = new Map(projected.map((p) => [normName(p.name), p]))
   const pricedKeys = new Set(rawAnytime.map((e) => e.key))
@@ -797,7 +794,7 @@ function Volume({ analysis, entered, onPrice }) {
                     {v.shrinkage && v.shrinkage.weight < 0.9 && (
                       <div
                         style={{ fontSize: 10, marginTop: 2 }}
-                        title={`Only ${v.games} game${v.games === 1 ? '' : 's'} of real data — the projection blends this rate ${Math.round(v.shrinkage.weight * 100)}% with his own ${v.perGame}/g and ${Math.round((1 - v.shrinkage.weight) * 100)}% with the ${v.role} positional rate (${v.shrinkage.prior}/g) rather than taking one or two games at face value.`}
+                        title={`Only ${v.games} game${v.games === 1 ? '' : 's'} of real data — the projection blends this rate ${Math.round(v.shrinkage.weight * 100)}% with his own ${v.perGame}/g and ${Math.round((1 - v.shrinkage.weight) * 100)}% with ${v.shrinkage.ownPrior ? 'his own rate last season' : `the ${v.role} positional rate`} (${v.shrinkage.prior}/g) rather than taking a handful of games at face value.`}
                       >
                         regressed · {Math.round(v.shrinkage.weight * 100)}% own rate
                       </div>
@@ -886,19 +883,21 @@ function Volume({ analysis, entered, onPrice }) {
 
       <p className="dim" style={{ fontSize: 11, padding: 'var(--s3) var(--s4)', margin: 0, maxWidth: '80ch' }}>
         Yardage is modelled with a right-skewed distribution rather than a bell curve, because
-        that is how it behaves: a floor at zero and a long tail. A symmetric curve would put
-        real probability below zero yards and misprice both sides. The first multiplier shown
-        next to a projection is how far this game&apos;s expected scoring sits from the
-        team&apos;s season average, damped — a shootout lifts everyone, but not proportionally.
-        A second &quot;script&quot; multiplier, when shown, nudges passing volume up and rushing
-        volume down for a team projected to trail (and the reverse for a team projected to lead)
-        — a real, well-known tendency in how teams actually call plays, not a number measured
-        from these two teams specifically, so it is kept small and capped.
-        A &quot;regressed&quot; note under the rate means fewer than nine real games back it — the
-        projection pulls toward this role&apos;s typical rate until the sample grows, instead of
-        letting one unusually big or quiet game become next week&apos;s number outright. Checked
-        against real early-season weeks this year, that pull measurably reduced the average miss
-        versus not shrinking at all.
+        that is how it behaves: a floor at zero and a long tail. How wide that spread is comes
+        from real results, not a fixed percentage: graded against every 2025 and 2026
+        player-week, a small projection swings proportionally far more than a big one, so a
+        15-yard projection is treated as much less certain than an 80-yard one.
+        The first multiplier shown next to a projection is how far this game&apos;s expected
+        scoring sits from the team&apos;s season average, heavily damped — graded the same way,
+        a stronger adjustment made projections less accurate, not more.
+        A second &quot;script&quot; multiplier, on rushing markets only, nudges volume up for a
+        team projected to lead and down for one projected to trail — a real tendency in how
+        teams call plays, kept small and capped. (The matching boost to a trailing team&apos;s
+        passing game was removed: against real results it added error.)
+        A &quot;regressed&quot; note under the rate means only a handful of real games back it —
+        the projection pulls toward this role&apos;s typical rate (or, for receiving markets,
+        the player&apos;s own rate last season) until the sample grows, instead of letting one
+        unusually big or quiet game become next week&apos;s number outright.
         A line showing &quot;check line/price&quot; instead of an EV number isn&apos;t a bigger
         edge — a real sportsbook mispricing a yardage line by that much essentially never happens,
         so an EV this large almost always means the line or price typed in doesn&apos;t match what

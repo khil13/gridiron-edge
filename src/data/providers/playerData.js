@@ -278,6 +278,20 @@ async function staticStats(name, position, season) {
 }
 
 /**
+ * A player's previous-season totals, kept alongside this season's rather
+ * than only as a fallback for when this season is empty. projectVolume()
+ * (props.js) regresses a receiver's thin current-season rate toward what he
+ * himself did last year — a far better anchor than his role's league
+ * average, and already sitting in the bundled snapshot.
+ */
+async function staticPriorStats(name, position, season) {
+  const playerStats = await loadPlayerStats()
+  const key = `${normPropName(name)}|${position === 'FB' ? 'RB' : position}`
+  const prior = playerStats.seasons?.[season - 1]?.[key]
+  return prior?.games > 0 ? prior : null
+}
+
+/**
  * A player's Next Gen Stats — separation, YAC over expectation, rush yards
  * over expected — from the bundled nflverse snapshot.
  *
@@ -342,11 +356,16 @@ export async function fetchGameRosters(game, { signal, season } = {}) {
     const players = await Promise.all(roster.players.map(async (p) => {
       const ngs = await staticNgs(p.name, p.position)
       const withNgs = ngs ? { ...p, ngs } : p
-      if ((p.stats?.games ?? 0) >= 1) return withNgs
+      const priorStats = await staticPriorStats(p.name, p.position, statsSeason)
+      if ((p.stats?.games ?? 0) >= 1) return priorStats ? { ...withNgs, priorStats } : withNgs
       const found = await staticStats(p.name, p.position, statsSeason)
       if (!found) return withNgs
       if (found.priorSeason) priorSeason = true
-      return { ...withNgs, stats: found.stats, tds: found.stats.tds, statsPriorSeason: found.priorSeason }
+      // When last season IS the stats being used, there is nothing earlier
+      // bundled to regress toward — priorStats stays off rather than
+      // pointing a season's totals back at themselves.
+      const base = { ...withNgs, stats: found.stats, tds: found.stats.tds, statsPriorSeason: found.priorSeason }
+      return !found.priorSeason && priorStats ? { ...base, priorStats } : base
     }))
     if (priorSeason) usedPriorSeason = true
     return { ...roster, players }

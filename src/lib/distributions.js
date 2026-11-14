@@ -87,20 +87,53 @@ export function gammaOver(mean, line, cv) {
 }
 
 /**
- * How variable each statistic is, as a coefficient of variation.
+ * How wide the real spread of outcomes is around a projection.
  *
- * These are the numbers that decide how a prop is priced away from its
- * projection, so they are worth stating plainly rather than burying. They
- * are rounded from observed game-to-game spread: receiving is the most
- * volatile because a single deep ball rewrites an afternoon, quarterback
- * passing the least because volume is high and steady.
+ * This used to be one fixed coefficient of variation per market (receiving
+ * 0.72, rushing 0.58, passing 0.32) — "a player's bad-to-good range is the
+ * same percentage of his projection whatever the projection is." Measured
+ * against real results it is not: walk-forward over every 2025 and 2026
+ * player-week (project from only the weeks before, compare to what
+ * happened), the VARIANCE of the outcome is proportional to the projection
+ * — variance / projection sits at ~21 yards for receiving and ~22 for
+ * rushing at every projection size from 5 yards to 85 — so the percentage
+ * spread shrinks as the projection grows. A 15-yard projection really has
+ * a CV near 1.2, an 80-yard one near 0.5; one fixed number is only right
+ * at a single projection size and wrong everywhere else.
+ *
+ * The practical damage was in the probabilities: with the fixed CV, a
+ * rushing-yards over the model called 67% hit 41% of the time and one it
+ * called 86% hit 71% (2026 main players). Fitted on 2025 only and checked
+ * on 2026 only, variance-proportional-to-mean brought the average
+ * calibration gap on rushing yards from 7.3 points to 1.7 (main players)
+ * and 12.4 to 2.6 (all players); receiving yards 7.8 to 1.8 (all players).
+ *
+ * Each number is variance per yard of projection, i.e. the gamma's scale.
  */
-export const VARIABILITY = {
-  receivingYards: 0.72,
-  rushingYards: 0.58,
-  passingYards: 0.32,
-  receptions: null,      // count, uses negative binomial
-  rushingAttempts: null
+export const SPREAD = {
+  receivingYards: 21,
+  rushingYards: 22,
+  passingYards: 30
+}
+
+/** The coefficient of variation a projection of this size really carries. */
+export function cvFor(market, mean) {
+  const spread = SPREAD[market]
+  if (!spread || !(mean > 0)) return null
+  return Math.sqrt(spread / mean)
+}
+
+/**
+ * Overdispersion (variance / mean) for the count markets. Receptions sit
+ * close to the long-standing 1.35 in the same walk-forward (measured ~1.2
+ * to 1.3, with no calibration gain from moving it). Rush attempts do not:
+ * measured ~2.4 in both seasons — carries swing with game script far more
+ * than a near-Poisson count allows — and using 2.4 took the all-player
+ * calibration gap on 2026 from 6.9 points to 2.6.
+ */
+export const DISPERSION = {
+  receptions: 1.35,
+  rushingAttempts: 2.4
 }
 
 /* ---------- Counts, for receptions and carries ---------- */
@@ -156,12 +189,12 @@ export function overProbabilityFor(market, mean, line) {
   if (market === 'receptions' || market === 'rushingAttempts') {
     // negBinomOver already excludes the exact-landing mass, so the three
     // outcomes sum to one without further adjustment.
-    const win = negBinomOver(mean, line)
-    const push = negBinomPush(mean, line)
+    const win = negBinomOver(mean, line, DISPERSION[market])
+    const push = negBinomPush(mean, line, DISPERSION[market])
     return { win, push, lose: Math.max(0, 1 - win - push) }
   }
 
-  const cv = VARIABILITY[market]
+  const cv = cvFor(market, mean)
   if (!cv) return null
   const win = gammaOver(mean, line, cv)
   // Yardage lines are quoted in halves often enough, but a whole number can

@@ -242,6 +242,25 @@ describe('fetchGameRosters with the bundled stats snapshot', () => {
     expect(cinWr.stats.receivingYards).toBe(700)
   })
 
+  it('carries last season\'s totals alongside this season\'s, so a receiver can regress toward his own history', async () => {
+    const fetchMock = mockFetchRouter([
+      [/\/teams\/cin\/roster/, async () => ({ ok: true, json: async () => rosterJson([{ id: 10, name: 'Cin Star WR' }, { id: 11, name: 'Cin Star RB', position: 'RB' }]) })],
+      [/\/teams\/det\/roster/, async () => ({ ok: true, json: async () => rosterJson([{ id: 20, name: 'Det Star WR' }]) })],
+      [/depthcharts/, async () => ({ ok: false, status: 404 })]
+    ])
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await fetchGameRosters(game)
+
+    const cinStar = result.players.find((p) => p.name === 'Cin Star WR')
+    expect(cinStar.stats.receivingYards).toBe(900) // this season
+    expect(cinStar.priorStats.receivingYards).toBe(1200) // last season, kept separately
+    expect(cinStar.priorStats.games).toBe(17)
+    // No row last season at all: nothing invented.
+    const cinRb = result.players.find((p) => p.name === 'Cin Star RB')
+    expect(cinRb.priorStats).toBeUndefined()
+  })
+
   it('attaches Next Gen Stats via the bundled-snapshot branch too', async () => {
     const fetchMock = mockFetchRouter([
       [/\/teams\/cin\/roster/, async () => ({ ok: true, json: async () => rosterJson([{ id: 10, name: 'Cin Star WR' }]) })],
