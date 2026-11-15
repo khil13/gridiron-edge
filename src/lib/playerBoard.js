@@ -13,7 +13,7 @@
  */
 
 import { analyseAnytimeTouchdowns, projectVolume, VOLUME_MARKETS, isRuledOut, normPropName } from './props.js'
-import { quantileFor } from './distributions.js'
+import { quantileFor, overProbabilityFor } from './distributions.js'
 import { isMainPlayer } from './card.js'
 
 /** The stat lines shown for each main role, in display order. */
@@ -80,4 +80,31 @@ export function mainPlayerBoard({ game, proj, rosters, ratings }) {
   return board.sort((a, b) =>
     (a.team === game.home ? 0 : 1) - (b.team === game.home ? 0 : 1) ||
     (ROLE_ORDER[a.role] ?? 9) - (ROLE_ORDER[b.role] ?? 9))
+}
+
+/** The largest line worth taking seriously per market — anything past it is a typo, not a line. */
+const MAX_LINE = { passingYards: 600, rushingYards: 300, receivingYards: 300, receptions: 25, rushingAttempts: 45 }
+
+/**
+ * The model's chance of going over and under a line the user typed in —
+ * their own sportsbook's number, compared with the projection.
+ *
+ * Deliberately probabilities only, no "edge" or stake: without the price
+ * there is no telling whether a 58% over is worth betting, and the board
+ * does not pretend otherwise.
+ *
+ * @param {string} market  a board line's market key
+ * @param {number} mean    that line's projection
+ * @param {string|number} raw  what was typed
+ * @returns {null | { invalid: true } | { line, over, under, push }}
+ *   null when nothing usable was typed yet
+ */
+export function lineOutlook(market, mean, raw) {
+  const text = String(raw ?? '').trim()
+  if (!text) return null
+  const line = Number(text)
+  if (!Number.isFinite(line) || line <= 0 || line > (MAX_LINE[market] ?? 1000)) return { invalid: true }
+  const o = overProbabilityFor(market, mean, line)
+  if (!o) return null
+  return { line, over: o.win, under: o.lose, push: o.push }
 }
