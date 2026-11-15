@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 
 vi.mock('../data/generated/team-defense.json', () => ({ default: { latestSeason: 2026, seasons: {} } }))
 
-const { mainPlayerBoard } = await import('./playerBoard.js')
+const { mainPlayerBoard, lineOutlook } = await import('./playerBoard.js')
 
 const game = { id: 'g1', home: 'BAL', away: 'CIN' }
 const proj = { homeTeamTotal: 26, awayTeamTotal: 22, margin: 4 }
@@ -81,5 +81,46 @@ describe('mainPlayerBoard', () => {
     const b = board(roster().map((p) => (p.name === 'Home Wideout' ? { ...p, statsPriorSeason: true } : p)))
     expect(find(b, 'Home Wideout').lines.every((l) => l.priorSeason)).toBe(true)
     expect(find(b, 'Home Back').lines.every((l) => !l.priorSeason)).toBe(true)
+  })
+})
+
+describe('lineOutlook — the model against a line the user typed', () => {
+  it('returns nothing until something is typed', () => {
+    expect(lineOutlook('rushingYards', 90, '')).toBeNull()
+    expect(lineOutlook('rushingYards', 90, undefined)).toBeNull()
+    expect(lineOutlook('rushingYards', 90, '   ')).toBeNull()
+  })
+
+  it('gives over and under chances that sum to one on a half-point line', () => {
+    const o = lineOutlook('rushingYards', 90, '84.5')
+    expect(o.line).toBe(84.5)
+    expect(o.over + o.under).toBeCloseTo(1, 6)
+    expect(o.push).toBe(0)
+  })
+
+  it('leans under at a line set at the projection, because yardage is right-skewed', () => {
+    // The mean sits above the median: a few huge games pull it up.
+    const o = lineOutlook('receivingYards', 70, '70')
+    expect(o.under).toBeGreaterThan(o.over)
+  })
+
+  it('moves the right way as the line moves', () => {
+    const low = lineOutlook('receivingYards', 70, '49.5')
+    const high = lineOutlook('receivingYards', 70, '94.5')
+    expect(low.over).toBeGreaterThan(0.6)
+    expect(high.over).toBeLessThan(0.3)
+  })
+
+  it('accounts for a push on a whole-number receptions line', () => {
+    const o = lineOutlook('receptions', 5.2, '5')
+    expect(o.push).toBeGreaterThan(0.05)
+    expect(o.over + o.under + o.push).toBeCloseTo(1, 6)
+  })
+
+  it('flags something that is not a believable line rather than computing on it', () => {
+    expect(lineOutlook('rushingYards', 90, 'abc')).toEqual({ invalid: true })
+    expect(lineOutlook('rushingYards', 90, '-5')).toEqual({ invalid: true })
+    expect(lineOutlook('rushingYards', 90, '0')).toEqual({ invalid: true })
+    expect(lineOutlook('receptions', 5, '845')).toEqual({ invalid: true }) // a yardage number typed into receptions
   })
 })

@@ -11,7 +11,9 @@ import { analyseAnytimeTouchdowns, volumePlaysForGame } from '../lib/props.js'
 import { reasonsForPick } from '../lib/reasons.js'
 import { fetchGameRosters } from '../data/providers/playerData.js'
 import { fetchGameProps, CARD_PROP_MARKETS, CARD_PROP_CREDIT_COST } from '../data/providers/oddsApiProvider.js'
-import { mainPlayerBoard } from '../lib/playerBoard.js'
+import { mainPlayerBoard, lineOutlook } from '../lib/playerBoard.js'
+import { load, save } from '../lib/storage.js'
+import { normPropName } from '../lib/props.js'
 import { getTeam } from '../data/teams.js'
 import ResultsView from './ResultsView.jsx'
 import {
@@ -85,6 +87,21 @@ export default function CardView({ data }) {
   const { settings, lockedCards, oddsKey, dispatch } = useStore()
   const [tab, setTab] = useState('today')
   const [propState, setPropState] = useState({ status: 'idle', dayKey: null })
+  // Lines the user typed in from their own sportsbook, per game/player/stat.
+  // Kept across visits (the board itself has to be reloaded after leaving
+  // the page, and retyping a slate of lines each time would be miserable),
+  // and pruned to games still on the schedule so it cannot grow forever.
+  const [boardLines, setBoardLines] = useState(() => load('boardLines', {}))
+  const setBoardLine = (key, value) => {
+    setBoardLines((prev) => {
+      const gameIds = new Set(data.games.map((g) => g.id))
+      const next = Object.fromEntries(Object.entries(prev).filter(([k]) => gameIds.has(k.split('|')[0])))
+      if (value) next[key] = value
+      else delete next[key]
+      save('boardLines', next)
+      return next
+    })
+  }
   const days = useMemo(() => daysFrom(data.games), [data.games])
 
   // Default to the first day that still has games to bet, else the last day.
@@ -562,9 +579,14 @@ export default function CardView({ data }) {
               No upcoming games on this day to project.
             </p>
           )}
-          {propsReady && boardGames.map((g) => <PlayerBoard key={g.game.id} entry={g} />)}
+          {propsReady && boardGames.map((g) => (
+            <PlayerBoard key={g.game.id} entry={g} lines={boardLines} onLine={setBoardLine} />
+          ))}
           {propsReady && boardGames.length > 0 && (
             <p className="dim" style={{ fontSize: 11, padding: 'var(--s3) var(--s4) var(--s4)', margin: 0, maxWidth: '82ch' }}>
+              Type your sportsbook&apos;s line under any stat to see the model&apos;s chance of going
+              over or under it. Those are chances, not a verdict on the bet — whether a 58% over is
+              worth taking depends on the price, which the Props tab handles.{' '}
               For yards, the range is the middle half of outcomes: about one game in four lands
               below it and one in four above (for receptions, whole numbers make it nearer two
               games in three inside). Checked against every 2025 and 2026 player-week, the yardage
@@ -1020,21 +1042,47 @@ const fmtProjection = (line) => (isCountLine(line.market) ? line.mean.toFixed(1)
 const fmtRange = (line) =>
   line.low == null || line.high == null ? '—' : `${Math.round(line.low)}–${Math.round(line.high)}`
 
-/** One projected stat line: the number, what it is (the phone layout's own label already says), and its range. */
-function BoardLine({ line }) {
+/** One projected stat line: the number, its range, and a box for the user's own sportsbook line. */
+function BoardLine({ line, who, value, onChange }) {
+  const outlook = lineOutlook(line.market, line.mean, value)
   return (
     <td className="num" data-label={`${line.label}${line.priorSeason ? ' · last yr' : ''}`}>
-      <span>
-        {fmtProjection(line)}
-        <span className="dim hide-sm"> {shortMarketLabel(line.label)}{line.priorSeason ? ' · last yr' : ''}</span>
-        <span className="dim" style={{ marginLeft: 10 }}>{fmtRange(line)}</span>
-      </span>
+      {/* minWidth 0 lets this shrink inside the phone layout's flex row, so the over/under text wraps instead of pushing the box off-screen. */}
+      <div style={{ minWidth: 0, flex: '1 1 auto' }}>
+        <div>
+          {fmtProjection(line)}
+          <span className="dim hide-sm"> {shortMarketLabel(line.label)}{line.priorSeason ? ' · last yr' : ''}</span>
+          <span className="dim" style={{ marginLeft: 10 }}>{fmtRange(line)}</span>
+        </div>
+        <div className="row gap-2" style={{ justifyContent: 'flex-end', marginTop: 4, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 11, whiteSpace: 'normal' }} aria-live="polite">
+            {outlook?.invalid && <span className="neg">not a line</span>}
+            {outlook && !outlook.invalid && (
+              <>
+                <span className={outlook.over >= outlook.under ? '' : 'dim'}>Over {fmtPct(outlook.over, 0)}</span>
+                <span className="dim"> · </span>
+                <span className={outlook.under > outlook.over ? '' : 'dim'}>Under {fmtPct(outlook.under, 0)}</span>
+                {outlook.push > 0.005 && <span className="dim"> · push {fmtPct(outlook.push, 0)}</span>}
+              </>
+            )}
+          </span>
+          <input
+            type="text"
+            inputMode="decimal"
+            placeholder="line"
+            value={value ?? ''}
+            onChange={(e) => onChange(e.target.value.trim())}
+            style={{ width: 66, textAlign: 'right' }}
+            aria-label={`Your sportsbook's ${line.label.toLowerCase()} line for ${who}`}
+          />
+        </div>
+      </div>
     </td>
   )
 }
 
 /** One game's main players: projected stat lines with their likely range, and touchdown chance. */
-function PlayerBoard({ entry }) {
+function PlayerBoard({ entry, lines, onLine }) {
   const { game, board } = entry
   const homeTeam = getTeam(game.home)
   const awayTeam = getTeam(game.away)
@@ -1070,6 +1118,7 @@ function PlayerBoard({ entry }) {
           <tbody>
             {board.map((p) => {
               const [first, second] = p.lines
+              const lineKey = (l) => `${game.id}|${normPropName(p.name)}|${l.market}`
               return (
                 <tr key={`${p.team}:${p.name}`}>
                   <td data-label="Player">
@@ -1081,13 +1130,15 @@ function PlayerBoard({ entry }) {
                     </span>
                   </td>
                   {first
-                    ? <BoardLine line={first} />
+                    ? <BoardLine line={first} who={p.name} value={lines[lineKey(first)]} onChange={(v) => onLine(lineKey(first), v)} />
                     : (
                       <td className="num dim" data-label="Projection" title="No real per-game rate on record for this player yet.">
                         no rate yet
                       </td>
                     )}
-                  {second ? <BoardLine line={second} /> : <td className="num dim hide-sm" data-label="Also">—</td>}
+                  {second
+                    ? <BoardLine line={second} who={p.name} value={lines[lineKey(second)]} onChange={(v) => onLine(lineKey(second), v)} />
+                    : <td className="num dim hide-sm" data-label="Also">—</td>}
                   <td className="num" data-label="Scores a TD">
                     {p.tdProb == null ? '—' : fmtPct(p.tdProb)}
                   </td>
