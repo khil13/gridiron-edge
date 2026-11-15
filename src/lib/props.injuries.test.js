@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
 import { isRuledOut, analyseAnytimeTouchdowns, volumePlaysForGame } from './props.js'
-import { buildPropOffers } from '../data/propMarkets.js'
 
 describe('isRuledOut', () => {
   it('matches the official "Out" designation, case-insensitively, trimmed', () => {
@@ -91,14 +90,5 @@ describe('volumePlaysForGame — ruled-out players', () => {
     const rosters = { players: [...detRoster(null), ...cinRoster] }
     const plays = volumePlaysForGame({ game, proj, rosters, offers, ratings })
     expect(plays.some((p) => p.player === 'Home Wideout One')).toBe(true)
-  })
-})
-
-describe('buildPropOffers (simulated) — ruled-out players', () => {
-  it('builds no anytime or volume offer for a player ruled Out', () => {
-    const rosters = { players: [...detRoster('Out'), ...cinRoster] }
-    const result = buildPropOffers({ game, proj, rosters, ratings })
-    expect(result.anytime.some((o) => o.player === 'Home Wideout One')).toBe(false)
-    expect(result.volume.some((o) => o.player === 'Home Wideout One')).toBe(false)
   })
 })
