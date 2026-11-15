@@ -421,6 +421,10 @@ export default function CardView({ data }) {
             {projectionOnly ? 'The model\'s read on every game · no odds key needed' : 'One play per game · best price across books'}
           </div>
           <h1 className="page-title">Card of the day</h1>
+          {/* The odds board gave up its tab to the Touchdown Lab; with real prices connected it is still one tap away. */}
+          {!projectionOnly && (
+            <a href={href('odds')} style={{ color: 'var(--gold)', fontSize: 12 }}>Full odds board</a>
+          )}
         </div>
         <div className="row gap-2" style={{ flexWrap: 'wrap' }}>
           {days.map((d) => (
