@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { SPREAD, DISPERSION, cvFor, overProbabilityFor } from './distributions.js'
+import { SPREAD, DISPERSION, cvFor, overProbabilityFor, quantileFor } from './distributions.js'
 
 describe('cvFor — spread scales with the size of the projection', () => {
   it('gives a small projection a proportionally wider spread than a big one', () => {
@@ -58,5 +58,37 @@ describe('overProbabilityFor', () => {
   it('returns null without a usable projection', () => {
     expect(overProbabilityFor('rushingYards', 0, 10)).toBeNull()
     expect(overProbabilityFor('rushingYards', NaN, 10)).toBeNull()
+  })
+})
+
+describe('quantileFor — the range the probabilities imply', () => {
+  it('is the inverse of overProbabilityFor for yardage', () => {
+    for (const [market, mean] of [['rushingYards', 90], ['receivingYards', 55], ['passingYards', 240]]) {
+      const q25 = quantileFor(market, mean, 0.25)
+      const q75 = quantileFor(market, mean, 0.75)
+      expect(overProbabilityFor(market, mean, q25).win).toBeCloseTo(0.75, 3)
+      expect(overProbabilityFor(market, mean, q75).win).toBeCloseTo(0.25, 3)
+      expect(q25).toBeLessThan(mean)
+      expect(q75).toBeGreaterThan(q25)
+    }
+  })
+
+  it('puts the median below the mean, because yardage is right-skewed', () => {
+    expect(quantileFor('receivingYards', 60, 0.5)).toBeLessThan(60)
+  })
+
+  it('returns whole numbers for count markets, bracketing the projection', () => {
+    const lo = quantileFor('receptions', 5.2, 0.25)
+    const hi = quantileFor('receptions', 5.2, 0.75)
+    expect(Number.isInteger(lo)).toBe(true)
+    expect(Number.isInteger(hi)).toBe(true)
+    expect(lo).toBeLessThan(5.2)
+    expect(hi).toBeGreaterThan(5.2)
+  })
+
+  it('returns null for an unusable projection or quantile', () => {
+    expect(quantileFor('rushingYards', 0, 0.5)).toBeNull()
+    expect(quantileFor('rushingYards', 80, 0)).toBeNull()
+    expect(quantileFor('rushingYards', 80, 1)).toBeNull()
   })
 })

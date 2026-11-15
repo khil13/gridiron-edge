@@ -184,7 +184,7 @@ describe('bestPropLean', () => {
 
 describe('leanReasonForProp', () => {
   it('explains a lean with no real market disagreement', () => {
-    expect(leanReasonForProp({ ev: -0.01 })).toMatch(/agrees with the simulated market/)
+    expect(leanReasonForProp({ ev: -0.01 })).toMatch(/agrees with the market/)
   })
 
   it('explains a lean whose edge was too thin to clear the bar', () => {

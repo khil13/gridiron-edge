@@ -201,3 +201,33 @@ export function overProbabilityFor(market, mean, line) {
   // land exactly; the mass is tiny on a continuous quantity and ignored.
   return { win, push: 0, lose: 1 - win }
 }
+
+/**
+ * The value a share `q` of outcomes fall at or below — the inverse of
+ * overProbabilityFor(), from the same distribution, so a "likely range"
+ * shown next to a projection is exactly the range the probabilities imply.
+ *
+ * Counts return a whole number (the smallest count with at least `q` of the
+ * mass at or below it); yardage is found by bisection and left unrounded.
+ */
+export function quantileFor(market, mean, q) {
+  if (mean == null || !Number.isFinite(mean) || mean <= 0 || !(q > 0 && q < 1)) return null
+
+  if (market === 'receptions' || market === 'rushingAttempts') {
+    for (let k = 0; k < 200; k++) {
+      if (1 - negBinomOver(mean, k + 0.5, DISPERSION[market]) >= q) return k
+    }
+    return null
+  }
+
+  const cv = cvFor(market, mean)
+  if (!cv) return null
+  let lo = 0
+  let hi = mean * 12 + 50
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2
+    if (1 - gammaOver(mean, mid, cv) < q) lo = mid
+    else hi = mid
+  }
+  return (lo + hi) / 2
+}

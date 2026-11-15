@@ -9,7 +9,7 @@ import { analyseAnytimeTouchdowns, volumePlaysForGame } from '../lib/props.js'
 import { reasonsForPick } from '../lib/reasons.js'
 import { fetchGameRosters } from '../data/providers/playerData.js'
 import { fetchGameProps, CARD_PROP_MARKETS, CARD_PROP_CREDIT_COST } from '../data/providers/oddsApiProvider.js'
-import { buildPropOffers } from '../data/propMarkets.js'
+import { mainPlayerBoard } from '../lib/playerBoard.js'
 import { getTeam } from '../data/teams.js'
 import ResultsView from './ResultsView.jsx'
 import {
@@ -30,7 +30,9 @@ const byMarket = (list) =>
  * automatically later: a real, priced offer that just didn't clear the bar
  * isn't going to change on its own, but a market that hasn't been posted at
  * all often shows up within the hour as kickoff for a later slate gets
- * closer. A game already final never needs re-checking regardless.
+ * closer. A game already final never needs re-checking regardless, and
+ * with no odds key connected there is no feed to wait on at all — the
+ * projections board doesn't change on a twenty-minute clock.
  *
  * `liveStatus` must come from the current slate, not from `g.game.status` —
  * that field is a snapshot frozen at whatever moment this game was last
@@ -39,7 +41,7 @@ const byMarket = (list) =>
  * already-finished game forever, spending API credits on nothing.
  */
 const needsRecheck = (g, liveStatus) =>
-  liveStatus !== 'final' && (g.anytimeOffers ?? 0) === 0 && (g.volumeOffers ?? 0) === 0
+  g.keyed && liveStatus !== 'final' && (g.anytimeOffers ?? 0) === 0 && (g.volumeOffers ?? 0) === 0
 
 /** How often to look again for games that had nothing posted last time. */
 const AUTO_RECHECK_MS = 20 * 60 * 1000
@@ -61,12 +63,11 @@ function summarizeProps(perGame) {
     volumeCandidatesByMarket: sumByMarket(perGame, 'volumeCandidatesByMarket'),
     anyRealStats: perGame.some((g) => g.hasSeasonStats),
     statsNote: perGame.find((g) => g.statsNote)?.statsNote ?? null,
-    // Whether any game on this slate priced against a simulated board rather
-    // than a live one — because no key is connected, or the live fetch
-    // failed (a bad key, an exhausted quota) for that specific game.
-    anySimulatedProps: perGame.some((g) => g.simulated),
-    allSimulatedProps: perGame.length > 0 && perGame.every((g) => g.simulated),
-    simulatedPropsReason: perGame.find((g) => g.simulated && g.liveError)?.liveError ?? null
+    // Whether any game actually came back with real prices. With no key —
+    // or a key whose fetch failed for every game — there are none, and the
+    // panel shows the projections board alone rather than inventing a market.
+    anyLiveProps: perGame.some((g) => g.live),
+    liveErrorReason: perGame.find((g) => g.liveError)?.liveError ?? null
   }
 }
 
@@ -127,7 +128,8 @@ export default function CardView({ data }) {
     const liveStatusById = new Map((day?.games ?? []).map((g) => [g.id, g.status]))
     const picks = []
     let flaggedOnly = 0
-    for (const { game, anytime, volume } of propState.perGame) {
+    for (const { game, anytime, volume, live } of propState.perGame) {
+      if (!live) continue
       // A game that has since gone final has nothing left to bet — showing
       // a prop found while it was still being played would be a stale
       // pick on a game that's already over.
@@ -152,12 +154,10 @@ export default function CardView({ data }) {
       const legs = pickPropsForGame(candidates)
       if (!legs.length) {
         if (candidates.some((c) => c.tier.units > 0)) flaggedOnly++
-        // Nothing qualified a real pick — show this game's most notable
+        // Nothing qualified a real pick — show this game's closest
         // main-player read anyway, unstaked, the same way a game with no
         // spread/total edge still shows a zero-unit lean rather than
-        // nothing at all. Without this, a main player with a perfectly
-        // real projection simply disappears on a day the simulated board
-        // didn't happen to disagree with the model enough.
+        // nothing at all.
         const lean = bestPropLean(candidates)
         if (lean) {
           picks.push({
@@ -175,6 +175,16 @@ export default function CardView({ data }) {
   }, [propsReady, propState, settings, day])
   const { picks: propPlays, flaggedOnly: flaggedOnlyGames } = propResult
 
+  // The projections board: every checked game still to be played, in
+  // kickoff order, that produced at least one main player.
+  const boardGames = useMemo(() => {
+    if (!propsReady) return []
+    const liveStatusById = new Map((day?.games ?? []).map((g) => [g.id, g.status]))
+    return propState.perGame
+      .filter((g) => liveStatusById.get(g.game.id) !== 'final' && g.board?.length)
+      .sort((a, b) => new Date(a.game.kickoff) - new Date(b.game.kickoff))
+  }, [propsReady, propState, day])
+
   // Shared by the manual "Check this slate" button and the auto-recheck
   // effect below, so a game is only ever priced through this one path.
   const checkGames = async (games) => {
@@ -182,13 +192,12 @@ export default function CardView({ data }) {
       games.map(async (g) => {
         const rosters = await fetchGameRosters(g)
 
-        // Live prices when a key is connected; a simulated board — built the
-        // same way markets.js already fills in game lines with no odds key —
-        // whenever there is no key, or the live fetch for this specific game
-        // fails (a bad key, an exhausted quota). That keeps the Card able to
-        // produce prop plays even with the API unavailable, while still
-        // carrying the real failure reason through so it stays visible
-        // rather than silently swallowed.
+        // Real prices only when a key is connected and the fetch works.
+        // Without them nothing is priced at all: the Card used to fall back
+        // to a simulated board (the model's own number, nudged by noise,
+        // dressed up with book names), and an "edge" against that is not
+        // information. What needs no price is the projection itself, so
+        // every game always gets the main-player board below.
         let props = null
         let liveError = null
         if (oddsKey) {
@@ -198,15 +207,12 @@ export default function CardView({ data }) {
             liveError = err.message
           }
         }
-        const simulated = !props
-        if (simulated) {
-          props = buildPropOffers({ game: g, proj: g.projection, rosters, ratings: data.ratings })
-        }
 
         const { anytime } = analyseAnytimeTouchdowns({ game: g, proj: g.projection, rosters, props })
         const volume = volumePlaysForGame({ game: g, proj: g.projection, rosters, offers: props?.volume, ratings: data.ratings })
+        const board = mainPlayerBoard({ game: g, proj: g.projection, rosters, ratings: data.ratings })
         return {
-          game: g, anytime, volume, simulated, liveError,
+          game: g, anytime, volume, board, live: !!props, keyed: !!oddsKey, liveError,
           // Rushing and receiving are two different odds-feed markets that
           // books post independently of each other — a slate can have
           // plenty of one and none of the other. Counting them separately
@@ -229,10 +235,9 @@ export default function CardView({ data }) {
     const perGame = settled.filter((r) => r.status === 'fulfilled').map((r) => r.value)
     // A game can fail outright — a roster fetch that errors, most likely —
     // which is a completely different situation from "checked fine, the feed
-    // just hasn't posted anything." A bad or quota-exhausted odds key no
-    // longer lands here: it is caught per-game above and priced against a
-    // simulated board instead, surfaced via `simulated`/`liveError` rather
-    // than failing the whole game.
+    // just hasn't posted anything." A bad or quota-exhausted odds key does
+    // not land here: it is caught per-game above and surfaced via
+    // `liveError`, and the game still gets its projections board.
     const failures = settled.filter((r) => r.status === 'rejected').map((r) => r.reason?.message ?? String(r.reason))
     return { perGame, failures }
   }
@@ -493,143 +498,169 @@ export default function CardView({ data }) {
         </div>
       )}
 
-      {/* Touchdown props — never fetched automatically when a key is
-          connected, same reasoning as the Props tab: checking a whole slate
-          costs real API credits. With no key, or a key whose quota is used
-          up, this checks for free against a simulated board instead — see
-          propMarkets.js — so the card can still produce prop plays. */}
+      {/* Main-player projections — the model's own read on every game's
+          QB1/RB1/WR1/TE1, which needs rosters (free) but no prices. Opt-in
+          rather than automatic only because with a key connected the same
+          click also prices the slate, which costs real API credits. */}
       <section className="panel" style={{ marginBottom: 'var(--s6)' }}>
         <div className="panel-head">
           <div>
             <div className="eyebrow">
-              Touchdown, receiving &amp; rushing yards
-              {oddsKey ? ' · opt-in, costs API credits' : ' · simulated without an odds API key'}
+              Passing, rushing &amp; receiving yards · touchdowns
+              {oddsKey ? ' · also prices the slate, costs API credits' : ' · no odds key needed'}
             </div>
-            <h2 style={{ fontSize: 'var(--t-lg)', marginTop: 4 }}>Prop plays</h2>
+            <h2 style={{ fontSize: 'var(--t-lg)', marginTop: 4 }}>Player projections</h2>
           </div>
           {!propsLoading && (
             <button className="btn" onClick={loadProps}>
               {propsReady
-                ? 'Re-check props'
+                ? 'Refresh'
                 : oddsKey
-                  ? `Check this slate (~${day.games.length * CARD_PROP_CREDIT_COST} credits)`
-                  : 'Check this slate (simulated)'}
+                  ? `Load projections + prices (~${day.games.length * CARD_PROP_CREDIT_COST} credits)`
+                  : 'Load player projections'}
             </button>
           )}
         </div>
-        <div style={{ padding: 'var(--s4)' }}>
+        <div style={{ padding: propsReady && boardGames.length ? 0 : 'var(--s4)' }}>
           {!propsReady && !propsLoading && (
             <p className="dim" style={{ fontSize: 12, margin: 0, maxWidth: '78ch' }}>
-              {oddsKey
-                ? 'Connect an odds API key in Settings to check the slate for touchdown, receiving-yard and rushing-yard prop value.'
-                : <>No odds API key is connected (or its quota is used up), so this prices against a
-                  simulated board instead — the model's own numbers against a plausible market
-                  disagreement, the same way the card already fills in spreads and totals with no
-                  key. Connect a working key in Settings for real prices.</>}
+              What the model projects for each game&apos;s starting quarterback and lead back,
+              receiver and tight end — yards with the range real results usually land in, and
+              the chance of a touchdown. Built from each player&apos;s real season stats; nothing
+              here depends on a sportsbook.
             </p>
           )}
           {propsLoading && (
             <p className="dim" style={{ fontSize: 12, margin: 0 }}>
-              Pulling rosters and prop prices for {day.games.filter((g) => g.projection && g.status !== 'final').length} game
-              {day.games.length === 1 ? '' : 's'}…
-            </p>
-          )}
-          {propsReady && propState.anySimulatedProps && (
-            <p className="dim" style={{ fontSize: 12, margin: '0 0 var(--s3)', maxWidth: '78ch' }}>
-              {propState.allSimulatedProps
-                ? 'Every game on this slate priced against a simulated board'
-                : `${propState.perGame.filter((g) => g.simulated).length} of ${propState.checked} game${propState.checked === 1 ? '' : 's'} priced against a simulated board`}
-              {propState.simulatedPropsReason ? ` (${propState.simulatedPropsReason})` : ' (no odds API key connected)'} — model numbers against a
-              plausible market disagreement, not a real quote. Connect a working odds API key in
-              Settings for live prices.
+              Pulling rosters for {day.games.filter((g) => g.projection && g.status !== 'final').length} game
+              {day.games.filter((g) => g.projection && g.status !== 'final').length === 1 ? '' : 's'}…
             </p>
           )}
           {propsReady && propState.failed > 0 && propState.failureReason && (
-            <p className="neg" style={{ fontSize: 12, margin: '0 0 var(--s3)', maxWidth: '78ch' }}>
-              {propState.failed} of {propState.checked} game{propState.checked === 1 ? '' : 's'} failed
-              to check outright — {propState.failureReason} That is a real fetch failure, not "nothing
-              posted yet." If this keeps happening, check the odds API key and remaining quota in
-              Settings before assuming there's no value on the slate.
+            <p className="neg" style={{ fontSize: 12, margin: 0, padding: boardGames.length ? 'var(--s4) var(--s4) 0' : 0, maxWidth: '78ch' }}>
+              {propState.failed} of {propState.checked} game{propState.checked === 1 ? '' : 's'} could
+              not be loaded — {propState.failureReason}
             </p>
           )}
-          {propsReady && propPlays.length === 0 && (
+          {propsReady && boardGames.length === 0 && !propState.failed && (
             <p className="dim" style={{ fontSize: 12, margin: 0, maxWidth: '78ch' }}>
-              {propState.checked} game{propState.checked === 1 ? '' : 's'} checked
-              {propState.failed ? `, ${propState.failed} could not be priced` : ''} — nothing cleared
-              the bar.{' '}
-              {flaggedOnlyGames > 0 && (
-                <>
-                  {flaggedOnlyGames} game{flaggedOnlyGames === 1 ? '' : 's'} had only a "Check
-                  model" candidate — an edge so large it's more likely a bad depth chart than real
-                  value — and those are left off rather than shown as a pick.{' '}
-                </>
-              )}
-              Touchdown props carry a fifteen-to-twenty-five percent hold on top of a
-              depth chart the model is often guessing at, and a yardage line only qualifies against
-              a player's own real per-game rate — so most days that is the correct answer, not a bug.
-              {' '}The Card also only ever plays a team's clear QB1, RB1, WR1 or TE1 — a real edge on
-              a second or third option still shows up on the Props tab, just not here.
+              No upcoming games on this day to project.
             </p>
           )}
-          {propsReady && propPlays.length > 0 && (
-            <>
-              <div style={{ display: 'grid', gap: 'var(--s4)' }}>
-                {propPlays.map((pick) => (
-                  <PropPlayCard key={`${pick.game.id}:${pick.entry.key}`} pick={pick} dispatch={dispatch} />
-                ))}
-              </div>
-              <p className="dim" style={{ fontSize: 11, marginTop: 'var(--s4)', marginBottom: 0, maxWidth: '80ch' }}>
-                Touchdown props are the market this app trusts least: the hold is triple a
-                spread's, and early in a season every player at a position can show the same
-                number because there is no depth chart to rank yet — capped at 2 units even at the
-                top tier. A yardage play only ever prices against a player's own real season rate,
-                never a league-average guess, and devigs the ordinary two-way way a total does, so
-                it can reach the same 3-unit ceiling a game line can.
-              </p>
-            </>
-          )}
-          {propsReady && !propPlays.some((p) => p.kind === 'volume') && (
-            <p className="dim" style={{ fontSize: 11, marginTop: propPlays.length > 0 ? 'var(--s3)' : 0, marginBottom: 0, maxWidth: '78ch' }}>
-              {propState.volumeOffersSeen === 0 ? (
-                <>
-                  Yardage: the odds feed returned zero receiving/rushing-yard lines for this
-                  slate — books often post that market later than anytime touchdown, so try again
-                  closer to kickoff before assuming something's broken.
-                </>
-              ) : propState.volumeCandidatesPriced === 0 && !propState.anyRealStats ? (
-                <>
-                  Yardage: the odds feed returned {propState.volumeOffersSeen} line
-                  {propState.volumeOffersSeen === 1 ? '' : 's'}, but not one player on either
-                  roster matched this season's bundled stats snapshot — likely a name-matching
-                  gap between the roster feed and the snapshot, not a missing data source.
-                  {propState.statsNote && <> {propState.statsNote}</>}
-                </>
-              ) : propState.volumeCandidatesPriced === 0 ? (
-                <>
-                  Yardage: the odds feed returned {propState.volumeOffersSeen} line
-                  {propState.volumeOffersSeen === 1 ? '' : 's'}, and at least one roster had real
-                  per-player rates, but none of those specific players matched a priced line —
-                  likely a name-matching gap between the odds feed and the roster.
-                </>
-              ) : (
-                <>
-                  Yardage: {propState.volumeCandidatesPriced} play
-                  {propState.volumeCandidatesPriced === 1 ? '' : 's'} priced against a real rate,
-                  just none with enough edge to clear the bar this time.
-                </>
-              )}
-            </p>
-          )}
-          {propsReady && (
-            <p className="dim" style={{ fontSize: 10, marginTop: 'var(--s2)', marginBottom: 0 }}>
-              Receiving-yard lines: {propState.volumeOffersByMarket.receivingYards ?? 0} seen,{' '}
-              {propState.volumeCandidatesByMarket.receivingYards ?? 0} priced against a real rate.
-              {' '}Rushing-yard lines: {propState.volumeOffersByMarket.rushingYards ?? 0} seen,{' '}
-              {propState.volumeCandidatesByMarket.rushingYards ?? 0} priced against a real rate.
+          {propsReady && boardGames.map((g) => <PlayerBoard key={g.game.id} entry={g} />)}
+          {propsReady && boardGames.length > 0 && (
+            <p className="dim" style={{ fontSize: 11, padding: 'var(--s3) var(--s4) var(--s4)', margin: 0, maxWidth: '82ch' }}>
+              For yards, the range is the middle half of outcomes: about one game in four lands
+              below it and one in four above (for receptions, whole numbers make it nearer two
+              games in three inside). Checked against every 2025 and 2026 player-week, the yardage
+              ranges held 44–54% of real results. They are wide on purpose — a lead back&apos;s
+              rushing total misses its projection by about 18 yards on average and a lead
+              receiver&apos;s by about 23, and a narrower range would be wrong more often than it
+              says. &quot;Last yr&quot; marks a line built on last season&apos;s numbers because the
+              player has none yet this season.
+              {!propState.anyRealStats && propState.statsNote && <> {propState.statsNote}</>}
+              {' '}A player listed Questionable or Doubtful is projected as if he plays; one ruled
+              Out is left off. Second and third options are on each game&apos;s Props tab.
             </p>
           )}
         </div>
       </section>
+
+      {/* Priced prop plays — only with a real odds feed. Without one there
+          is no market to disagree with, and nothing is invented to fill in. */}
+      {oddsKey && propsReady && (
+        <section className="panel" style={{ marginBottom: 'var(--s6)' }}>
+          <div className="panel-head">
+            <div>
+              <div className="eyebrow">Touchdown, receiving &amp; rushing yards · live prices</div>
+              <h2 style={{ fontSize: 'var(--t-lg)', marginTop: 4 }}>Prop plays</h2>
+            </div>
+          </div>
+          <div style={{ padding: 'var(--s4)' }}>
+            {!propState.anyLiveProps && (
+              <p className="neg" style={{ fontSize: 12, margin: 0, maxWidth: '78ch' }}>
+                No prices came back for this slate
+                {propState.liveErrorReason ? ` — ${propState.liveErrorReason.replace(/\.+$/, '')}` : ''}. Check the odds
+                API key and remaining quota in Settings. The projections above don&apos;t depend on it.
+              </p>
+            )}
+            {propState.anyLiveProps && propPlays.length === 0 && (
+              <p className="dim" style={{ fontSize: 12, margin: 0, maxWidth: '78ch' }}>
+                {propState.checked} game{propState.checked === 1 ? '' : 's'} checked — nothing cleared
+                the bar.{' '}
+                {flaggedOnlyGames > 0 && (
+                  <>
+                    {flaggedOnlyGames} game{flaggedOnlyGames === 1 ? '' : 's'} had only a "Check
+                    model" candidate — an edge so large it's more likely a bad depth chart than real
+                    value — and those are left off rather than shown as a pick.{' '}
+                  </>
+                )}
+                Touchdown props carry a fifteen-to-twenty-five percent hold, and a yardage line only
+                qualifies against a player's own real per-game rate — so most days that is the
+                correct answer, not a bug.
+                {' '}The Card also only ever plays a team's clear QB1, RB1, WR1 or TE1 — a real edge on
+                a second or third option still shows up on the Props tab, just not here.
+              </p>
+            )}
+            {propPlays.length > 0 && (
+              <>
+                <div style={{ display: 'grid', gap: 'var(--s4)' }}>
+                  {propPlays.map((pick) => (
+                    <PropPlayCard key={`${pick.game.id}:${pick.entry.key}`} pick={pick} dispatch={dispatch} />
+                  ))}
+                </div>
+                <p className="dim" style={{ fontSize: 11, marginTop: 'var(--s4)', marginBottom: 0, maxWidth: '80ch' }}>
+                  Touchdown props are the market this app trusts least: the hold is triple a
+                  spread's — capped at 2 units even at the top tier. A yardage play only ever
+                  prices against a player's own real season rate, never a league-average guess,
+                  and devigs the ordinary two-way way a total does, so it can reach the same
+                  3-unit ceiling a game line can.
+                </p>
+              </>
+            )}
+            {propState.anyLiveProps && !propPlays.some((p) => p.kind === 'volume') && (
+              <p className="dim" style={{ fontSize: 11, marginTop: 'var(--s3)', marginBottom: 0, maxWidth: '78ch' }}>
+                {propState.volumeOffersSeen === 0 ? (
+                  <>
+                    Yardage: the odds feed returned zero receiving/rushing-yard lines for this
+                    slate — books often post that market later than anytime touchdown, so try again
+                    closer to kickoff before assuming something's broken.
+                  </>
+                ) : propState.volumeCandidatesPriced === 0 && !propState.anyRealStats ? (
+                  <>
+                    Yardage: the odds feed returned {propState.volumeOffersSeen} line
+                    {propState.volumeOffersSeen === 1 ? '' : 's'}, but not one player on either
+                    roster matched this season's bundled stats snapshot — likely a name-matching
+                    gap between the roster feed and the snapshot, not a missing data source.
+                    {propState.statsNote && <> {propState.statsNote}</>}
+                  </>
+                ) : propState.volumeCandidatesPriced === 0 ? (
+                  <>
+                    Yardage: the odds feed returned {propState.volumeOffersSeen} line
+                    {propState.volumeOffersSeen === 1 ? '' : 's'}, and at least one roster had real
+                    per-player rates, but none of those specific players matched a priced line —
+                    likely a name-matching gap between the odds feed and the roster.
+                  </>
+                ) : (
+                  <>
+                    Yardage: {propState.volumeCandidatesPriced} play
+                    {propState.volumeCandidatesPriced === 1 ? '' : 's'} priced against a real rate,
+                    just none with enough edge to clear the bar this time.
+                  </>
+                )}
+              </p>
+            )}
+            {propState.anyLiveProps && (
+              <p className="dim" style={{ fontSize: 10, marginTop: 'var(--s2)', marginBottom: 0 }}>
+                Receiving-yard lines: {propState.volumeOffersByMarket.receivingYards ?? 0} seen,{' '}
+                {propState.volumeCandidatesByMarket.receivingYards ?? 0} priced against a real rate.
+                {' '}Rushing-yard lines: {propState.volumeOffersByMarket.rushingYards ?? 0} seen,{' '}
+                {propState.volumeCandidatesByMarket.rushingYards ?? 0} priced against a real rate.
+              </p>
+            )}
+          </div>
+        </section>
+      )}
 
       {locked && (
         <p className="dim" style={{ fontSize: 12, marginTop: 'var(--s4)', maxWidth: '80ch' }}>
@@ -873,6 +904,92 @@ function PlayCard({ entry, dispatch, ratings }) {
 
 /** Shorten "Receiving yards" -> "Receiving yds" to fit a badge. */
 const shortMarketLabel = (label) => label.replace(' yards', ' yds')
+
+const isCountLine = (market) => market === 'receptions' || market === 'rushingAttempts'
+const fmtProjection = (line) => (isCountLine(line.market) ? line.mean.toFixed(1) : String(Math.round(line.mean)))
+const fmtRange = (line) =>
+  line.low == null || line.high == null ? '—' : `${Math.round(line.low)}–${Math.round(line.high)}`
+
+/** One projected stat line: the number, what it is (the phone layout's own label already says), and its range. */
+function BoardLine({ line }) {
+  return (
+    <td className="num" data-label={`${line.label}${line.priorSeason ? ' · last yr' : ''}`}>
+      <span>
+        {fmtProjection(line)}
+        <span className="dim hide-sm"> {shortMarketLabel(line.label)}{line.priorSeason ? ' · last yr' : ''}</span>
+        <span className="dim" style={{ marginLeft: 10 }}>{fmtRange(line)}</span>
+      </span>
+    </td>
+  )
+}
+
+/** One game's main players: projected stat lines with their likely range, and touchdown chance. */
+function PlayerBoard({ entry }) {
+  const { game, board } = entry
+  const homeTeam = getTeam(game.home)
+  const awayTeam = getTeam(game.away)
+  return (
+    <div
+      style={{
+        borderTop: '1px solid var(--edge)',
+        '--gcard-away': readable(awayTeam.primary),
+        '--gcard-home': readable(homeTeam.primary)
+      }}
+    >
+      <div className="gcard-strap">
+        <span className="row gap-2">
+          <TeamMark abbr={game.away} size={16} />
+          <TeamMark abbr={game.home} size={16} />
+          {game.away} @ {game.home}
+        </span>
+        <span className="row gap-3">
+          {fmtTime(game.kickoff)}
+          <a href={href(`game/${game.id}`)} style={{ color: 'var(--gold)' }}>Props</a>
+        </span>
+      </div>
+      <div className="tbl-scroll">
+        <table className="tbl responsive">
+          <thead>
+            <tr>
+              <th>Player</th>
+              <th>Projection · likely range</th>
+              <th>Also · likely range</th>
+              <th>Scores a TD</th>
+            </tr>
+          </thead>
+          <tbody>
+            {board.map((p) => {
+              const [first, second] = p.lines
+              return (
+                <tr key={`${p.team}:${p.name}`}>
+                  <td data-label="Player">
+                    <span className="row gap-2" style={{ flexWrap: 'wrap' }}>
+                      <TeamMark abbr={p.team} size={16} />
+                      <span>{p.name}</span>
+                      <span className="dim">{p.role === 'QB' ? 'QB' : p.role.slice(0, 2)}</span>
+                      {p.injury && !/active/i.test(p.injury) && <Badge tone="live">{p.injury}</Badge>}
+                    </span>
+                  </td>
+                  {first
+                    ? <BoardLine line={first} />
+                    : (
+                      <td className="num dim" data-label="Projection" title="No real per-game rate on record for this player yet.">
+                        no rate yet
+                      </td>
+                    )}
+                  {second ? <BoardLine line={second} /> : <td className="num dim hide-sm" data-label="Also">—</td>}
+                  <td className="num" data-label="Scores a TD">
+                    {p.tdProb == null ? '—' : fmtPct(p.tdProb)}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
 
 function PropPlayCard({ pick, dispatch }) {
   const { game, kind, entry, tier, stake, reason } = pick
