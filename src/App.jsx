@@ -14,6 +14,7 @@ import { Empty } from './components/Controls.jsx'
 const GameView = lazy(() => import('./views/GameView.jsx'))
 const CardView = lazy(() => import('./views/CardView.jsx'))
 const OddsBoardView = lazy(() => import('./views/OddsBoardView.jsx'))
+const TouchdownLabView = lazy(() => import('./views/TouchdownLabView.jsx'))
 const TeamsView = lazy(() => import('./views/TeamsView.jsx'))
 const TeamView = lazy(() => import('./views/TeamView.jsx'))
 const ModelLabView = lazy(() => import('./views/ModelLabView.jsx'))
@@ -58,6 +59,10 @@ function Router({ route, data }) {
     }
     case 'card':
       return <CardView data={data} />
+    case 'touchdowns':
+      return <TouchdownLabView data={data} />
+    // No longer a tab — the Touchdown Lab took its place — but still
+    // reachable by link, for when real prices are connected.
     case 'odds':
       return <OddsBoardView data={data} />
     case 'teams':

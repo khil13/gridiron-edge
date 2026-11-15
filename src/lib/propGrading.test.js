@@ -126,10 +126,18 @@ describe('gradeProps', () => {
     expect(report.touchdowns.calibration.gap).toBeGreaterThanOrEqual(0)
   })
 
+  it('also scores every player in the pool, for the Touchdown Lab\'s whole-roster ranking', () => {
+    // Three players a week (lead, depth, QB) over weeks 2-4.
+    expect(report.touchdownsAll.n).toBe(9)
+    expect(report.touchdownsAll.n).toBeGreaterThan(report.touchdowns.n)
+    expect(report.touchdownsAll.brier).toBeGreaterThan(0)
+  })
+
   it('returns an empty report, not a crash, before week 2 exists', () => {
     const early = gradeProps(buildGradingCases({ weeks: season().filter((r) => r.week === 1) }))
     expect(early.playerWeeks).toBe(0)
     expect(early.markets).toEqual({})
     expect(early.touchdowns).toBeNull()
+    expect(early.touchdownsAll).toBeNull()
   })
 })

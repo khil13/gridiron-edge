@@ -148,7 +148,7 @@ function summariseBuckets(buckets) {
  * and the touchdown chances.
  *
  * @param {Array} cases  buildGradingCases() output
- * @returns {{ playerWeeks, markets, touchdowns }}
+ * @returns {{ playerWeeks, markets, touchdowns, touchdownsAll }}
  */
 export function gradeProps(cases) {
   const markets = {}
@@ -198,21 +198,31 @@ export function gradeProps(cases) {
     if (!teams.has(k)) teams.set(k, [])
     teams.get(k).push(c)
   }
+  // Graded twice: the lead players the Card's board shows, and every player
+  // in the pool — the Touchdown Lab ranks the whole roster, so its record
+  // has to cover the whole roster too.
   const td = { n: 0, brier: 0, buckets: newBuckets() }
+  const tdAll = { n: 0, brier: 0, buckets: newBuckets() }
+  const score = (acc, prob, scored) => {
+    acc.n++
+    acc.brier += (prob - scored) ** 2
+    const b = acc.buckets[Math.min(9, Math.floor(prob * 10))]
+    b.n++
+    b.predicted += prob
+    b.hit += scored
+  }
   for (const list of teams.values()) {
     const team = list[0].team
     const ctx = { [team]: { expectedTds: expectedTouchdowns(list[0].teamPoints), ...teamGameData(list, team) } }
     for (const p of normaliseField(projectAnytimeTouchdowns(list, ctx), ctx)) {
-      if (!isMainPlayer(p.role)) continue
       const scored = (p.actual.rushTds ?? 0) + (p.actual.recTds ?? 0) > 0 ? 1 : 0
-      td.n++
-      td.brier += (p.prob - scored) ** 2
-      const b = td.buckets[Math.min(9, Math.floor(p.prob * 10))]
-      b.n++
-      b.predicted += p.prob
-      b.hit += scored
+      score(tdAll, p.prob, scored)
+      if (isMainPlayer(p.role)) score(td, p.prob, scored)
     }
   }
+  const tdReport = (acc) => (acc.n
+    ? { n: acc.n, brier: round(acc.brier / acc.n, 4), calibration: summariseBuckets(acc.buckets) }
+    : null)
 
   return {
     playerWeeks,
@@ -224,8 +234,7 @@ export function gradeProps(cases) {
       range: { below: round(m.below / m.n, 3), inside: round(m.inside / m.n, 3), above: round(m.above / m.n, 3) },
       calibration: summariseBuckets(m.buckets)
     }])),
-    touchdowns: td.n
-      ? { n: td.n, brier: round(td.brier / td.n, 4), calibration: summariseBuckets(td.buckets) }
-      : null
+    touchdowns: tdReport(td),
+    touchdownsAll: tdReport(tdAll)
   }
 }

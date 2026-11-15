@@ -12,6 +12,10 @@ export const IconScores = (p) => (
 export const IconOdds = (p) => (
   <svg {...base} {...p}><path d="M3 16.5V9M7.7 16.5V4.5M12.3 16.5v-5M17 16.5V7" /></svg>
 )
+/** A football, for the Touchdown Lab. */
+export const IconTouchdown = (p) => (
+  <svg {...base} {...p}><ellipse cx="10" cy="10" rx="7.6" ry="4.4" transform="rotate(-35 10 10)" /><path d="M8 12l4-4M9 9.4l1.6 1.6" /></svg>
+)
 export const IconModel = (p) => (
   <svg {...base} {...p}><path d="M3 6h14M3 10h14M3 14h14" /><circle cx="7" cy="6" r="1.9" fill="currentColor" stroke="none" /><circle cx="13" cy="10" r="1.9" fill="currentColor" stroke="none" /><circle cx="9" cy="14" r="1.9" fill="currentColor" stroke="none" /></svg>
 )
