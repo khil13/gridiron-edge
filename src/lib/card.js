@@ -413,6 +413,49 @@ export function buildCard(games, settings) {
   }
 }
 
+/**
+ * The model's own read on each game, with no market involved.
+ *
+ * Without a real odds feed the Card used to price its spread/total/
+ * moneyline "plays" against a simulated market — lines built from this
+ * model's own projection plus seeded noise (data/markets.js) — so every
+ * "edge" on it was the model disagreeing with a jittered copy of itself.
+ * What the model actually knows needs no price: who it favours and how
+ * strongly, the score it expects, and how much to trust that.
+ *
+ * @param {Array} games  dataset games for one day, each carrying `projection`
+ * @returns {Array} one row per projectable game, in kickoff order
+ */
+export function gameProjectionRows(games) {
+  return (games ?? [])
+    .filter((g) => g.projection)
+    .sort((a, b) => new Date(a.kickoff) - new Date(b.kickoff))
+    .map((game) => {
+      const p = game.projection
+      const homeFavoured = p.homeWinProb >= 0.5
+      const final = game.status === 'final' && game.homeScore != null && game.awayScore != null
+      const favourite = homeFavoured ? game.home : game.away
+      let pickCorrect = null
+      if (final && game.homeScore !== game.awayScore) {
+        pickCorrect = (game.homeScore > game.awayScore) === homeFavoured
+      }
+      return {
+        game,
+        favourite,
+        favouriteProb: homeFavoured ? p.homeWinProb : p.awayWinProb,
+        margin: Math.abs(p.margin),
+        homePoints: p.homeTeamTotal,
+        awayPoints: p.awayTeamTotal,
+        total: p.total,
+        confidence: game.confidence?.level ?? null,
+        confidenceFactors: game.confidence?.factors ?? [],
+        qbOut: !!(p.qbOut?.home || p.qbOut?.away),
+        final,
+        pickCorrect
+      }
+    })
+}
+
 /** Group games into days, newest last, for the card's day selector. */
 export function daysFrom(games) {
   const map = new Map()
