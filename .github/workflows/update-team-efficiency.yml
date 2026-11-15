@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: write
+  actions: write # to start the Pages deploy after committing (see the commit step)
 
 jobs:
   update:
@@ -26,6 +27,8 @@ jobs:
       - run: npm run team-efficiency
 
       - name: Commit if the snapshot changed
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if git diff --quiet -- src/data/generated/team-efficiency.json; then
             echo "No change in team efficiency this run."
@@ -36,3 +39,9 @@ jobs:
           git add src/data/generated/team-efficiency.json
           git commit -m 'Update team efficiency snapshot'
           git push
+          # A push made with the workflow's own token does not start other
+          # workflows — GitHub blocks that to prevent loops — so the Pages
+          # deploy never ran for these commits and refreshed data only went
+          # live whenever a code change next merged. Starting the deploy
+          # explicitly is the one thing that token IS allowed to trigger.
+          gh workflow run deploy.yml --ref main
