@@ -17,7 +17,7 @@ import { quantileFor, overProbabilityFor } from './distributions.js'
 import { isMainPlayer } from './card.js'
 
 /** The stat lines shown for each main role, in display order. */
-const BOARD_MARKETS = {
+export const BOARD_MARKETS = {
   QB: ['passingYards', 'rushingYards'],
   RB: ['rushingYards', 'receivingYards'],
   WR: ['receivingYards', 'receptions'],
@@ -28,9 +28,16 @@ const BOARD_MARKETS = {
 const MIN_YARDS = 8
 const MIN_COUNT = 1.5
 
-const ROLE_ORDER = { QB: 0, RB1: 1, WR1: 2, TE1: 3 }
 const baseOf = (role) => (role === 'QB' ? 'QB' : role.slice(0, 2))
 const isCount = (key) => key === 'receptions' || key === 'rushingAttempts'
+
+/** The market keys the board shows for a main role. */
+export const boardMarketsFor = (role) => BOARD_MARKETS[baseOf(role)] ?? []
+
+/** Whether a projection is big enough to be worth a line on the board. */
+export const isBoardWorthy = (market, mean) => mean >= (isCount(market) ? MIN_COUNT : MIN_YARDS)
+
+const ROLE_ORDER = { QB: 0, RB1: 1, WR1: 2, TE1: 3 }
 
 /**
  * @param {object} game     dataset game ({ home, away, ... })
@@ -54,12 +61,12 @@ export function mainPlayerBoard({ game, proj, rosters, ratings }) {
     const marginForTeam = player.team === game.home ? proj.margin : -proj.margin
 
     const lines = []
-    for (const key of BOARD_MARKETS[baseOf(player.role)] ?? []) {
+    for (const key of boardMarketsFor(player.role)) {
       const market = VOLUME_MARKETS.find((m) => m.key === key)
       const v = projectVolume(player, market, { teamPoints, teamAverage: teamAverage(player.team), opponent, marginForTeam })
       // A positional-average stand-in is not this player's projection.
       if (!v || v.synthetic) continue
-      if (v.mean < (isCount(key) ? MIN_COUNT : MIN_YARDS)) continue
+      if (!isBoardWorthy(key, v.mean)) continue
       lines.push({
         market: key,
         label: market.label,

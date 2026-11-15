@@ -7,6 +7,7 @@ import { toSlipLeg } from '../lib/edges.js'
 import { buildCard, daysFrom, confidenceOf, lockCard, tierForProp, tierForVolume, pickPropsForGame, sortPropPicks, isMainPlayer, bestPropLean, leanReasonForProp, gameProjectionRows } from '../lib/card.js'
 import { runBacktest } from '../lib/backtest.js'
 import ratingsFile from '../data/generated/ratings.json'
+import propAccuracy from '../data/generated/prop-accuracy.json'
 import { analyseAnytimeTouchdowns, volumePlaysForGame } from '../lib/props.js'
 import { reasonsForPick } from '../lib/reasons.js'
 import { fetchGameRosters } from '../data/providers/playerData.js'
@@ -589,11 +590,9 @@ export default function CardView({ data }) {
               worth taking depends on the price, which the Props tab handles.{' '}
               For yards, the range is the middle half of outcomes: about one game in four lands
               below it and one in four above (for receptions, whole numbers make it nearer two
-              games in three inside). Checked against every 2025 and 2026 player-week, the yardage
-              ranges held 44–54% of real results. They are wide on purpose — a lead back&apos;s
-              rushing total misses its projection by about 18 yards on average and a lead
-              receiver&apos;s by about 23, and a narrower range would be wrong more often than it
-              says. &quot;Last yr&quot; marks a line built on last season&apos;s numbers because the
+              games in three inside). It is wide on purpose — a narrower range would be wrong more
+              often than it says; the track record below shows how often it has held.
+              &quot;Last yr&quot; marks a line built on last season&apos;s numbers because the
               player has none yet this season.
               {!propState.anyRealStats && propState.statsNote && <> {propState.statsNote}</>}
               {' '}A player listed Questionable or Doubtful is projected as if he plays; one ruled
@@ -601,6 +600,7 @@ export default function CardView({ data }) {
             </p>
           )}
         </div>
+        <TrackRecord record={propAccuracy} />
       </section>
 
       {/* Priced prop plays — only with a real odds feed. Without one there
@@ -742,6 +742,72 @@ export default function CardView({ data }) {
       </p>
         </>
       )}
+    </div>
+  )
+}
+
+/* ---------- How the projections have actually done ---------- */
+
+const RECORD_ORDER = ['passingYards', 'rushingYards', 'receivingYards', 'receptions']
+const pts = (gap) => `${(gap * 100).toFixed(1)} pts`
+
+/**
+ * The measured record behind the board, from prop-accuracy.json — regraded
+ * against real results by the same scheduled job that refreshes the player
+ * stats (scripts/grade-props.mjs), so these are current numbers, not a
+ * one-off claim.
+ */
+function TrackRecord({ record }) {
+  if (!record?.playerWeeks) return null
+  const rows = RECORD_ORDER.filter((k) => record.markets?.[k]).map((k) => ({ key: k, ...record.markets[k] }))
+  return (
+    <div style={{ borderTop: '1px solid var(--edge)', padding: 'var(--s4)' }}>
+      <div className="eyebrow">
+        Track record · {record.season} season, weeks {record.fromWeek}–{record.throughWeek}
+      </div>
+      <p className="dim" style={{ fontSize: 12, margin: '4px 0 var(--s3)', maxWidth: '82ch' }}>
+        Every week so far was projected from only the weeks before it and compared with what
+        happened: {record.playerWeeks.toLocaleString()} lead-player games.
+      </p>
+      <div className="tbl-scroll">
+        <table className="tbl compact" style={{ maxWidth: 640 }}>
+          <thead>
+            <tr>
+              <th>Stat</th>
+              <th title="Average distance between the projection and the real result.">Avg miss</th>
+              <th title="How often the real result landed inside the likely range shown.">In range</th>
+              <th title="Average gap between the chance stated for an over and how often it actually hit.">Off by</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((m) => (
+              <tr key={m.key}>
+                <td>{shortMarketLabel(m.label)}</td>
+                <td className="num">{m.mae}</td>
+                <td className="num">{fmtPct(m.range.inside, 0)}</td>
+                <td className="num">{m.calibration.gap == null ? '—' : pts(m.calibration.gap)}</td>
+              </tr>
+            ))}
+            {record.touchdowns && (
+              <tr>
+                <td>Scores a TD</td>
+                <td className="num dim">—</td>
+                <td className="num dim">—</td>
+                <td className="num">{record.touchdowns.calibration.gap == null ? '—' : pts(record.touchdowns.calibration.gap)}</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      <p className="dim" style={{ fontSize: 11, margin: 'var(--s3) 0 0', maxWidth: '82ch' }}>
+        <strong>Avg miss</strong> is how far the projection was from the real result on average.{' '}
+        <strong>In range</strong> is how often the result landed inside the likely range — the
+        target is about half for yards and nearer two-thirds for receptions.{' '}
+        <strong>Off by</strong> is the average gap between the chance the model gave and how
+        often it happened: at 2 points, things it called 60% happened roughly 58–62% of the time.
+        Lead players are identified by who had the most chances in earlier weeks, since past depth
+        charts aren&apos;t published. Updated {new Date(record.generatedAt).toLocaleDateString()}.
+      </p>
     </div>
   )
 }
