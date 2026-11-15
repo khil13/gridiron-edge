@@ -4,6 +4,7 @@ import { Badge, Empty, Segmented } from '../components/Controls.jsx'
 import { daysFrom } from '../lib/card.js'
 import { touchdownBoard, priceOutlook, rankScorers } from '../lib/touchdownLab.js'
 import { normPropName } from '../lib/props.js'
+import { teamRecord } from '../lib/ratings.js'
 import { fetchGameRosters } from '../data/providers/playerData.js'
 import { load, save } from '../lib/storage.js'
 import { fmtPct, fmtDay, fmtTime, relativeDay, ordinal } from '../lib/format.js'
@@ -115,6 +116,7 @@ export default function TouchdownLabView({ data }) {
   const hidden = ranked.length - visible.length
   const games = gameSummaries(rows, day.games)
   const depthUnknown = rows.some((r) => !r.depthKnown)
+  const recordOf = (abbr) => teamRecord(data.ratings?.[abbr], data.ratingsState?.applied)
 
   return (
     <div className="page">
@@ -184,10 +186,12 @@ export default function TouchdownLabView({ data }) {
                 {games.map((g) => (
                   <tr key={g.game.id}>
                     <td data-label="Game">
-                      <a href={href(`game/${g.game.id}`)} className="row gap-2" style={{ flexWrap: 'wrap' }}>
+                      <a href={href(`game/${g.game.id}`)} className="row gap-2" style={{ flexWrap: 'wrap', minWidth: 0, flex: '1 1 auto' }}>
                         <TeamMark abbr={g.game.away} size={16} />
                         <TeamMark abbr={g.game.home} size={16} />
-                        <span>{g.game.away} @ {g.game.home}</span>
+                        <span>
+                          {g.game.away}<RecordTag record={recordOf(g.game.away)} /> @ {g.game.home}<RecordTag record={recordOf(g.game.home)} />
+                        </span>
                         <span className="dim">{fmtTime(g.game.kickoff)}</span>
                       </a>
                     </td>
@@ -282,6 +286,16 @@ export default function TouchdownLabView({ data }) {
 // Cell contents below are each wrapped in a single element: the phone layout
 // lays a cell out as a flex row, which would push loose fragments to opposite ends.
 const fmtTds = (n) => (n == null ? '—' : n.toFixed(1))
+
+/** A team's win-loss record in brackets after its name — marked when it is last season's, not this one's. */
+function RecordTag({ record }) {
+  if (!record) return null
+  return (
+    <span className="dim" title={record.lastSeason ? 'Last season\'s final record — none of this season\'s results are loaded yet.' : 'Record this season.'}>
+      {' '}({record.text}{record.lastSeason ? ' last yr' : ''})
+    </span>
+  )
+}
 
 /** One line per game: each team's expected touchdowns and the single most likely scorer. */
 function gameSummaries(rows, dayGames) {
