@@ -19,12 +19,17 @@ import { execFileSync } from 'node:child_process'
  * path, is the only way this test suite can catch that again.
  */
 describe('scripts/*.mjs run under plain node, not just Vite', () => {
+  const importsCleanly = (path) => execFileSync(
+    process.execPath,
+    ['--input-type=module', '-e', `import('${path}').then(() => process.stdout.write('ok'))`],
+    { cwd: new URL('..', import.meta.url).pathname, encoding: 'utf8' }
+  )
+
   it('imports the shared lib/props.js graph (teamDefense.js -> team-defense.json) without a bare-JSON-import error', () => {
-    const result = execFileSync(
-      process.execPath,
-      ['--input-type=module', '-e', "import('./src/lib/props.js').then(() => process.stdout.write('ok'))"],
-      { cwd: new URL('..', import.meta.url).pathname, encoding: 'utf8' }
-    )
-    expect(result).toBe('ok')
+    expect(importsCleanly('./src/lib/props.js')).toBe('ok')
+  })
+
+  it('imports the grading graph scripts/grade-props.mjs depends on (propGrading -> playerBoard -> card)', () => {
+    expect(importsCleanly('./src/lib/propGrading.js')).toBe('ok')
   })
 })

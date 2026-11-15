@@ -21,6 +21,7 @@ import teamEfficiencyFile from '../data/generated/team-efficiency.json'
 import teamDefenseFile from '../data/generated/team-defense.json'
 import playerNgsFile from '../data/generated/player-ngs.json'
 import injuryReportFile from '../data/generated/injury-report.json'
+import propAccuracyFile from '../data/generated/prop-accuracy.json'
 
 function entry(label, file, { expectedDays, note, extra } = {}) {
   const generatedAt = file?.generatedAt ?? null
@@ -60,6 +61,10 @@ export function dataSources() {
     entry('Injury report', injuryReportFile, {
       expectedDays: 3, // scheduled Wed/Thu/Fri/Sun
       extra: injuryReportFile.week ? `week ${injuryReportFile.week}` : null
+    }),
+    entry('Projection track record', propAccuracyFile, {
+      expectedDays: 4, // graded in the same Tue/Fri run as player season stats
+      extra: propAccuracyFile.throughWeek ? `through week ${propAccuracyFile.throughWeek}` : null
     })
   ]
 }

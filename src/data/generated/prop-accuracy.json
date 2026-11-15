@@ -1,0 +1,265 @@
+{
+  "generatedAt": "2026-11-15T06:53:46.603Z",
+  "source": "https://github.com/nflverse/nflverse-data (stats_player release) and nflverse/nfldata games.csv",
+  "season": 2026,
+  "fromWeek": 2,
+  "throughWeek": 10,
+  "method": "Walk-forward: each week projected from only the weeks before it, through the app's own projection functions, for each team's lead QB, RB, WR and TE. Lead players are identified by prior-weeks opportunity (historical depth charts are not published); game context uses each game's real pre-kickoff market total and spread.",
+  "marketContextGames": 137,
+  "playerWeeks": 965,
+  "markets": {
+    "passingYards": {
+      "label": "Passing yards",
+      "n": 240,
+      "mae": 61.6,
+      "bias": 6,
+      "range": {
+        "below": 0.229,
+        "inside": 0.538,
+        "above": 0.233
+      },
+      "calibration": {
+        "gap": 0.0269,
+        "buckets": [
+          {
+            "predicted": 0.088,
+            "actual": 0.043,
+            "n": 184
+          },
+          {
+            "predicted": 0.109,
+            "actual": 0.125,
+            "n": 56
+          },
+          {
+            "predicted": 0.26,
+            "actual": 0.25,
+            "n": 240
+          },
+          {
+            "predicted": 0.449,
+            "actual": 0.463,
+            "n": 240
+          },
+          {
+            "predicted": 0.676,
+            "actual": 0.725,
+            "n": 218
+          },
+          {
+            "predicted": 0.711,
+            "actual": 0.583,
+            "n": 24
+          },
+          {
+            "predicted": 0.876,
+            "actual": 0.867,
+            "n": 218
+          },
+          {
+            "predicted": 0.905,
+            "actual": 0.8,
+            "n": 20
+          }
+        ]
+      }
+    },
+    "receivingYards": {
+      "label": "Receiving yards",
+      "n": 694,
+      "mae": 23.5,
+      "bias": 0.6,
+      "range": {
+        "below": 0.278,
+        "inside": 0.444,
+        "above": 0.278
+      },
+      "calibration": {
+        "gap": 0.0279,
+        "buckets": [
+          {
+            "predicted": 0.177,
+            "actual": 0.211,
+            "n": 356
+          },
+          {
+            "predicted": 0.254,
+            "actual": 0.297,
+            "n": 743
+          },
+          {
+            "predicted": 0.343,
+            "actual": 0.377,
+            "n": 772
+          },
+          {
+            "predicted": 0.438,
+            "actual": 0.425,
+            "n": 619
+          },
+          {
+            "predicted": 0.545,
+            "actual": 0.553,
+            "n": 494
+          },
+          {
+            "predicted": 0.649,
+            "actual": 0.654,
+            "n": 318
+          },
+          {
+            "predicted": 0.738,
+            "actual": 0.66,
+            "n": 156
+          }
+        ]
+      }
+    },
+    "receptions": {
+      "label": "Receptions",
+      "n": 481,
+      "mae": 1.9,
+      "bias": 0,
+      "range": {
+        "below": 0.177,
+        "inside": 0.634,
+        "above": 0.189
+      },
+      "calibration": {
+        "gap": 0.0143,
+        "buckets": [
+          {
+            "predicted": 0.16,
+            "actual": 0.151,
+            "n": 351
+          },
+          {
+            "predicted": 0.256,
+            "actual": 0.266,
+            "n": 308
+          },
+          {
+            "predicted": 0.354,
+            "actual": 0.359,
+            "n": 393
+          },
+          {
+            "predicted": 0.449,
+            "actual": 0.478,
+            "n": 339
+          },
+          {
+            "predicted": 0.545,
+            "actual": 0.524,
+            "n": 330
+          },
+          {
+            "predicted": 0.649,
+            "actual": 0.645,
+            "n": 335
+          },
+          {
+            "predicted": 0.75,
+            "actual": 0.772,
+            "n": 289
+          },
+          {
+            "predicted": 0.818,
+            "actual": 0.85,
+            "n": 60
+          }
+        ]
+      }
+    },
+    "rushingYards": {
+      "label": "Rushing yards",
+      "n": 439,
+      "mae": 20.5,
+      "bias": 1.5,
+      "range": {
+        "below": 0.226,
+        "inside": 0.538,
+        "above": 0.237
+      },
+      "calibration": {
+        "gap": 0.0231,
+        "buckets": [
+          {
+            "predicted": 0.173,
+            "actual": 0.137,
+            "n": 234
+          },
+          {
+            "predicted": 0.259,
+            "actual": 0.259,
+            "n": 563
+          },
+          {
+            "predicted": 0.339,
+            "actual": 0.387,
+            "n": 431
+          },
+          {
+            "predicted": 0.429,
+            "actual": 0.444,
+            "n": 421
+          },
+          {
+            "predicted": 0.553,
+            "actual": 0.565,
+            "n": 283
+          },
+          {
+            "predicted": 0.662,
+            "actual": 0.61,
+            "n": 105
+          },
+          {
+            "predicted": 0.734,
+            "actual": 0.773,
+            "n": 154
+          }
+        ]
+      }
+    }
+  },
+  "touchdowns": {
+    "n": 968,
+    "brier": 0.1891,
+    "calibration": {
+      "gap": 0.0156,
+      "buckets": [
+        {
+          "predicted": 0.089,
+          "actual": 0.105,
+          "n": 38
+        },
+        {
+          "predicted": 0.147,
+          "actual": 0.141,
+          "n": 263
+        },
+        {
+          "predicted": 0.249,
+          "actual": 0.27,
+          "n": 248
+        },
+        {
+          "predicted": 0.35,
+          "actual": 0.35,
+          "n": 246
+        },
+        {
+          "predicted": 0.441,
+          "actual": 0.467,
+          "n": 122
+        },
+        {
+          "predicted": 0.537,
+          "actual": 0.617,
+          "n": 47
+        }
+      ]
+    }
+  }
+}

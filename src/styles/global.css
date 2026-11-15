@@ -492,6 +492,9 @@ table.tbl td { padding: 10px var(--s3); text-align: right; border-bottom: 1px so
 table.tbl tbody tr { transition: background var(--dur-fast) var(--ease-out); }
 table.tbl tbody tr:hover { background: var(--slab-hi); }
 table.tbl td.num { font-family: var(--font-mono); }
+/* A small summary table that has to fit a phone without scrolling sideways. */
+table.tbl.compact th, table.tbl.compact td { padding: 8px 6px; }
+table.tbl.compact th:first-child, table.tbl.compact td:first-child { padding-left: 0; }
 .best-price { background: var(--mint-soft); border-radius: var(--r-sm); padding: 2px 6px; color: var(--mint); }
 
 /* ---------- Badges ---------- */
