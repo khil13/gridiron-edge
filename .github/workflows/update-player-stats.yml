@@ -3,9 +3,9 @@ name: Update player stats snapshot
 # Keeps src/data/generated/player-stats.json current with nflverse's public
 # release, which updates after each week's games. Committing straight to
 # main (no PR) because this is a data refresh, not a code change, and it's
-# idempotent — a no-op week produces no diff and no commit. The push to
-# main triggers the existing deploy workflow, so the site picks up fresh
-# rates on its next rebuild automatically.
+# idempotent — a no-op week produces no diff and no commit. After pushing,
+# the commit step starts the Pages deploy itself so the site picks up the
+# fresh rates (a bot push alone does not trigger it — see that step).
 #
 # `npm run player-stats` also writes team-defense.json and player-ngs.json
 # (see fetch-player-stats.mjs) — both must be in the diff check and the
@@ -23,6 +23,7 @@ on:
 
 permissions:
   contents: write
+  actions: write # to start the Pages deploy after committing (see the commit step)
 
 jobs:
   update:
@@ -48,6 +49,8 @@ jobs:
         run: npm run prop-accuracy
 
       - name: Commit if the snapshot changed
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           FILES="src/data/generated/player-stats.json src/data/generated/player-stats-meta.json src/data/generated/team-defense.json src/data/generated/player-ngs.json src/data/generated/prop-accuracy.json"
           if git diff --quiet -- $FILES; then
@@ -59,6 +62,12 @@ jobs:
           git add $FILES
           git commit -m 'Update player stats snapshot'
           git push
+          # A push made with the workflow's own token does not start other
+          # workflows — GitHub blocks that to prevent loops — so the Pages
+          # deploy never ran for these commits and refreshed data only went
+          # live whenever a code change next merged. Starting the deploy
+          # explicitly is the one thing that token IS allowed to trigger.
+          gh workflow run deploy.yml --ref main
 
       - name: Fail the run if grading failed
         if: steps.grade.outcome == 'failure'
