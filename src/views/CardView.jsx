@@ -4,7 +4,9 @@ import EdgeRail from '../components/EdgeRail.jsx'
 import { Badge, Empty, Tabs } from '../components/Controls.jsx'
 import { useStore } from '../lib/store.jsx'
 import { toSlipLeg } from '../lib/edges.js'
-import { buildCard, daysFrom, confidenceOf, lockCard, tierForProp, tierForVolume, pickPropsForGame, sortPropPicks, isMainPlayer, bestPropLean, leanReasonForProp } from '../lib/card.js'
+import { buildCard, daysFrom, confidenceOf, lockCard, tierForProp, tierForVolume, pickPropsForGame, sortPropPicks, isMainPlayer, bestPropLean, leanReasonForProp, gameProjectionRows } from '../lib/card.js'
+import { runBacktest } from '../lib/backtest.js'
+import ratingsFile from '../data/generated/ratings.json'
 import { analyseAnytimeTouchdowns, volumePlaysForGame } from '../lib/props.js'
 import { reasonsForPick } from '../lib/reasons.js'
 import { fetchGameRosters } from '../data/providers/playerData.js'
@@ -99,14 +101,16 @@ export default function CardView({ data }) {
     [day, settings]
   )
 
-  // If today is quiet, say which days are not — without implying the quiet
-  // day is a failure.
-  const daysWithPlays = useMemo(
-    () =>
-      days
-        .filter((d) => d.key !== day?.key && buildCard(d.games, settings).plays.length > 0)
-        .map((d) => relativeDay(d.kickoff) ?? fmtDay(d.kickoff)),
-    [days, day, settings]
+  // No real sportsbook prices connected: the game section shows the model's
+  // own projections instead of plays priced against a simulated market.
+  const projectionOnly = !!data.simulatedPrices
+  const projectionRows = useMemo(() => gameProjectionRows(day?.games ?? []), [day])
+
+  // How the game model has actually done on this season's finished games —
+  // the same replay the Model tab shows, so the two can never disagree.
+  const seasonRecord = useMemo(
+    () => runBacktest(data.seasonResults ?? [], ratingsFile.ratings, settings).metrics,
+    [data.seasonResults, settings]
   )
   const confidence = useMemo(
     () => confidenceOf(day?.games ?? [], settings),
@@ -395,7 +399,9 @@ export default function CardView({ data }) {
       />
       <header className="page-head" style={{ marginTop: 'var(--s5)' }}>
         <div>
-          <div className="eyebrow">One play per game · best price across books</div>
+          <div className="eyebrow">
+            {projectionOnly ? 'The model\'s read on every game · no odds key needed' : 'One play per game · best price across books'}
+          </div>
           <h1 className="page-title">Card of the day</h1>
         </div>
         <div className="row gap-2" style={{ flexWrap: 'wrap' }}>
@@ -437,6 +443,12 @@ export default function CardView({ data }) {
         </div>
       </div>
 
+      {projectionOnly && (
+        <GameProjections rows={projectionRows} day={day} seasonRecord={seasonRecord} />
+      )}
+
+      {!projectionOnly && (
+        <>
       {/* Card summary */}
       <section className="panel" style={{ marginBottom: 'var(--s5)' }}>
         <div className="panel-head">
@@ -496,6 +508,9 @@ export default function CardView({ data }) {
             <PlayCard key={entry.best.id} entry={entry} dispatch={dispatch} ratings={data.ratings} />
           ))}
         </div>
+      )}
+
+        </>
       )}
 
       {/* Main-player projections — the model's own read on every game's
@@ -671,6 +686,8 @@ export default function CardView({ data }) {
         </p>
       )}
 
+      {!projectionOnly && (
+        <>
       {stats.stackedGames > 0 && (
         <p className="dim" style={{ fontSize: 12, marginTop: 'var(--s4)', maxWidth: '80ch' }}>
           {stats.stackedGames} game{stats.stackedGames === 1 ? ' carries' : 's carry'} more than
@@ -701,7 +718,100 @@ export default function CardView({ data }) {
         game is listed: a spread and a total on the same game express the same opinion
         about the same roster, and stacking them quietly doubles the bet.
       </p>
+        </>
+      )}
     </div>
+  )
+}
+
+/* ---------- Game projections, when there are no real prices ---------- */
+
+const CONFIDENCE_LABEL = { high: 'High', medium: 'Medium', low: 'Low' }
+
+function GameProjections({ rows, day, seasonRecord }) {
+  return (
+    <section className="panel" style={{ marginBottom: 'var(--s6)' }}>
+      <div className="panel-head">
+        <div>
+          <div className="eyebrow">{fmtDay(day.kickoff)} · winner, score and total</div>
+          <h2 style={{ fontSize: 'var(--t-lg)', marginTop: 4 }}>Game projections</h2>
+        </div>
+        <Badge tone="quiet">{rows.length} game{rows.length === 1 ? '' : 's'}</Badge>
+      </div>
+      {rows.length === 0 ? (
+        <p className="dim" style={{ fontSize: 12, margin: 0, padding: 'var(--s4)' }}>
+          No games on this day can be projected yet.
+        </p>
+      ) : (
+        <div className="tbl-scroll">
+          <table className="tbl responsive">
+            <thead>
+              <tr>
+                <th>Game</th>
+                <th>Model favours</th>
+                <th>Projected score</th>
+                <th>Margin</th>
+                <th>Total</th>
+                <th>Confidence</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.game.id}>
+                  <td data-label="Game">
+                    <a href={href(`game/${r.game.id}`)} className="row gap-2" style={{ flexWrap: 'wrap' }}>
+                      <TeamMark abbr={r.game.away} size={16} />
+                      <TeamMark abbr={r.game.home} size={16} />
+                      <span>{r.game.away} @ {r.game.home}</span>
+                      <span className="dim">
+                        {r.final ? `Final ${r.game.awayScore}–${r.game.homeScore}` : fmtTime(r.game.kickoff)}
+                      </span>
+                    </a>
+                  </td>
+                  <td className="num" data-label="Model favours">
+                    <span>
+                      {r.favourite} <span className="dim">{fmtPct(r.favouriteProb, 0)}</span>
+                      {r.pickCorrect != null && (
+                        <span className={r.pickCorrect ? 'pos' : 'neg'} style={{ marginLeft: 8 }}>
+                          {r.pickCorrect ? 'won' : 'lost'}
+                        </span>
+                      )}
+                    </span>
+                  </td>
+                  <td className="num" data-label="Projected score">
+                    {r.game.away} {r.awayPoints} – {r.game.home} {r.homePoints}
+                  </td>
+                  <td className="num" data-label="Margin">
+                    {r.margin < 0.5 ? 'Pick’em' : `${r.favourite} by ${r.margin.toFixed(1)}`}
+                  </td>
+                  <td className="num" data-label="Total">{r.total}</td>
+                  <td className="num" data-label="Confidence">
+                    <span title={r.confidenceFactors.join(' ')}>
+                      {CONFIDENCE_LABEL[r.confidence] ?? '—'}
+                      {r.qbOut && <span className="neg" style={{ marginLeft: 8 }}>QB out</span>}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p className="dim" style={{ fontSize: 11, padding: 'var(--s3) var(--s4) var(--s4)', margin: 0, maxWidth: '82ch' }}>
+        {seasonRecord && (
+          <>
+            This season so far, across {seasonRecord.n} finished game{seasonRecord.n === 1 ? '' : 's'}: the
+            model&apos;s favourite won {fmtPct(seasonRecord.accuracy, 0)} of the time, and its projected
+            margin missed the real one by {seasonRecord.marginMae.toFixed(1)} points on average (totals
+            by {seasonRecord.totalMae.toFixed(1)}).{' '}
+          </>
+        )}
+        These are the model&apos;s own numbers, not bets. No sportsbook prices are connected, so
+        nothing here is compared with a line — an &quot;edge&quot; against made-up prices would mean
+        nothing. Connect an odds API key in Settings to see priced plays; tap a game for the full
+        breakdown.
+      </p>
+    </section>
   )
 }
 

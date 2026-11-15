@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { pickBestProp, pickPropsForGame, sortPropPicks, isMainPlayer, bestPropLean, leanReasonForProp } from './card.js'
+import { pickBestProp, pickPropsForGame, sortPropPicks, isMainPlayer, bestPropLean, leanReasonForProp, gameProjectionRows } from './card.js'
 
 const clean = (ev, units = 1) => ({ tier: { units, suspicious: false }, entry: { ev } })
 const flagged = (ev) => ({ tier: { units: 1, suspicious: true }, entry: { ev } })
@@ -194,5 +194,58 @@ describe('leanReasonForProp', () => {
   it('handles a missing entry without throwing', () => {
     expect(leanReasonForProp(null)).toBe('No priced market')
     expect(leanReasonForProp({ ev: null })).toBe('No priced market')
+  })
+})
+
+describe('gameProjectionRows', () => {
+  const g = (over) => ({
+    id: 'g', home: 'BAL', away: 'CIN', kickoff: '2026-11-15T18:00:00Z', status: 'scheduled',
+    projection: { homeWinProb: 0.64, awayWinProb: 0.36, margin: 4.5, total: 47, homeTeamTotal: 26, awayTeamTotal: 21 },
+    confidence: { level: 'medium', factors: ['A reason.'] },
+    ...over
+  })
+
+  it('names the favourite with its win probability and the projected score', () => {
+    const [row] = gameProjectionRows([g()])
+    expect(row.favourite).toBe('BAL')
+    expect(row.favouriteProb).toBe(0.64)
+    expect(row.margin).toBe(4.5)
+    expect(row.homePoints).toBe(26)
+    expect(row.awayPoints).toBe(21)
+    expect(row.total).toBe(47)
+    expect(row.confidence).toBe('medium')
+  })
+
+  it('reads a road favourite from a negative home margin', () => {
+    const [row] = gameProjectionRows([g({ projection: { homeWinProb: 0.3, awayWinProb: 0.7, margin: -6, total: 44, homeTeamTotal: 19, awayTeamTotal: 25 } })])
+    expect(row.favourite).toBe('CIN')
+    expect(row.favouriteProb).toBe(0.7)
+    expect(row.margin).toBe(6)
+  })
+
+  it('orders by kickoff and skips a game with no projection', () => {
+    const rows = gameProjectionRows([
+      g({ id: 'late', kickoff: '2026-11-15T21:25:00Z' }),
+      g({ id: 'none', projection: null }),
+      g({ id: 'early', kickoff: '2026-11-15T14:30:00Z' })
+    ])
+    expect(rows.map((r) => r.game.id)).toEqual(['early', 'late'])
+  })
+
+  it('says whether the favourite won once a game is final, and nothing before that', () => {
+    expect(gameProjectionRows([g()])[0].pickCorrect).toBeNull()
+    const won = gameProjectionRows([g({ status: 'final', homeScore: 27, awayScore: 20 })])[0]
+    expect(won.final).toBe(true)
+    expect(won.pickCorrect).toBe(true)
+    const lost = gameProjectionRows([g({ status: 'final', homeScore: 17, awayScore: 20 })])[0]
+    expect(lost.pickCorrect).toBe(false)
+    // A tie settles nothing either way.
+    expect(gameProjectionRows([g({ status: 'final', homeScore: 20, awayScore: 20 })])[0].pickCorrect).toBeNull()
+  })
+
+  it('flags a game whose projection already moved for a starting QB ruled out', () => {
+    const [row] = gameProjectionRows([g({ projection: { ...g().projection, qbOut: { home: true, away: false } } })])
+    expect(row.qbOut).toBe(true)
+    expect(gameProjectionRows([g()])[0].qbOut).toBe(false)
   })
 })
