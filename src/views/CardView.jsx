@@ -6,6 +6,7 @@ import { useStore } from '../lib/store.jsx'
 import { toSlipLeg } from '../lib/edges.js'
 import { buildCard, daysFrom, confidenceOf, lockCard, tierForProp, tierForVolume, pickPropsForGame, sortPropPicks, isMainPlayer, bestPropLean, leanReasonForProp, gameProjectionRows } from '../lib/card.js'
 import { runBacktest } from '../lib/backtest.js'
+import { teamRecord } from '../lib/ratings.js'
 import ratingsFile from '../data/generated/ratings.json'
 import propAccuracy from '../data/generated/prop-accuracy.json'
 import { analyseAnytimeTouchdowns, volumePlaysForGame } from '../lib/props.js'
@@ -18,7 +19,7 @@ import { normPropName } from '../lib/props.js'
 import { getTeam } from '../data/teams.js'
 import ResultsView from './ResultsView.jsx'
 import {
-  fmtOdds, fmtPct, fmtMoney, fmtSigned, fmtDay, fmtTime, relativeDay, fmtRecord, readable
+  fmtOdds, fmtPct, fmtMoney, fmtSigned, fmtDay, fmtTime, relativeDay, readable
 } from '../lib/format.js'
 import { href } from '../lib/router.js'
 
@@ -466,7 +467,12 @@ export default function CardView({ data }) {
       </div>
 
       {projectionOnly && (
-        <GameProjections rows={projectionRows} day={day} seasonRecord={seasonRecord} />
+        <GameProjections
+          rows={projectionRows}
+          day={day}
+          seasonRecord={seasonRecord}
+          recordOf={(abbr) => teamRecord(data.ratings?.[abbr], data.ratingsState?.applied)}
+        />
       )}
 
       {!projectionOnly && (
@@ -527,7 +533,7 @@ export default function CardView({ data }) {
       {reads.length > 0 && (
         <div style={{ display: 'grid', gap: 'var(--s4)', marginBottom: 'var(--s6)' }}>
           {reads.map((entry) => (
-            <PlayCard key={entry.best.id} entry={entry} dispatch={dispatch} ratings={data.ratings} />
+            <PlayCard key={entry.best.id} entry={entry} dispatch={dispatch} ratings={data.ratings} applied={data.ratingsState?.applied} />
           ))}
         </div>
       )}
@@ -820,7 +826,7 @@ function TrackRecord({ record }) {
 
 const CONFIDENCE_LABEL = { high: 'High', medium: 'Medium', low: 'Low' }
 
-function GameProjections({ rows, day, seasonRecord }) {
+function GameProjections({ rows, day, seasonRecord, recordOf }) {
   return (
     <section className="panel" style={{ marginBottom: 'var(--s6)' }}>
       <div className="panel-head">
@@ -851,10 +857,12 @@ function GameProjections({ rows, day, seasonRecord }) {
               {rows.map((r) => (
                 <tr key={r.game.id}>
                   <td data-label="Game">
-                    <a href={href(`game/${r.game.id}`)} className="row gap-2" style={{ flexWrap: 'wrap' }}>
+                    <a href={href(`game/${r.game.id}`)} className="row gap-2" style={{ flexWrap: 'wrap', minWidth: 0, flex: '1 1 auto' }}>
                       <TeamMark abbr={r.game.away} size={16} />
                       <TeamMark abbr={r.game.home} size={16} />
-                      <span>{r.game.away} @ {r.game.home}</span>
+                      <span>
+                        {r.game.away}<RecordTag record={recordOf(r.game.away)} /> @ {r.game.home}<RecordTag record={recordOf(r.game.home)} />
+                      </span>
                       <span className="dim">
                         {r.final ? `Final ${r.game.awayScore}–${r.game.homeScore}` : fmtTime(r.game.kickoff)}
                       </span>
@@ -909,7 +917,7 @@ function GameProjections({ rows, day, seasonRecord }) {
 
 /* ---------- One play, as a ticket ---------- */
 
-function PlayCard({ entry, dispatch, ratings }) {
+function PlayCard({ entry, dispatch, ratings, applied }) {
   const { game, best, tier, alternate, stake, kellyStake, reason } = entry
   const isLean = tier.units === 0
   const consensus = game.market?.books?.find((b) => b.sharp) || game.market?.books?.[0]
@@ -991,8 +999,8 @@ function PlayCard({ entry, dispatch, ratings }) {
           }}
         >
           <span className="dim mono" style={{ fontSize: 11 }}>
-            {game.away} {fmtSigned(ar.pointsVsAverage)} pts vs avg{recordFor(ar) ? ` (${recordFor(ar)})` : ''} ·{' '}
-            {game.home} {fmtSigned(hr.pointsVsAverage)} pts vs avg{recordFor(hr) ? ` (${recordFor(hr)})` : ''}
+            {game.away} {fmtSigned(ar.pointsVsAverage)} pts vs avg<RecordTag record={teamRecord(ar, applied)} /> ·{' '}
+            {game.home} {fmtSigned(hr.pointsVsAverage)} pts vs avg<RecordTag record={teamRecord(hr, applied)} />
           </span>
           {game.projection && (
             <span className="dim mono" style={{ fontSize: 11 }}>
@@ -1349,18 +1357,14 @@ function PropPlayCard({ pick, dispatch }) {
   )
 }
 
-/**
- * A team's record, from whichever ratings shape is on hand: the season
- * replay adds live `w`/`l`/`t` once results exist, but before any games are
- * played (or if that replay failed) ratings fall back to the opening file,
- * which only carries last season's final `wins`/`losses`. Shown either way,
- * never invented — a record this can't find is simply left off the line.
- */
-function recordFor(r) {
-  if (!r) return null
-  if (r.w != null && r.l != null) return fmtRecord(r.w, r.l, r.t ?? 0)
-  if (r.wins != null && r.losses != null) return fmtRecord(r.wins, r.losses)
-  return null
+/** A team's win-loss record in brackets after its name — marked when it is last season's, not this one's. */
+function RecordTag({ record }) {
+  if (!record) return null
+  return (
+    <span className="dim" title={record.lastSeason ? 'Last season\'s final record — none of this season\'s results are loaded yet.' : 'Record this season.'}>
+      {' '}({record.text}{record.lastSeason ? ' last yr' : ''})
+    </span>
+  )
 }
 
 /** "A", "A and B", "A, B and C" — Intl handles the awkward cases. */

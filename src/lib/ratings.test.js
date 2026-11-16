@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { restDaysFor } from './ratings.js'
+import { restDaysFor, teamRecord } from './ratings.js'
 
 describe('restDaysFor', () => {
   // Clean same-time-of-day kickoffs so day gaps are exact integers, not
@@ -35,5 +35,28 @@ describe('restDaysFor', () => {
     // At g2's own kickoff, only the earlier g1 counts as rest context.
     const days = restDaysFor('DET', '2026-09-10T20:00:00Z', history)
     expect(days).toBe(3)
+  })
+})
+
+describe('teamRecord', () => {
+  const rating = { wins: 11, losses: 6, w: 6, l: 3, t: 0 }
+
+  it('uses this season\'s replayed record once any of its games have been applied', () => {
+    expect(teamRecord(rating, 137)).toEqual({ text: '6-3', lastSeason: false })
+  })
+
+  it('includes ties', () => {
+    expect(teamRecord({ ...rating, t: 1 }, 137)).toEqual({ text: '6-3-1', lastSeason: false })
+  })
+
+  it('falls back to last season\'s final record, flagged as such, before any results are in', () => {
+    // applyResults() seeds w/l at 0-0 before the first game — that is not a record worth showing.
+    expect(teamRecord({ wins: 11, losses: 6, w: 0, l: 0, t: 0 }, 0)).toEqual({ text: '11-6', lastSeason: true })
+    expect(teamRecord({ wins: 11, losses: 6 }, undefined)).toEqual({ text: '11-6', lastSeason: true })
+  })
+
+  it('returns null rather than inventing a record', () => {
+    expect(teamRecord(undefined, 10)).toBeNull()
+    expect(teamRecord({ elo: 1500 }, 10)).toBeNull()
   })
 })

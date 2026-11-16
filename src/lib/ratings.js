@@ -16,6 +16,7 @@
  */
 
 import { updateElo, regressToMean, ELO_BASE, ELO_PER_POINT, DEFAULT_SETTINGS } from './model.js'
+import { fmtRecord } from './format.js'
 
 /**
  * Replay a season onto the opening ratings.
@@ -178,3 +179,27 @@ export function restDaysFor(abbr, kickoff, history) {
 
 const round1 = (v) => Math.round(v * 10) / 10
 const round2 = (v) => Math.round(v * 100) / 100
+
+/**
+ * A team's win-loss record, and which season it is from.
+ *
+ * Once this season's results have been replayed onto the ratings, that is
+ * the record (`w`/`l`/`t`). Before any have — opening week, or the results
+ * feed failing — the only record on hand is last season's final one from
+ * the opening file (`wins`/`losses`), and it is returned flagged as such so
+ * nothing can present last year's 11-6 as this year's.
+ *
+ * @param {object} rating   one team's entry from the ratings table
+ * @param {number} applied  how many of this season's games have been replayed
+ * @returns {null | { text: string, lastSeason: boolean }}
+ */
+export function teamRecord(rating, applied) {
+  if (!rating) return null
+  if (applied > 0 && rating.w != null && rating.l != null) {
+    return { text: fmtRecord(rating.w, rating.l, rating.t ?? 0), lastSeason: false }
+  }
+  if (rating.wins != null && rating.losses != null) {
+    return { text: fmtRecord(rating.wins, rating.losses), lastSeason: true }
+  }
+  return null
+}
