@@ -1,302 +1,302 @@
 {
-  "generatedAt": "2026-11-15T07:29:40.621Z",
+  "generatedAt": "2026-11-17T20:14:06.018Z",
   "source": "https://github.com/nflverse/nflverse-data (stats_player release) and nflverse/nfldata games.csv",
   "season": 2026,
   "fromWeek": 2,
   "throughWeek": 10,
   "method": "Walk-forward: each week projected from only the weeks before it, through the app's own projection functions, for each team's lead QB, RB, WR and TE. Lead players are identified by prior-weeks opportunity (historical depth charts are not published); game context uses each game's real pre-kickoff market total and spread.",
-  "marketContextGames": 137,
-  "playerWeeks": 965,
+  "marketContextGames": 150,
+  "playerWeeks": 1067,
   "markets": {
     "passingYards": {
       "label": "Passing yards",
-      "n": 240,
-      "mae": 61.6,
-      "bias": 6,
+      "n": 264,
+      "mae": 63.1,
+      "bias": 5.4,
       "range": {
-        "below": 0.229,
-        "inside": 0.538,
-        "above": 0.233
+        "below": 0.227,
+        "inside": 0.53,
+        "above": 0.242
       },
       "calibration": {
-        "gap": 0.0269,
+        "gap": 0.0201,
         "buckets": [
           {
             "predicted": 0.088,
-            "actual": 0.043,
-            "n": 184
+            "actual": 0.049,
+            "n": 204
           },
           {
             "predicted": 0.109,
-            "actual": 0.125,
-            "n": 56
+            "actual": 0.117,
+            "n": 60
           },
           {
-            "predicted": 0.26,
-            "actual": 0.25,
-            "n": 240
+            "predicted": 0.259,
+            "actual": 0.258,
+            "n": 264
           },
           {
             "predicted": 0.449,
-            "actual": 0.463,
+            "actual": 0.462,
+            "n": 264
+          },
+          {
+            "predicted": 0.677,
+            "actual": 0.713,
             "n": 240
           },
           {
-            "predicted": 0.676,
-            "actual": 0.725,
-            "n": 218
-          },
-          {
             "predicted": 0.711,
-            "actual": 0.583,
-            "n": 24
+            "actual": 0.615,
+            "n": 26
           },
           {
             "predicted": 0.876,
-            "actual": 0.867,
-            "n": 218
+            "actual": 0.871,
+            "n": 240
           },
           {
-            "predicted": 0.905,
-            "actual": 0.8,
-            "n": 20
+            "predicted": 0.904,
+            "actual": 0.818,
+            "n": 22
           }
         ]
       }
     },
     "receivingYards": {
       "label": "Receiving yards",
-      "n": 694,
-      "mae": 23.5,
-      "bias": 0.6,
+      "n": 771,
+      "mae": 23.9,
+      "bias": 0.1,
       "range": {
-        "below": 0.278,
-        "inside": 0.444,
-        "above": 0.278
+        "below": 0.28,
+        "inside": 0.438,
+        "above": 0.281
       },
       "calibration": {
-        "gap": 0.0279,
+        "gap": 0.0301,
         "buckets": [
           {
             "predicted": 0.177,
-            "actual": 0.211,
-            "n": 356
+            "actual": 0.209,
+            "n": 392
           },
           {
             "predicted": 0.254,
-            "actual": 0.297,
-            "n": 743
+            "actual": 0.306,
+            "n": 831
           },
           {
             "predicted": 0.343,
-            "actual": 0.377,
-            "n": 772
+            "actual": 0.383,
+            "n": 861
           },
           {
             "predicted": 0.438,
-            "actual": 0.425,
-            "n": 619
+            "actual": 0.437,
+            "n": 687
           },
           {
             "predicted": 0.545,
-            "actual": 0.553,
-            "n": 494
+            "actual": 0.559,
+            "n": 547
           },
           {
-            "predicted": 0.649,
-            "actual": 0.654,
-            "n": 318
+            "predicted": 0.648,
+            "actual": 0.64,
+            "n": 350
           },
           {
             "predicted": 0.738,
-            "actual": 0.66,
-            "n": 156
+            "actual": 0.661,
+            "n": 174
           }
         ]
       }
     },
     "receptions": {
       "label": "Receptions",
-      "n": 481,
+      "n": 533,
       "mae": 1.9,
       "bias": 0,
       "range": {
-        "below": 0.177,
+        "below": 0.182,
         "inside": 0.634,
-        "above": 0.189
+        "above": 0.184
       },
       "calibration": {
-        "gap": 0.0143,
+        "gap": 0.0157,
         "buckets": [
           {
             "predicted": 0.16,
-            "actual": 0.151,
-            "n": 351
+            "actual": 0.15,
+            "n": 386
           },
           {
             "predicted": 0.256,
-            "actual": 0.266,
-            "n": 308
+            "actual": 0.267,
+            "n": 348
           },
           {
             "predicted": 0.354,
-            "actual": 0.359,
-            "n": 393
+            "actual": 0.35,
+            "n": 428
           },
           {
             "predicted": 0.449,
             "actual": 0.478,
-            "n": 339
+            "n": 379
           },
           {
-            "predicted": 0.545,
-            "actual": 0.524,
-            "n": 330
+            "predicted": 0.544,
+            "actual": 0.516,
+            "n": 368
           },
           {
-            "predicted": 0.649,
-            "actual": 0.645,
-            "n": 335
+            "predicted": 0.65,
+            "actual": 0.628,
+            "n": 368
           },
           {
             "predicted": 0.75,
-            "actual": 0.772,
-            "n": 289
+            "actual": 0.751,
+            "n": 321
           },
           {
-            "predicted": 0.818,
-            "actual": 0.85,
-            "n": 60
+            "predicted": 0.817,
+            "actual": 0.866,
+            "n": 67
           }
         ]
       }
     },
     "rushingYards": {
       "label": "Rushing yards",
-      "n": 439,
-      "mae": 20.5,
-      "bias": 1.5,
+      "n": 482,
+      "mae": 20.8,
+      "bias": 1.4,
       "range": {
-        "below": 0.226,
-        "inside": 0.538,
-        "above": 0.237
+        "below": 0.224,
+        "inside": 0.533,
+        "above": 0.243
       },
       "calibration": {
-        "gap": 0.0231,
+        "gap": 0.0291,
         "buckets": [
           {
             "predicted": 0.173,
-            "actual": 0.137,
-            "n": 234
+            "actual": 0.14,
+            "n": 258
           },
           {
             "predicted": 0.259,
-            "actual": 0.259,
-            "n": 563
+            "actual": 0.275,
+            "n": 614
           },
           {
             "predicted": 0.339,
-            "actual": 0.387,
-            "n": 431
+            "actual": 0.395,
+            "n": 474
           },
           {
             "predicted": 0.429,
-            "actual": 0.444,
-            "n": 421
+            "actual": 0.457,
+            "n": 462
           },
           {
             "predicted": 0.553,
-            "actual": 0.565,
-            "n": 283
+            "actual": 0.556,
+            "n": 313
           },
           {
             "predicted": 0.662,
-            "actual": 0.61,
-            "n": 105
+            "actual": 0.612,
+            "n": 116
           },
           {
-            "predicted": 0.734,
-            "actual": 0.773,
-            "n": 154
+            "predicted": 0.735,
+            "actual": 0.769,
+            "n": 169
           }
         ]
       }
     }
   },
   "touchdowns": {
-    "n": 968,
-    "brier": 0.1891,
+    "n": 1072,
+    "brier": 0.189,
     "calibration": {
-      "gap": 0.0156,
+      "gap": 0.014,
       "buckets": [
         {
-          "predicted": 0.089,
-          "actual": 0.105,
-          "n": 38
+          "predicted": 0.088,
+          "actual": 0.149,
+          "n": 47
         },
         {
-          "predicted": 0.147,
-          "actual": 0.141,
-          "n": 263
+          "predicted": 0.148,
+          "actual": 0.148,
+          "n": 290
         },
         {
-          "predicted": 0.249,
-          "actual": 0.27,
-          "n": 248
+          "predicted": 0.25,
+          "actual": 0.252,
+          "n": 270
         },
         {
           "predicted": 0.35,
-          "actual": 0.35,
-          "n": 246
+          "actual": 0.345,
+          "n": 275
         },
         {
           "predicted": 0.441,
-          "actual": 0.467,
-          "n": 122
+          "actual": 0.485,
+          "n": 130
         },
         {
           "predicted": 0.537,
-          "actual": 0.617,
-          "n": 47
+          "actual": 0.618,
+          "n": 55
         }
       ]
     }
   },
   "touchdownsAll": {
-    "n": 2738,
-    "brier": 0.1319,
+    "n": 3036,
+    "brier": 0.1326,
     "calibration": {
-      "gap": 0.0083,
+      "gap": 0.0074,
       "buckets": [
         {
-          "predicted": 0.07,
-          "actual": 0.07,
-          "n": 867
+          "predicted": 0.069,
+          "actual": 0.073,
+          "n": 967
         },
         {
           "predicted": 0.143,
-          "actual": 0.133,
-          "n": 941
+          "actual": 0.137,
+          "n": 1045
         },
         {
           "predicted": 0.242,
-          "actual": 0.249,
-          "n": 473
+          "actual": 0.24,
+          "n": 516
         },
         {
-          "predicted": 0.349,
-          "actual": 0.356,
-          "n": 281
+          "predicted": 0.348,
+          "actual": 0.352,
+          "n": 315
         },
         {
           "predicted": 0.441,
-          "actual": 0.464,
-          "n": 125
+          "actual": 0.481,
+          "n": 133
         },
         {
           "predicted": 0.537,
-          "actual": 0.617,
-          "n": 47
+          "actual": 0.618,
+          "n": 55
         }
       ]
     }
