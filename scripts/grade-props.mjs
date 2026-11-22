@@ -78,7 +78,7 @@ async function fetchWeeks(season) {
       week: num(r.week),
       team: normTeam(r.team),
       opp: normTeam(r.opponent_team),
-      passingYards: num(r.passing_yards), passingAttempts: num(r.attempts), passingTouchdowns: num(r.passing_tds),
+      passingYards: num(r.passing_yards), passingAttempts: num(r.attempts), passingTouchdowns: num(r.passing_tds), passingInterceptions: num(r.passing_interceptions),
       rushingYards: num(r.rushing_yards), rushingAttempts: num(r.carries), rushTds: num(r.rushing_tds),
       receivingYards: num(r.receiving_yards), receptions: num(r.receptions), targets: num(r.targets), recTds: num(r.receiving_tds)
     }))
@@ -139,6 +139,9 @@ async function main() {
   console.log(`Season ${season}, weeks 2-${throughWeek}: ${report.playerWeeks} main-player weeks graded`)
   for (const [key, m] of Object.entries(report.markets)) {
     console.log(`  ${key.padEnd(15)} n=${String(m.n).padStart(4)}  avg miss ${m.mae}  bias ${m.bias}  range held ${(m.range.inside * 100).toFixed(0)}%  calibration gap ${(m.calibration.gap * 100).toFixed(1)} pts`)
+  }
+  if (report.interceptions) {
+    console.log(`  QB throws INT   n=${String(report.interceptions.n).padStart(4)}  avg miss ${report.interceptions.mae}  Brier ${report.interceptions.brier}  calibration gap ${(report.interceptions.calibration.gap * 100).toFixed(1)} pts`)
   }
   if (report.touchdowns) {
     console.log(`  anytime TD      n=${String(report.touchdowns.n).padStart(4)}  Brier ${report.touchdowns.brier}  calibration gap ${(report.touchdowns.calibration.gap * 100).toFixed(1)} pts`)

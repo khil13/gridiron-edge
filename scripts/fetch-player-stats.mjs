@@ -123,6 +123,7 @@ async function fetchSeason(season) {
     attempts: need('attempts'),
     passingYards: need('passing_yards'),
     passingTds: need('passing_tds'),
+    passingInterceptions: need('passing_interceptions'),
     carries: need('carries'),
     rushingYards: need('rushing_yards'),
     rushingTds: need('rushing_tds'),
@@ -173,7 +174,8 @@ async function fetchSeason(season) {
 
     const acc = (players[key] ??= {
       games: 0, tds: 0, receivingYards: 0, receptions: 0, targets: 0,
-      rushingYards: 0, rushingAttempts: 0, passingYards: 0, passingAttempts: 0, passingTouchdowns: 0
+      rushingYards: 0, rushingAttempts: 0, passingYards: 0, passingAttempts: 0, passingTouchdowns: 0,
+      passingInterceptions: 0
     })
 
     if (attempts > 0 || carries > 0 || targets > 0) acc.games += 1
@@ -186,6 +188,7 @@ async function fetchSeason(season) {
     acc.passingYards += num(r[idx.passingYards])
     acc.passingAttempts += attempts
     acc.passingTouchdowns += num(r[idx.passingTds])
+    acc.passingInterceptions += num(r[idx.passingInterceptions])
   }
 
   for (const [team, d] of Object.entries(defense)) {

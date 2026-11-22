@@ -10,7 +10,7 @@ const ratings = { BAL: { ppg: 25 }, CIN: { ppg: 23 } }
 
 const player = (over) => ({ injury: null, depthKnown: true, tds: 0, ...over })
 const roster = () => [
-  player({ name: 'Home QB', team: 'BAL', position: 'QB', role: 'QB', tds: 2, stats: { games: 8, passingYards: 1920, rushingYards: 360, rushingAttempts: 60 } }),
+  player({ name: 'Home QB', team: 'BAL', position: 'QB', role: 'QB', tds: 2, stats: { games: 8, passingYards: 1920, passingAttempts: 272, passingInterceptions: 5, rushingYards: 360, rushingAttempts: 60 } }),
   player({ name: 'Home Back', team: 'BAL', position: 'RB', role: 'RB1', tds: 9, stats: { games: 8, rushingYards: 800, rushingAttempts: 160, receivingYards: 120, receptions: 16 } }),
   player({ name: 'Home Backup', team: 'BAL', position: 'RB', role: 'RB2', tds: 1, stats: { games: 8, rushingYards: 200, rushingAttempts: 50 } }),
   player({ name: 'Home Wideout', team: 'BAL', position: 'WR', role: 'WR1', tds: 4, stats: { games: 8, receivingYards: 640, receptions: 48 } }),
@@ -75,6 +75,18 @@ describe('mainPlayerBoard', () => {
     const entry = find(board(rookie), 'Home Wideout')
     expect(entry.lines).toEqual([])
     expect(entry.tdProb).toBeGreaterThan(0)
+  })
+
+  it('gives the starting quarterback an interception chance and his real rate, and nobody else', () => {
+    const b = board()
+    const qb = find(b, 'Home QB')
+    expect(qb.ints.prob).toBeGreaterThan(0.3)
+    expect(qb.ints.prob).toBeLessThan(0.7)
+    expect(qb.ints.rate).toBeCloseTo(5 / 272, 6)
+    expect(find(b, 'Home Back').ints).toBeNull()
+    expect(find(b, 'Away Wideout').ints).toBeNull()
+    // No interceptions on record (this fixture's away QB): left off, not guessed.
+    expect(find(b, 'Away QB').ints).toBeNull()
   })
 
   it('notes when a line is built on last season\'s numbers', () => {

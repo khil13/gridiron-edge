@@ -157,7 +157,10 @@ function statsFrom(athlete) {
     rushingAttempts: pick('rushingAttempts'),
     passingYards: pick('passingYards'),
     passingTouchdowns: pick('passingTouchdowns'),
-    passingAttempts: pick('passingAttempts')
+    passingAttempts: pick('passingAttempts'),
+    // Only scoring positions reach here (see SCORING_POSITIONS), so the one
+    // "interceptions" a player can carry is the kind he threw.
+    passingInterceptions: pick('passingInterceptions', 'interceptions')
   }
 }
 

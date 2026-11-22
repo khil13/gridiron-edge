@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-20T19:26:16.000Z",
+  "generatedAt": "2026-11-22T17:13:59.880Z",
   "source": "https://github.com/nflverse/nflverse-data (stats_player release) and nflverse/nfldata games.csv",
   "season": 2026,
   "fromWeek": 2,
@@ -221,6 +221,26 @@
           }
         ]
       }
+    }
+  },
+  "interceptions": {
+    "n": 267,
+    "mae": 0.66,
+    "brier": 0.2484,
+    "calibration": {
+      "gap": 0.0276,
+      "buckets": [
+        {
+          "predicted": 0.475,
+          "actual": 0.508,
+          "n": 120
+        },
+        {
+          "predicted": 0.532,
+          "actual": 0.549,
+          "n": 144
+        }
+      ]
     }
   },
   "touchdowns": {
