@@ -12,7 +12,7 @@
  * from the same graded distribution the over/under probabilities use.
  */
 
-import { analyseAnytimeTouchdowns, projectVolume, VOLUME_MARKETS, isRuledOut, normPropName } from './props.js'
+import { analyseAnytimeTouchdowns, projectVolume, VOLUME_MARKETS, isRuledOut, normPropName, projectInterceptions } from './props.js'
 import { quantileFor, overProbabilityFor } from './distributions.js'
 import { isMainPlayer } from './card.js'
 
@@ -45,7 +45,8 @@ const ROLE_ORDER = { QB: 0, RB1: 1, WR1: 2, TE1: 3 }
  * @param {object} rosters  fetchGameRosters() result
  * @param {object} ratings  team ratings (for each team's usual scoring)
  * @returns {Array} one entry per main player, home team first:
- *   { name, team, role, injury, tdProb, lines: [{ market, label, mean, low, high, perGame, games, priorSeason }] }
+ *   { name, team, role, injury, tdProb, ints, lines: [{ market, label, mean, low, high, perGame, games, priorSeason }] }
+ *   `ints` is projectInterceptions() for the starting quarterback, null for everyone else
  */
 export function mainPlayerBoard({ game, proj, rosters, ratings }) {
   const { projected } = analyseAnytimeTouchdowns({ game, proj, rosters, props: null })
@@ -81,7 +82,8 @@ export function mainPlayerBoard({ game, proj, rosters, ratings }) {
 
     const tdProb = tdByName.get(normPropName(player.name)) ?? null
     if (!lines.length && tdProb == null) continue
-    board.push({ name: player.name, team: player.team, role: player.role, injury: player.injury ?? null, tdProb, lines })
+    const ints = player.role === 'QB' ? projectInterceptions(player) : null
+    board.push({ name: player.name, team: player.team, role: player.role, injury: player.injury ?? null, tdProb, ints, lines })
   }
 
   return board.sort((a, b) =>

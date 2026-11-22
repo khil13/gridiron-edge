@@ -126,6 +126,13 @@ describe('gradeProps', () => {
     expect(report.touchdowns.calibration.gap).toBeGreaterThanOrEqual(0)
   })
 
+  it('scores the starting quarterback\'s chance of throwing an interception', () => {
+    // The fixture QB throws no interceptions in any week.
+    expect(report.interceptions.n).toBe(3)
+    expect(report.interceptions.mae).toBeGreaterThan(0)
+    expect(report.interceptions.brier).toBeGreaterThan(0.1) // predicted ~40-55%, actual 0 every time
+  })
+
   it('also scores every player in the pool, for the Touchdown Lab\'s whole-roster ranking', () => {
     // Three players a week (lead, depth, QB) over weeks 2-4.
     expect(report.touchdownsAll.n).toBe(9)
@@ -139,5 +146,6 @@ describe('gradeProps', () => {
     expect(early.markets).toEqual({})
     expect(early.touchdowns).toBeNull()
     expect(early.touchdownsAll).toBeNull()
+    expect(early.interceptions).toBeNull()
   })
 })

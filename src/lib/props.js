@@ -844,3 +844,68 @@ function tailAbove(dist, line) {
 const round1 = (v) => Math.round(v * 10) / 10
 const round2 = (v) => Math.round(v * 100) / 100
 const round3 = (v) => Math.round(v * 1000) / 1000
+
+/* ------------------------------------------------------------------ */
+/* Quarterback interceptions                                           */
+/* ------------------------------------------------------------------ */
+
+/** League interceptions per pass attempt — 2.17% in 2024 and 2025, 2.24% in 2026 so far. */
+export const LEAGUE_INT_RATE = 0.022
+
+/**
+ * How many attempts' worth of league average a quarterback's own
+ * interception rate is blended with.
+ *
+ * Very many, on purpose. Measured on real results, a quarterback's
+ * interception rate barely carries over at all: among starters with 250+
+ * attempts, last season's rate and this season's correlate at 0.05
+ * (2024 to 2025) and 0.02 (2025 to 2026). Walk-forward on every starter's
+ * game in 2025 and 2026, his own unshrunk rate predicted "throws one" far
+ * worse than assuming league average for everyone (Brier 0.289 vs 0.250);
+ * blending at 1,200 attempts was the best tested and only just beats it
+ * (pooled 0.2491 vs 0.2498, with chances that matched outcomes to within a
+ * few points). Last season's rate added nothing, so it is not used.
+ *
+ * In practice this means every starter lands between roughly 40% and 60%
+ * to throw one — which is what the record says is true.
+ */
+export const INT_SHRINKAGE_ATTEMPTS = 1200
+
+/**
+ * A quarterback's projected interceptions for one game, and his chance of
+ * throwing at least one. Interceptions behave like a Poisson count (their
+ * game-to-game variance equals their mean in both seasons measured), so
+ * P(1+) = 1 - e^-expected.
+ *
+ * Volume comes from his own attempts per game, pulled toward the role
+ * average while the sample is thin — the same rule the yardage projections
+ * use. Opponent and game script are deliberately left out: an opponent's
+ * interception rate helped in 2025 and hurt in 2026, and a script
+ * adjustment made no measurable difference.
+ *
+ * @returns {null | { expected, prob, rate, interceptions, attempts, games, priorSeason }}
+ *   `rate` is his real interceptions per attempt over the sample shown —
+ *   reported as-is, never shrunk.
+ */
+export function projectInterceptions(player) {
+  const s = player?.stats
+  const games = s?.games ?? 0
+  const attempts = s?.passingAttempts ?? 0
+  const thrown = s?.passingInterceptions
+  if (!(games > 0) || !(attempts > 0) || thrown == null) return null
+
+  const roleAttempts = VOLUME_PRIORS.QB.passingAttempts
+  const perGame = attempts / games
+  const projectedAttempts = (games * perGame + VOLUME_SHRINKAGE_K * roleAttempts) / (games + VOLUME_SHRINKAGE_K)
+  const rate = (thrown + INT_SHRINKAGE_ATTEMPTS * LEAGUE_INT_RATE) / (attempts + INT_SHRINKAGE_ATTEMPTS)
+  const expected = projectedAttempts * rate
+  return {
+    expected: round2(expected),
+    prob: poissonAtLeastOne(expected),
+    rate: thrown / attempts,
+    interceptions: thrown,
+    attempts,
+    games,
+    priorSeason: !!player.statsPriorSeason
+  }
+}

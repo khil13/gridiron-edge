@@ -2,10 +2,11 @@ import { describe, it, expect, vi } from 'vitest'
 
 vi.mock('../data/generated/team-defense.json', () => ({ default: { latestSeason: 2026, seasons: {} } }))
 
+const PROPS = await import('./props.js')
 const {
   projectVolume, projectAnytimeTouchdowns, touchdownShare, sampleWeight, touchdownRate,
   ROLE_PRIORS, VOLUME_PRIORS, PLAYER_PRIOR_K, PRIOR_SEASON_K, VOLUME_SHRINKAGE_K, TD_SHRINKAGE_K, ENVIRONMENT_DAMPING
-} = await import('./props.js')
+} = PROPS
 
 const recYards = { key: 'receivingYards', label: 'Receiving yards', stat: 'receivingYards', positions: ['WR'] }
 const rushYards = { key: 'rushingYards', label: 'Rushing yards', stat: 'rushingYards', positions: ['RB'] }
@@ -113,5 +114,51 @@ describe('anytime touchdowns — per-game rates, each from the player\'s own sam
   it('still uses a flat share when the depth chart is unknown', () => {
     const players = [{ name: 'Unranked', team: 'AAA', role: 'WR', flatShare: 0.05, tds: 4, stats: { games: 4 } }]
     expect(projectAnytimeTouchdowns(players, ctx)[0].share).toBe(0.05)
+  })
+})
+
+describe('projectInterceptions', () => {
+  const { projectInterceptions: pi, LEAGUE_INT_RATE: LG, INT_SHRINKAGE_ATTEMPTS: K } = PROPS
+  const qb = (stats, over = {}) => ({ role: 'QB', stats: { games: 8, passingAttempts: 280, passingInterceptions: 6, ...stats }, ...over })
+
+  it('blends his own rate with the league average at the documented weight', () => {
+    const p = pi(qb())
+    const rate = (6 + K * LG) / (280 + K)
+    const attempts = (8 * 35 + VOLUME_SHRINKAGE_K * VOLUME_PRIORS.QB.passingAttempts) / (8 + VOLUME_SHRINKAGE_K)
+    expect(p.expected).toBeCloseTo(attempts * rate, 2)
+    expect(p.prob).toBeCloseTo(1 - Math.exp(-p.expected), 2)
+  })
+
+  it('reports his real rate as-is, never shrunk', () => {
+    const p = pi(qb())
+    expect(p.rate).toBeCloseTo(6 / 280, 6)
+    expect(p.interceptions).toBe(6)
+    expect(p.attempts).toBe(280)
+  })
+
+  it('keeps even an extreme rate close to league average — the measured rate barely carries over', () => {
+    const careful = pi(qb({ passingInterceptions: 0 }))
+    const reckless = pi(qb({ passingInterceptions: 16 }))
+    expect(careful.prob).toBeGreaterThan(0.38)
+    expect(reckless.prob).toBeLessThan(0.66)
+    expect(reckless.prob).toBeGreaterThan(careful.prob)
+  })
+
+  it('moves with how often he throws', () => {
+    const light = pi(qb({ passingAttempts: 200, passingInterceptions: 4 }))
+    const heavy = pi(qb({ passingAttempts: 360, passingInterceptions: 8 }))
+    expect(heavy.expected).toBeGreaterThan(light.expected)
+  })
+
+  it('flags a line built on last season', () => {
+    expect(pi(qb({}, { statsPriorSeason: true })).priorSeason).toBe(true)
+    expect(pi(qb()).priorSeason).toBe(false)
+  })
+
+  it('returns null without real passing data rather than inventing a rate', () => {
+    expect(pi({ role: 'QB', stats: null })).toBeNull()
+    expect(pi(qb({ passingAttempts: 0 }))).toBeNull()
+    expect(pi(qb({ games: 0 }))).toBeNull()
+    expect(pi(qb({ passingInterceptions: undefined }))).toBeNull()
   })
 })

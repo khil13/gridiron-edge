@@ -22,13 +22,14 @@
  */
 
 import {
-  projectVolume, VOLUME_MARKETS, projectAnytimeTouchdowns, normaliseField, expectedTouchdowns, teamGameData
+  projectVolume, VOLUME_MARKETS, projectAnytimeTouchdowns, normaliseField, expectedTouchdowns, teamGameData,
+  projectInterceptions
 } from './props.js'
 import { quantileFor } from './distributions.js'
 import { isMainPlayer } from './card.js'
 import { boardMarketsFor, isBoardWorthy } from './playerBoard.js'
 
-const STATS = ['passingYards', 'passingAttempts', 'passingTouchdowns', 'rushingYards', 'rushingAttempts', 'receivingYards', 'receptions', 'targets']
+const STATS = ['passingYards', 'passingAttempts', 'passingTouchdowns', 'passingInterceptions', 'rushingYards', 'rushingAttempts', 'receivingYards', 'receptions', 'targets']
 
 /** Season-to-date totals in the shape the bundled snapshot uses. */
 export function totalsOf(rows) {
@@ -148,14 +149,29 @@ function summariseBuckets(buckets) {
  * and the touchdown chances.
  *
  * @param {Array} cases  buildGradingCases() output
- * @returns {{ playerWeeks, markets, touchdowns, touchdownsAll }}
+ * @returns {{ playerWeeks, markets, interceptions, touchdowns, touchdownsAll }}
  */
 export function gradeProps(cases) {
   const markets = {}
   let playerWeeks = 0
+  const ints = { n: 0, absError: 0, brier: 0, buckets: newBuckets() }
 
   for (const c of cases) {
     if (!isMainPlayer(c.role)) continue
+    if (c.role === 'QB') {
+      const p = projectInterceptions(c)
+      if (p) {
+        const thrown = c.actual.passingInterceptions ?? 0
+        ints.n++
+        ints.absError += Math.abs(p.expected - thrown)
+        const y = thrown > 0 ? 1 : 0
+        ints.brier += (p.prob - y) ** 2
+        const b = ints.buckets[Math.min(9, Math.floor(p.prob * 10))]
+        b.n++
+        b.predicted += p.prob
+        b.hit += y
+      }
+    }
     let counted = false
     for (const key of boardMarketsFor(c.role)) {
       const market = VOLUME_MARKETS.find((m) => m.key === key)
@@ -234,6 +250,10 @@ export function gradeProps(cases) {
       range: { below: round(m.below / m.n, 3), inside: round(m.inside / m.n, 3), above: round(m.above / m.n, 3) },
       calibration: summariseBuckets(m.buckets)
     }])),
+    // The starting quarterback's chance of throwing at least one interception.
+    interceptions: ints.n
+      ? { n: ints.n, mae: round(ints.absError / ints.n, 2), brier: round(ints.brier / ints.n, 4), calibration: summariseBuckets(ints.buckets) }
+      : null,
     touchdowns: tdReport(td),
     touchdownsAll: tdReport(tdAll)
   }

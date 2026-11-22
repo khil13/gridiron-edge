@@ -605,6 +605,11 @@ export default function CardView({ data }) {
               &quot;Last yr&quot; marks a line built on last season&apos;s numbers because the
               player has none yet this season.
               {!propState.anyRealStats && propState.statsNote && <> {propState.statsNote}</>}
+              {' '}<strong>Throws an INT</strong> is the starting quarterback&apos;s chance of at least
+              one interception, next to his real rate this season. Expect every starter to sit near
+              a coin flip: a quarterback&apos;s interception rate barely carries from one season to
+              the next (correlation near zero over the last two years), so the chance leans heavily
+              on the league average of 2.2% of throws and mostly reflects how often he throws.
               {' '}A player listed Questionable or Doubtful is projected as if he plays; one ruled
               Out is left off. Second and third options are on each game&apos;s Props tab.
             </p>
@@ -798,6 +803,14 @@ function TrackRecord({ record }) {
                 <td className="num">{m.calibration.gap == null ? '—' : pts(m.calibration.gap)}</td>
               </tr>
             ))}
+            {record.interceptions && (
+              <tr>
+                <td>QB throws an INT</td>
+                <td className="num">{record.interceptions.mae}</td>
+                <td className="num dim">—</td>
+                <td className="num">{record.interceptions.calibration.gap == null ? '—' : pts(record.interceptions.calibration.gap)}</td>
+              </tr>
+            )}
             {record.touchdowns && (
               <tr>
                 <td>Scores a TD</td>
@@ -1159,6 +1172,26 @@ function BoardLine({ line, who, value, onChange }) {
   )
 }
 
+/**
+ * A starting quarterback's chance to throw an interception, with his real
+ * rate beside it. Empty for everyone else — and an empty cell is dropped
+ * entirely in the phone layout rather than shown as a dash.
+ */
+function InterceptionCell({ ints }) {
+  if (!ints) return <td className="num" data-label="Throws an INT" />
+  const sample = `${ints.interceptions} in ${ints.attempts} throws${ints.priorSeason ? ' last season' : ''}`
+  return (
+    <td className="num" data-label="Throws an INT">
+      <span
+        title={`${sample} (${fmtPct(ints.rate, 1)}). Projected ${ints.expected} interceptions. A quarterback's own rate barely predicts his next game, so this leans heavily on the league average of 2.2%.`}
+      >
+        {fmtPct(ints.prob, 0)}{' '}
+        <span className="dim">· {fmtPct(ints.rate, 1)} of throws</span>
+      </span>
+    </td>
+  )
+}
+
 /** One game's main players: projected stat lines with their likely range, and touchdown chance. */
 function PlayerBoard({ entry, lines, onLine }) {
   const { game, board } = entry
@@ -1191,6 +1224,7 @@ function PlayerBoard({ entry, lines, onLine }) {
               <th>Projection · likely range</th>
               <th>Also · likely range</th>
               <th>Scores a TD</th>
+              <th>Throws an INT</th>
             </tr>
           </thead>
           <tbody>
@@ -1220,6 +1254,7 @@ function PlayerBoard({ entry, lines, onLine }) {
                   <td className="num" data-label="Scores a TD">
                     {p.tdProb == null ? '—' : fmtPct(p.tdProb)}
                   </td>
+                  <InterceptionCell ints={p.ints} />
                 </tr>
               )
             })}
