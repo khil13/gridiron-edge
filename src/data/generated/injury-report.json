@@ -1,9 +1,173 @@
 {
-  "generatedAt": "2026-11-25T22:38:57.828Z",
+  "generatedAt": "2026-11-26T22:29:23.132Z",
   "source": "https://github.com/nflverse/nflverse-data (injuries release)",
   "season": 2026,
   "week": 12,
   "teams": {
+    "BUF": [
+      {
+        "name": "Christian Benford",
+        "position": "CB",
+        "status": "Questionable",
+        "injury": "Groin",
+        "practiceStatus": "Limited Participation in Practice"
+      },
+      {
+        "name": "O'Cyrus Torrence",
+        "position": "G",
+        "status": "Questionable",
+        "injury": "Ankle",
+        "practiceStatus": "Limited Participation in Practice"
+      },
+      {
+        "name": "Dorian Williams",
+        "position": "LB",
+        "status": "Questionable",
+        "injury": "Calf",
+        "practiceStatus": "Limited Participation in Practice"
+      },
+      {
+        "name": "Dalton Kincaid",
+        "position": "TE",
+        "status": "Questionable",
+        "injury": "Thumb",
+        "practiceStatus": "Limited Participation in Practice"
+      },
+      {
+        "name": "T.J. Sanders",
+        "position": "DE",
+        "status": "Questionable",
+        "injury": "Shoulder",
+        "practiceStatus": "Limited Participation in Practice"
+      }
+    ],
+    "CHI": [
+      {
+        "name": "Elijah Hicks",
+        "position": "S",
+        "status": "Out",
+        "injury": "Concussion",
+        "practiceStatus": "Did Not Participate In Practice"
+      },
+      {
+        "name": "D'Marco Jackson",
+        "position": "LB",
+        "status": "Questionable",
+        "injury": "Elbow",
+        "practiceStatus": "Full Participation in Practice"
+      },
+      {
+        "name": "Kyler Gordon",
+        "position": "CB",
+        "status": "Out",
+        "injury": "Shoulder",
+        "practiceStatus": "Did Not Participate In Practice"
+      },
+      {
+        "name": "Roschon Johnson",
+        "position": "RB",
+        "status": "Out",
+        "injury": "Ankle",
+        "practiceStatus": "Did Not Participate In Practice"
+      },
+      {
+        "name": "Tyrique Stevenson",
+        "position": "CB",
+        "status": "Questionable",
+        "injury": "Groin",
+        "practiceStatus": "Limited Participation in Practice"
+      }
+    ],
+    "DAL": [
+      {
+        "name": "P.J. Locke",
+        "position": "S",
+        "status": "Out",
+        "injury": "Concussion",
+        "practiceStatus": "Limited Participation in Practice"
+      },
+      {
+        "name": "Jalen Thompson",
+        "position": "S",
+        "status": "Questionable",
+        "injury": "Hamstring",
+        "practiceStatus": "Full Participation in Practice"
+      },
+      {
+        "name": "Jake Ferguson",
+        "position": "TE",
+        "status": "Out",
+        "injury": "Knee",
+        "practiceStatus": "Did Not Participate In Practice"
+      },
+      {
+        "name": "Jonathan Mingo",
+        "position": "WR",
+        "status": "Out",
+        "injury": "Ankle",
+        "practiceStatus": "Did Not Participate In Practice"
+      },
+      {
+        "name": "Tyler Booker",
+        "position": "G",
+        "status": "Out",
+        "injury": "Ankle",
+        "practiceStatus": "Did Not Participate In Practice"
+      },
+      {
+        "name": "Devin Moore",
+        "position": "CB",
+        "status": "Questionable",
+        "injury": "Hip",
+        "practiceStatus": "Full Participation in Practice"
+      }
+    ],
+    "DEN": [
+      {
+        "name": "Taylor Rapp",
+        "position": "S",
+        "status": "Out",
+        "injury": "Quadricep",
+        "practiceStatus": "Limited Participation in Practice"
+      },
+      {
+        "name": "Sai'vion Jones",
+        "position": "DE",
+        "status": "Out",
+        "injury": "Hamstring",
+        "practiceStatus": "Did Not Participate In Practice"
+      }
+    ],
+    "DET": [
+      {
+        "name": "Chuck Clark",
+        "position": "S",
+        "status": "Questionable",
+        "injury": "Hamstring",
+        "practiceStatus": "Limited Participation in Practice"
+      },
+      {
+        "name": "DJ Wonnum",
+        "position": "DE",
+        "status": "Questionable",
+        "injury": "Back",
+        "practiceStatus": "Limited Participation in Practice"
+      },
+      {
+        "name": "Ennis Rakestraw Jr.",
+        "position": "CB",
+        "status": "Out",
+        "injury": "Shoulder",
+        "practiceStatus": "Did Not Participate In Practice"
+      },
+      {
+        "name": "Skyler Gill-Howard",
+        "position": "DT",
+        "status": "Out",
+        "injury": "Knee",
+        "practiceStatus": "Did Not Participate In Practice"
+      }
+    ],
     "GB": [
       {
         "name": "Kevin Zeitler",
@@ -62,6 +226,43 @@
         "practiceStatus": "Limited Participation in Practice"
       }
     ],
+    "KC": [
+      {
+        "name": "Jaylon Moore",
+        "position": "T",
+        "status": "Out",
+        "injury": "Ankle",
+        "practiceStatus": "Did Not Participate In Practice"
+      },
+      {
+        "name": "Noah Gray",
+        "position": "TE",
+        "status": "Questionable",
+        "injury": "Rib",
+        "practiceStatus": "Full Participation in Practice"
+      },
+      {
+        "name": "Kenneth Walker III",
+        "position": "RB",
+        "status": "Out",
+        "injury": "Groin",
+        "practiceStatus": "Did Not Participate In Practice"
+      },
+      {
+        "name": "Omarr Norman-Lott",
+        "position": "DT",
+        "status": "Out",
+        "injury": "Knee",
+        "practiceStatus": "Limited Participation in Practice"
+      },
+      {
+        "name": "Peter Woods",
+        "position": "DT",
+        "status": "Questionable",
+        "injury": "Neck",
+        "practiceStatus": "Full Participation in Practice"
+      }
+    ],
     "LA": [
       {
         "name": "Coleman Shelton",
@@ -82,6 +283,22 @@
         "position": "TE",
         "status": "Out",
         "injury": "Ankle",
+        "practiceStatus": "Did Not Participate In Practice"
+      }
+    ],
+    "PHI": [
+      {
+        "name": "Jonathan Jones",
+        "position": "CB",
+        "status": "Out",
+        "injury": "Ankle",
+        "practiceStatus": "Did Not Participate In Practice"
+      },
+      {
+        "name": "Arnold Ebiketie",
+        "position": "LB",
+        "status": "Out",
+        "injury": "Oblique",
         "practiceStatus": "Did Not Participate In Practice"
       }
     ]
