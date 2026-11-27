@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-26T22:29:23.132Z",
+  "generatedAt": "2026-11-27T22:12:41.046Z",
   "source": "https://github.com/nflverse/nflverse-data (injuries release)",
   "season": 2026,
   "week": 12,
@@ -128,7 +128,14 @@
         "position": "S",
         "status": "Out",
         "injury": "Quadricep",
-        "practiceStatus": "Limited Participation in Practice"
+        "practiceStatus": "Did Not Participate In Practice"
+      },
+      {
+        "name": "Tyler Badie",
+        "position": "RB",
+        "status": "Questionable",
+        "injury": "Thumb",
+        "practiceStatus": "Full Participation in Practice"
       },
       {
         "name": "Sai'vion Jones",
@@ -136,6 +143,13 @@
         "status": "Out",
         "injury": "Hamstring",
         "practiceStatus": "Did Not Participate In Practice"
+      },
+      {
+        "name": "Caleb Lohner",
+        "position": "TE",
+        "status": "Out",
+        "injury": "Foot",
+        "practiceStatus": "Full Participation in Practice"
       }
     ],
     "DET": [
@@ -300,6 +314,36 @@
         "status": "Out",
         "injury": "Oblique",
         "practiceStatus": "Did Not Participate In Practice"
+      }
+    ],
+    "PIT": [
+      {
+        "name": "Cole Holcomb",
+        "position": "LB",
+        "status": "Questionable",
+        "injury": "Heel",
+        "practiceStatus": "Limited Participation in Practice"
+      },
+      {
+        "name": "Alex Highsmith",
+        "position": "LB",
+        "status": "Out",
+        "injury": "Ankle",
+        "practiceStatus": "Did Not Participate In Practice"
+      },
+      {
+        "name": "Ben Skowronek",
+        "position": "WR",
+        "status": "Out",
+        "injury": "Calf",
+        "practiceStatus": "Did Not Participate In Practice"
+      },
+      {
+        "name": "Gennings Dunker",
+        "position": "G",
+        "status": "Out",
+        "injury": "Knee",
+        "practiceStatus": "Full Participation in Practice"
       }
     ]
   },
