@@ -52,7 +52,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          FILES="src/data/generated/player-stats.json src/data/generated/player-stats-meta.json src/data/generated/team-defense.json src/data/generated/player-ngs.json src/data/generated/prop-accuracy.json"
+          FILES="src/data/generated/player-stats.json src/data/generated/player-stats-meta.json src/data/generated/team-defense.json src/data/generated/player-ngs.json src/data/generated/player-recent.json src/data/generated/prop-accuracy.json"
           if git diff --quiet -- $FILES; then
             echo "No change in player stats, team defense, NGS or the projection record this run."
             exit 0

@@ -1,9 +1,10 @@
 {
-  "generatedAt": "2026-11-27T21:18:47.387Z",
+  "generatedAt": "2026-11-27T23:56:28.602Z",
   "source": "https://github.com/nflverse/nflverse-data (pbp release, regular season)",
   "definitions": {
     "explosivePlayRateOff": "share of offensive plays gaining >=10 yards on a run or >=20 on a pass",
     "redZoneTdRateOff": "share of drives that reached inside the opponent 20 ending in a touchdown",
+    "redZoneTripsAllowedPerGame": "opponent drives per game with at least one snap inside this team's 20",
     "thirdDownRateOff": "share of 3rd-down plays converted to a first down or touchdown"
   },
   "latestSeason": 2026,
@@ -18,7 +19,8 @@
         "explosivePlayRateOff": 0.063,
         "thirdDownRateOff": 0.396,
         "thirdDownRateDef": 0.359,
-        "redZoneTdRateOff": 0.394,
+        "redZoneTdRateOff": 0.417,
+        "redZoneTripsAllowedPerGame": 3,
         "turnoverRate": 0.022,
         "playsPerGame": 62.6
       },
@@ -31,7 +33,8 @@
         "explosivePlayRateOff": 0.078,
         "thirdDownRateOff": 0.424,
         "thirdDownRateDef": 0.448,
-        "redZoneTdRateOff": 0.447,
+        "redZoneTdRateOff": 0.531,
+        "redZoneTripsAllowedPerGame": 4.1,
         "turnoverRate": 0.019,
         "playsPerGame": 63.2
       },
@@ -44,7 +47,8 @@
         "explosivePlayRateOff": 0.121,
         "thirdDownRateOff": 0.463,
         "thirdDownRateDef": 0.424,
-        "redZoneTdRateOff": 0.606,
+        "redZoneTdRateOff": 0.662,
+        "redZoneTripsAllowedPerGame": 2.8,
         "turnoverRate": 0.017,
         "playsPerGame": 62.6
       },
@@ -57,7 +61,8 @@
         "explosivePlayRateOff": 0.119,
         "thirdDownRateOff": 0.413,
         "thirdDownRateDef": 0.382,
-        "redZoneTdRateOff": 0.484,
+        "redZoneTdRateOff": 0.492,
+        "redZoneTripsAllowedPerGame": 3.9,
         "turnoverRate": 0.023,
         "playsPerGame": 56.2
       },
@@ -70,7 +75,8 @@
         "explosivePlayRateOff": 0.098,
         "thirdDownRateOff": 0.403,
         "thirdDownRateDef": 0.406,
-        "redZoneTdRateOff": 0.526,
+        "redZoneTdRateOff": 0.625,
+        "redZoneTripsAllowedPerGame": 2.8,
         "turnoverRate": 0.017,
         "playsPerGame": 63.2
       },
@@ -83,7 +89,8 @@
         "explosivePlayRateOff": 0.088,
         "thirdDownRateOff": 0.365,
         "thirdDownRateDef": 0.481,
-        "redZoneTdRateOff": 0.478,
+        "redZoneTdRateOff": 0.511,
+        "redZoneTripsAllowedPerGame": 3.5,
         "turnoverRate": 0.022,
         "playsPerGame": 58.6
       },
@@ -96,7 +103,8 @@
         "explosivePlayRateOff": 0.074,
         "thirdDownRateOff": 0.345,
         "thirdDownRateDef": 0.372,
-        "redZoneTdRateOff": 0.406,
+        "redZoneTdRateOff": 0.5,
+        "redZoneTripsAllowedPerGame": 3,
         "turnoverRate": 0.023,
         "playsPerGame": 60.5
       },
@@ -109,7 +117,8 @@
         "explosivePlayRateOff": 0.08,
         "thirdDownRateOff": 0.445,
         "thirdDownRateDef": 0.441,
-        "redZoneTdRateOff": 0.615,
+        "redZoneTdRateOff": 0.667,
+        "redZoneTripsAllowedPerGame": 3.7,
         "turnoverRate": 0.023,
         "playsPerGame": 61.7
       },
@@ -122,7 +131,8 @@
         "explosivePlayRateOff": 0.097,
         "thirdDownRateOff": 0.382,
         "thirdDownRateDef": 0.416,
-        "redZoneTdRateOff": 0.544,
+        "redZoneTdRateOff": 0.674,
+        "redZoneTripsAllowedPerGame": 2.9,
         "turnoverRate": 0.013,
         "playsPerGame": 58.5
       },
@@ -135,7 +145,8 @@
         "explosivePlayRateOff": 0.092,
         "thirdDownRateOff": 0.429,
         "thirdDownRateDef": 0.475,
-        "redZoneTdRateOff": 0.49,
+        "redZoneTdRateOff": 0.567,
+        "redZoneTripsAllowedPerGame": 4,
         "turnoverRate": 0.019,
         "playsPerGame": 64.9
       },
@@ -148,7 +159,8 @@
         "explosivePlayRateOff": 0.116,
         "thirdDownRateOff": 0.485,
         "thirdDownRateDef": 0.406,
-        "redZoneTdRateOff": 0.529,
+        "redZoneTdRateOff": 0.576,
+        "redZoneTripsAllowedPerGame": 3.2,
         "turnoverRate": 0.013,
         "playsPerGame": 58.4
       },
@@ -161,7 +173,8 @@
         "explosivePlayRateOff": 0.105,
         "thirdDownRateOff": 0.39,
         "thirdDownRateDef": 0.373,
-        "redZoneTdRateOff": 0.577,
+        "redZoneTdRateOff": 0.631,
+        "redZoneTripsAllowedPerGame": 3.2,
         "turnoverRate": 0.014,
         "playsPerGame": 61.8
       },
@@ -174,7 +187,8 @@
         "explosivePlayRateOff": 0.118,
         "thirdDownRateOff": 0.404,
         "thirdDownRateDef": 0.364,
-        "redZoneTdRateOff": 0.589,
+        "redZoneTdRateOff": 0.623,
+        "redZoneTripsAllowedPerGame": 3.1,
         "turnoverRate": 0.014,
         "playsPerGame": 62.2
       },
@@ -187,7 +201,8 @@
         "explosivePlayRateOff": 0.084,
         "thirdDownRateOff": 0.378,
         "thirdDownRateDef": 0.371,
-        "redZoneTdRateOff": 0.402,
+        "redZoneTdRateOff": 0.431,
+        "redZoneTripsAllowedPerGame": 2.8,
         "turnoverRate": 0.01,
         "playsPerGame": 63.4
       },
@@ -200,7 +215,8 @@
         "explosivePlayRateOff": 0.089,
         "thirdDownRateOff": 0.46,
         "thirdDownRateDef": 0.352,
-        "redZoneTdRateOff": 0.429,
+        "redZoneTdRateOff": 0.459,
+        "redZoneTripsAllowedPerGame": 3.1,
         "turnoverRate": 0.018,
         "playsPerGame": 63.5
       },
@@ -213,7 +229,8 @@
         "explosivePlayRateOff": 0.092,
         "thirdDownRateOff": 0.38,
         "thirdDownRateDef": 0.441,
-        "redZoneTdRateOff": 0.447,
+        "redZoneTdRateOff": 0.54,
+        "redZoneTripsAllowedPerGame": 3.1,
         "turnoverRate": 0.014,
         "playsPerGame": 61.6
       },
@@ -226,7 +243,8 @@
         "explosivePlayRateOff": 0.121,
         "thirdDownRateOff": 0.436,
         "thirdDownRateDef": 0.387,
-        "redZoneTdRateOff": 0.535,
+        "redZoneTdRateOff": 0.576,
+        "redZoneTripsAllowedPerGame": 2.6,
         "turnoverRate": 0.016,
         "playsPerGame": 59.8
       },
@@ -239,7 +257,8 @@
         "explosivePlayRateOff": 0.072,
         "thirdDownRateOff": 0.343,
         "thirdDownRateDef": 0.467,
-        "redZoneTdRateOff": 0.403,
+        "redZoneTdRateOff": 0.487,
+        "redZoneTripsAllowedPerGame": 3.9,
         "turnoverRate": 0.023,
         "playsPerGame": 55.4
       },
@@ -252,7 +271,8 @@
         "explosivePlayRateOff": 0.091,
         "thirdDownRateOff": 0.43,
         "thirdDownRateDef": 0.431,
-        "redZoneTdRateOff": 0.602,
+        "redZoneTdRateOff": 0.652,
+        "redZoneTripsAllowedPerGame": 4.1,
         "turnoverRate": 0.021,
         "playsPerGame": 59.5
       },
@@ -265,7 +285,8 @@
         "explosivePlayRateOff": 0.104,
         "thirdDownRateOff": 0.354,
         "thirdDownRateDef": 0.406,
-        "redZoneTdRateOff": 0.528,
+        "redZoneTdRateOff": 0.571,
+        "redZoneTripsAllowedPerGame": 3.8,
         "turnoverRate": 0.024,
         "playsPerGame": 55.4
       },
@@ -278,7 +299,8 @@
         "explosivePlayRateOff": 0.116,
         "thirdDownRateOff": 0.425,
         "thirdDownRateDef": 0.408,
-        "redZoneTdRateOff": 0.527,
+        "redZoneTdRateOff": 0.571,
+        "redZoneTripsAllowedPerGame": 3.4,
         "turnoverRate": 0.01,
         "playsPerGame": 64.5
       },
@@ -291,7 +313,8 @@
         "explosivePlayRateOff": 0.098,
         "thirdDownRateOff": 0.323,
         "thirdDownRateDef": 0.345,
-        "redZoneTdRateOff": 0.466,
+        "redZoneTdRateOff": 0.566,
+        "redZoneTripsAllowedPerGame": 2.9,
         "turnoverRate": 0.03,
         "playsPerGame": 55.5
       },
@@ -304,7 +327,8 @@
         "explosivePlayRateOff": 0.102,
         "thirdDownRateOff": 0.38,
         "thirdDownRateDef": 0.422,
-        "redZoneTdRateOff": 0.571,
+        "redZoneTdRateOff": 0.653,
+        "redZoneTripsAllowedPerGame": 3.8,
         "turnoverRate": 0.021,
         "playsPerGame": 57.6
       },
@@ -317,7 +341,8 @@
         "explosivePlayRateOff": 0.103,
         "thirdDownRateOff": 0.404,
         "thirdDownRateDef": 0.4,
-        "redZoneTdRateOff": 0.543,
+        "redZoneTdRateOff": 0.483,
+        "redZoneTripsAllowedPerGame": 3.4,
         "turnoverRate": 0.015,
         "playsPerGame": 63.5
       },
@@ -330,7 +355,8 @@
         "explosivePlayRateOff": 0.078,
         "thirdDownRateOff": 0.349,
         "thirdDownRateDef": 0.389,
-        "redZoneTdRateOff": 0.433,
+        "redZoneTdRateOff": 0.415,
+        "redZoneTripsAllowedPerGame": 4.2,
         "turnoverRate": 0.021,
         "playsPerGame": 59.4
       },
@@ -343,7 +369,8 @@
         "explosivePlayRateOff": 0.087,
         "thirdDownRateOff": 0.413,
         "thirdDownRateDef": 0.426,
-        "redZoneTdRateOff": 0.5,
+        "redZoneTdRateOff": 0.585,
+        "redZoneTripsAllowedPerGame": 3.4,
         "turnoverRate": 0.014,
         "playsPerGame": 57.4
       },
@@ -356,7 +383,8 @@
         "explosivePlayRateOff": 0.112,
         "thirdDownRateOff": 0.426,
         "thirdDownRateDef": 0.33,
-        "redZoneTdRateOff": 0.489,
+        "redZoneTdRateOff": 0.542,
+        "redZoneTripsAllowedPerGame": 3.2,
         "turnoverRate": 0.026,
         "playsPerGame": 58.6
       },
@@ -369,7 +397,8 @@
         "explosivePlayRateOff": 0.091,
         "thirdDownRateOff": 0.507,
         "thirdDownRateDef": 0.413,
-        "redZoneTdRateOff": 0.533,
+        "redZoneTdRateOff": 0.652,
+        "redZoneTripsAllowedPerGame": 3.3,
         "turnoverRate": 0.021,
         "playsPerGame": 62.6
       },
@@ -382,7 +411,8 @@
         "explosivePlayRateOff": 0.097,
         "thirdDownRateOff": 0.341,
         "thirdDownRateDef": 0.401,
-        "redZoneTdRateOff": 0.48,
+        "redZoneTdRateOff": 0.596,
+        "redZoneTripsAllowedPerGame": 3.1,
         "turnoverRate": 0.015,
         "playsPerGame": 60.9
       },
@@ -395,7 +425,8 @@
         "explosivePlayRateOff": 0.097,
         "thirdDownRateOff": 0.419,
         "thirdDownRateDef": 0.395,
-        "redZoneTdRateOff": 0.443,
+        "redZoneTdRateOff": 0.519,
+        "redZoneTripsAllowedPerGame": 2.7,
         "turnoverRate": 0.015,
         "playsPerGame": 62.6
       },
@@ -408,7 +439,8 @@
         "explosivePlayRateOff": 0.091,
         "thirdDownRateOff": 0.427,
         "thirdDownRateDef": 0.338,
-        "redZoneTdRateOff": 0.489,
+        "redZoneTdRateOff": 0.583,
+        "redZoneTripsAllowedPerGame": 3.1,
         "turnoverRate": 0.014,
         "playsPerGame": 63.5
       },
@@ -421,7 +453,8 @@
         "explosivePlayRateOff": 0.081,
         "thirdDownRateOff": 0.319,
         "thirdDownRateDef": 0.415,
-        "redZoneTdRateOff": 0.433,
+        "redZoneTdRateOff": 0.556,
+        "redZoneTripsAllowedPerGame": 3.6,
         "turnoverRate": 0.019,
         "playsPerGame": 58.5
       }
@@ -436,7 +469,8 @@
         "explosivePlayRateOff": 0.086,
         "thirdDownRateOff": 0.367,
         "thirdDownRateDef": 0.4,
-        "redZoneTdRateOff": 0.471,
+        "redZoneTdRateOff": 0.5,
+        "redZoneTripsAllowedPerGame": 4.3,
         "turnoverRate": 0.03,
         "playsPerGame": 60.8
       },
@@ -449,7 +483,8 @@
         "explosivePlayRateOff": 0.057,
         "thirdDownRateOff": 0.374,
         "thirdDownRateDef": 0.455,
-        "redZoneTdRateOff": 0.383,
+        "redZoneTdRateOff": 0.444,
+        "redZoneTripsAllowedPerGame": 3.9,
         "turnoverRate": 0.015,
         "playsPerGame": 62.6
       },
@@ -462,7 +497,8 @@
         "explosivePlayRateOff": 0.093,
         "thirdDownRateOff": 0.379,
         "thirdDownRateDef": 0.344,
-        "redZoneTdRateOff": 0.444,
+        "redZoneTdRateOff": 0.448,
+        "redZoneTripsAllowedPerGame": 2.4,
         "turnoverRate": 0.013,
         "playsPerGame": 62.1
       },
@@ -475,7 +511,8 @@
         "explosivePlayRateOff": 0.102,
         "thirdDownRateOff": 0.347,
         "thirdDownRateDef": 0.421,
-        "redZoneTdRateOff": 0.457,
+        "redZoneTdRateOff": 0.548,
+        "redZoneTripsAllowedPerGame": 3.7,
         "turnoverRate": 0.029,
         "playsPerGame": 59.1
       },
@@ -488,7 +525,8 @@
         "explosivePlayRateOff": 0.086,
         "thirdDownRateOff": 0.35,
         "thirdDownRateDef": 0.348,
-        "redZoneTdRateOff": 0.463,
+        "redZoneTdRateOff": 0.593,
+        "redZoneTripsAllowedPerGame": 2.5,
         "turnoverRate": 0.03,
         "playsPerGame": 61.5
       },
@@ -501,7 +539,8 @@
         "explosivePlayRateOff": 0.101,
         "thirdDownRateOff": 0.389,
         "thirdDownRateDef": 0.368,
-        "redZoneTdRateOff": 0.538,
+        "redZoneTdRateOff": 0.6,
+        "redZoneTripsAllowedPerGame": 4.1,
         "turnoverRate": 0.023,
         "playsPerGame": 59.5
       },
@@ -514,7 +553,8 @@
         "explosivePlayRateOff": 0.104,
         "thirdDownRateOff": 0.406,
         "thirdDownRateDef": 0.382,
-        "redZoneTdRateOff": 0.549,
+        "redZoneTdRateOff": 0.611,
+        "redZoneTripsAllowedPerGame": 2.8,
         "turnoverRate": 0.01,
         "playsPerGame": 61.6
       },
@@ -527,7 +567,8 @@
         "explosivePlayRateOff": 0.126,
         "thirdDownRateOff": 0.463,
         "thirdDownRateDef": 0.333,
-        "redZoneTdRateOff": 0.529,
+        "redZoneTdRateOff": 0.596,
+        "redZoneTripsAllowedPerGame": 3.3,
         "turnoverRate": 0.024,
         "playsPerGame": 63.3
       },
@@ -540,7 +581,8 @@
         "explosivePlayRateOff": 0.098,
         "thirdDownRateOff": 0.368,
         "thirdDownRateDef": 0.462,
-        "redZoneTdRateOff": 0.547,
+        "redZoneTdRateOff": 0.632,
+        "redZoneTripsAllowedPerGame": 3,
         "turnoverRate": 0.017,
         "playsPerGame": 65.6
       },
@@ -553,7 +595,8 @@
         "explosivePlayRateOff": 0.093,
         "thirdDownRateOff": 0.455,
         "thirdDownRateDef": 0.275,
-        "redZoneTdRateOff": 0.531,
+        "redZoneTdRateOff": 0.542,
+        "redZoneTripsAllowedPerGame": 3,
         "turnoverRate": 0.027,
         "playsPerGame": 68.5
       },
@@ -566,7 +609,8 @@
         "explosivePlayRateOff": 0.103,
         "thirdDownRateOff": 0.456,
         "thirdDownRateDef": 0.331,
-        "redZoneTdRateOff": 0.574,
+        "redZoneTdRateOff": 0.559,
+        "redZoneTripsAllowedPerGame": 2.7,
         "turnoverRate": 0.015,
         "playsPerGame": 60.2
       },
@@ -579,7 +623,8 @@
         "explosivePlayRateOff": 0.082,
         "thirdDownRateOff": 0.358,
         "thirdDownRateDef": 0.391,
-        "redZoneTdRateOff": 0.419,
+        "redZoneTdRateOff": 0.414,
+        "redZoneTripsAllowedPerGame": 3.3,
         "turnoverRate": 0.018,
         "playsPerGame": 61.3
       },
@@ -592,7 +637,8 @@
         "explosivePlayRateOff": 0.09,
         "thirdDownRateOff": 0.397,
         "thirdDownRateDef": 0.388,
-        "redZoneTdRateOff": 0.533,
+        "redZoneTdRateOff": 0.613,
+        "redZoneTripsAllowedPerGame": 2.7,
         "turnoverRate": 0.02,
         "playsPerGame": 64.4
       },
@@ -605,7 +651,8 @@
         "explosivePlayRateOff": 0.09,
         "thirdDownRateOff": 0.477,
         "thirdDownRateDef": 0.479,
-        "redZoneTdRateOff": 0.643,
+        "redZoneTdRateOff": 0.76,
+        "redZoneTripsAllowedPerGame": 3.9,
         "turnoverRate": 0.014,
         "playsPerGame": 66.1
       },
@@ -618,7 +665,8 @@
         "explosivePlayRateOff": 0.111,
         "thirdDownRateOff": 0.402,
         "thirdDownRateDef": 0.39,
-        "redZoneTdRateOff": 0.596,
+        "redZoneTdRateOff": 0.634,
+        "redZoneTripsAllowedPerGame": 2.7,
         "turnoverRate": 0.009,
         "playsPerGame": 60.6
       },
@@ -631,7 +679,8 @@
         "explosivePlayRateOff": 0.072,
         "thirdDownRateOff": 0.35,
         "thirdDownRateDef": 0.419,
-        "redZoneTdRateOff": 0.48,
+        "redZoneTdRateOff": 0.636,
+        "redZoneTripsAllowedPerGame": 3.3,
         "turnoverRate": 0.012,
         "playsPerGame": 58.5
       },
@@ -644,7 +693,8 @@
         "explosivePlayRateOff": 0.087,
         "thirdDownRateOff": 0.385,
         "thirdDownRateDef": 0.333,
-        "redZoneTdRateOff": 0.395,
+        "redZoneTdRateOff": 0.462,
+        "redZoneTripsAllowedPerGame": 2.5,
         "turnoverRate": 0.019,
         "playsPerGame": 57.6
       },
@@ -657,7 +707,8 @@
         "explosivePlayRateOff": 0.098,
         "thirdDownRateOff": 0.368,
         "thirdDownRateDef": 0.453,
-        "redZoneTdRateOff": 0.509,
+        "redZoneTdRateOff": 0.526,
+        "redZoneTripsAllowedPerGame": 3.7,
         "turnoverRate": 0.025,
         "playsPerGame": 59.4
       },
@@ -670,7 +721,8 @@
         "explosivePlayRateOff": 0.074,
         "thirdDownRateOff": 0.448,
         "thirdDownRateDef": 0.481,
-        "redZoneTdRateOff": 0.552,
+        "redZoneTdRateOff": 0.524,
+        "redZoneTripsAllowedPerGame": 4.3,
         "turnoverRate": 0.018,
         "playsPerGame": 61.3
       },
@@ -683,7 +735,8 @@
         "explosivePlayRateOff": 0.099,
         "thirdDownRateOff": 0.381,
         "thirdDownRateDef": 0.484,
-        "redZoneTdRateOff": 0.441,
+        "redZoneTdRateOff": 0.458,
+        "redZoneTripsAllowedPerGame": 3.9,
         "turnoverRate": 0.021,
         "playsPerGame": 56.4
       },
@@ -697,6 +750,7 @@
         "thirdDownRateOff": 0.408,
         "thirdDownRateDef": 0.348,
         "redZoneTdRateOff": 0.5,
+        "redZoneTripsAllowedPerGame": 2.4,
         "turnoverRate": 0.026,
         "playsPerGame": 61.1
       },
@@ -709,7 +763,8 @@
         "explosivePlayRateOff": 0.111,
         "thirdDownRateOff": 0.42,
         "thirdDownRateDef": 0.398,
-        "redZoneTdRateOff": 0.542,
+        "redZoneTdRateOff": 0.556,
+        "redZoneTripsAllowedPerGame": 3.3,
         "turnoverRate": 0.033,
         "playsPerGame": 60.1
       },
@@ -722,7 +777,8 @@
         "explosivePlayRateOff": 0.115,
         "thirdDownRateOff": 0.412,
         "thirdDownRateDef": 0.453,
-        "redZoneTdRateOff": 0.576,
+        "redZoneTdRateOff": 0.644,
+        "redZoneTripsAllowedPerGame": 3.6,
         "turnoverRate": 0.011,
         "playsPerGame": 64.2
       },
@@ -735,7 +791,8 @@
         "explosivePlayRateOff": 0.065,
         "thirdDownRateOff": 0.438,
         "thirdDownRateDef": 0.465,
-        "redZoneTdRateOff": 0.556,
+        "redZoneTdRateOff": 0.697,
+        "redZoneTripsAllowedPerGame": 3.9,
         "turnoverRate": 0.026,
         "playsPerGame": 66
       },
@@ -748,7 +805,8 @@
         "explosivePlayRateOff": 0.077,
         "thirdDownRateOff": 0.342,
         "thirdDownRateDef": 0.458,
-        "redZoneTdRateOff": 0.475,
+        "redZoneTdRateOff": 0.517,
+        "redZoneTripsAllowedPerGame": 4.3,
         "turnoverRate": 0.021,
         "playsPerGame": 57.1
       },
@@ -761,7 +819,8 @@
         "explosivePlayRateOff": 0.094,
         "thirdDownRateOff": 0.39,
         "thirdDownRateDef": 0.435,
-        "redZoneTdRateOff": 0.385,
+        "redZoneTdRateOff": 0.4,
+        "redZoneTripsAllowedPerGame": 3.5,
         "turnoverRate": 0.015,
         "playsPerGame": 59.3
       },
@@ -774,7 +833,8 @@
         "explosivePlayRateOff": 0.088,
         "thirdDownRateOff": 0.452,
         "thirdDownRateDef": 0.305,
-        "redZoneTdRateOff": 0.532,
+        "redZoneTdRateOff": 0.617,
+        "redZoneTripsAllowedPerGame": 2.8,
         "turnoverRate": 0.022,
         "playsPerGame": 67
       },
@@ -787,7 +847,8 @@
         "explosivePlayRateOff": 0.128,
         "thirdDownRateOff": 0.523,
         "thirdDownRateDef": 0.421,
-        "redZoneTdRateOff": 0.696,
+        "redZoneTdRateOff": 0.853,
+        "redZoneTripsAllowedPerGame": 3.1,
         "turnoverRate": 0.016,
         "playsPerGame": 58
       },
@@ -800,7 +861,8 @@
         "explosivePlayRateOff": 0.091,
         "thirdDownRateOff": 0.509,
         "thirdDownRateDef": 0.444,
-        "redZoneTdRateOff": 0.636,
+        "redZoneTdRateOff": 0.667,
+        "redZoneTripsAllowedPerGame": 3.4,
         "turnoverRate": 0.015,
         "playsPerGame": 60.3
       },
@@ -813,7 +875,8 @@
         "explosivePlayRateOff": 0.094,
         "thirdDownRateOff": 0.391,
         "thirdDownRateDef": 0.371,
-        "redZoneTdRateOff": 0.426,
+        "redZoneTdRateOff": 0.5,
+        "redZoneTripsAllowedPerGame": 2.7,
         "turnoverRate": 0.023,
         "playsPerGame": 62
       },
@@ -826,7 +889,8 @@
         "explosivePlayRateOff": 0.066,
         "thirdDownRateOff": 0.353,
         "thirdDownRateDef": 0.409,
-        "redZoneTdRateOff": 0.535,
+        "redZoneTdRateOff": 0.692,
+        "redZoneTripsAllowedPerGame": 3.7,
         "turnoverRate": 0.015,
         "playsPerGame": 58.8
       },
@@ -839,7 +903,8 @@
         "explosivePlayRateOff": 0.095,
         "thirdDownRateOff": 0.323,
         "thirdDownRateDef": 0.398,
-        "redZoneTdRateOff": 0.488,
+        "redZoneTdRateOff": 0.519,
+        "redZoneTripsAllowedPerGame": 3.4,
         "turnoverRate": 0.011,
         "playsPerGame": 61.8
       }
