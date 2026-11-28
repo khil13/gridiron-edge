@@ -18,12 +18,14 @@ import { combineProjections } from './modelAgreement.js'
 import { simulateGame } from './simulation.js'
 import { confidenceFor } from './confidence.js'
 import { applyInjuryAdjustment } from './injuries.js'
+import { applyDivisionalAdjustment } from './divisional.js'
 import { recordSnapshot, getHistory } from './priceHistory.js'
 import { computeEdges, consensusPlays } from './edges.js'
 import { useStore } from './store.jsx'
 import ratingsFile from '../data/generated/ratings.json'
 import teamEfficiencyFile from '../data/generated/team-efficiency.json'
 import injuryReportFile from '../data/generated/injury-report.json'
+import divisionModelFile from '../data/generated/division-model.json'
 
 export function useSlate(oddsKey) {
   const [state, setState] = useState({ loading: true, games: [], warnings: [], source: 'bundled', label: '' })
@@ -167,7 +169,17 @@ export function useDataset() {
       // simulation, confidence) reads the margin, so a QB-out game is
       // priced and simulated against the adjusted number, not the one
       // that ignores it.
-      const projection = applyInjuryAdjustment(game, project(game), injuryReportFile, settings)
+      //
+      // Division games then take the small, measured shift divisional
+      // history earns (divisional.js): fitted walk-forward against closing
+      // lines, shrunk for uncertainty and capped at 1.5 points, so it can
+      // never outweigh this season's ratings, injuries or a QB change.
+      const projection = applyDivisionalAdjustment(
+        game,
+        applyInjuryAdjustment(game, project(game), injuryReportFile, settings),
+        divisionModelFile,
+        settings
+      )
       const epaProjection = projectEpa(game)
       const modelAgreement = combineProjections(projection, epaProjection, settings)
       // Real Monte Carlo (see simulation.js) from the same team totals the

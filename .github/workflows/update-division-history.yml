@@ -1,0 +1,47 @@
+name: Update divisional history
+
+# Keeps src/data/generated/division-history.json and division-model.json
+# current with nflverse's schedule file (nflverse/nfldata games.csv):
+# finished division games, the walk-forward fit that decides how much that
+# history moves a projection, and the lines nflverse posts for upcoming
+# games. Daily, because posted lines move during the week; a run where
+# nothing but the timestamp would change writes nothing and commits nothing.
+on:
+  schedule:
+    - cron: '40 13 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  actions: write # to start the Pages deploy after committing (see the commit step)
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run division-history
+
+      - name: Commit if the history changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          FILES="src/data/generated/division-history.json src/data/generated/division-model.json"
+          if git diff --quiet -- $FILES; then
+            echo "No change in divisional history this run."
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add $FILES
+          git commit -m 'Update divisional history'
+          git pull --rebase
+          git push
+          # A push made with the workflow's own token does not start other
+          # workflows, so start the Pages deploy explicitly.
+          gh workflow run deploy.yml --ref main

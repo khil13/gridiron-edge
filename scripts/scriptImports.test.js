@@ -32,4 +32,8 @@ describe('scripts/*.mjs run under plain node, not just Vite', () => {
   it('imports the grading graph scripts/grade-props.mjs depends on (propGrading -> playerBoard -> card)', () => {
     expect(importsCleanly('./src/lib/propGrading.js')).toBe('ok')
   })
+
+  it('imports the divisional-history graph scripts/fetch-division-history.mjs depends on (divisional -> teams, odds)', () => {
+    expect(importsCleanly('./src/lib/divisional.js')).toBe('ok')
+  })
 })
