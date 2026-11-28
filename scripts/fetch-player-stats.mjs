@@ -120,10 +120,14 @@ async function fetchSeason(season) {
     seasonType: need('season_type'),
     opponentTeam: need('opponent_team'),
     gameId: need('game_id'),
+    week: need('week'),
     attempts: need('attempts'),
     passingYards: need('passing_yards'),
     passingTds: need('passing_tds'),
     passingInterceptions: need('passing_interceptions'),
+    sacksSuffered: need('sacks_suffered'),
+    passing20: need('passing_20'), // completions of 20+ yards
+    rushing10: need('rushing_10'), // carries of 10+ yards
     carries: need('carries'),
     rushingYards: need('rushing_yards'),
     rushingTds: need('rushing_tds'),
@@ -136,6 +140,9 @@ async function fetchSeason(season) {
   const players = {}
   const defense = {}
   const gamesSeenByTeam = {}
+  // Each player's own game-by-game lines, for "last 5 games" on the
+  // Matchup tab (written to player-recent.json, latest season only).
+  const logs = {}
 
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i]
@@ -152,12 +159,26 @@ async function fetchSeason(season) {
     const defTeam = normTeam(r[idx.opponentTeam])
     if (defTeam) {
       const d = (defense[defTeam] ??= {
-        rushingYardsAllowed: 0, rushingTdsAllowed: 0, receivingYardsAllowed: 0, receivingTdsAllowed: 0
+        rushingYardsAllowed: 0, rushingTdsAllowed: 0, receivingYardsAllowed: 0, receivingTdsAllowed: 0,
+        sacks: 0, bigPassesAllowed: 0, bigRunsAllowed: 0,
+        byPosition: Object.fromEntries(Object.entries(POSITION_STATS).map(([pos, stats]) => [pos, Object.fromEntries(stats.map((st) => [st, 0]))]))
       })
       d.rushingYardsAllowed += rushingYards
       d.rushingTdsAllowed += rushingTds
       d.receivingYardsAllowed += receivingYards
       d.receivingTdsAllowed += receivingTds
+      // Sacks this defense made = sacks the opposing quarterback took.
+      d.sacks += num(r[idx.sacksSuffered])
+      d.bigPassesAllowed += num(r[idx.passing20])
+      d.bigRunsAllowed += num(r[idx.rushing10])
+      const pos = basePosition(r[idx.position])
+      const split = d.byPosition[pos]
+      if (split) {
+        const line = {
+          passingYards: num(r[idx.passingYards]), rushingYards, receivingYards, receptions: num(r[idx.receptions])
+        }
+        for (const st of POSITION_STATS[pos]) split[st] += line[st]
+      }
 
       const seen = (gamesSeenByTeam[defTeam] ??= new Set())
       const gameId = r[idx.gameId]
@@ -189,6 +210,17 @@ async function fetchSeason(season) {
     acc.passingAttempts += attempts
     acc.passingTouchdowns += num(r[idx.passingTds])
     acc.passingInterceptions += num(r[idx.passingInterceptions])
+
+    if (attempts > 0 || carries > 0 || targets > 0) {
+      ;(logs[key] ??= []).push({
+        week: num(r[idx.week]),
+        opp: defTeam,
+        passingYards: num(r[idx.passingYards]),
+        rushingYards,
+        receivingYards,
+        receptions: num(r[idx.receptions])
+      })
+    }
   }
 
   for (const [team, d] of Object.entries(defense)) {
@@ -197,7 +229,8 @@ async function fetchSeason(season) {
 
   return {
     players: Object.keys(players).length ? players : null,
-    defense: Object.keys(defense).length ? defense : null
+    defense: Object.keys(defense).length ? defense : null,
+    logs
   }
 }
 
@@ -295,13 +328,43 @@ async function fetchLatestNgs(fromSeason) {
 
 const round1 = (n) => Math.round(n * 10) / 10
 
-/** 1 = allows the most (worst defense) on that stat, matching "allowed the Nth-most X" phrasing. */
+/**
+ * The stats tracked against each defense by the position of the player who
+ * produced them — "receiving yards to running backs", "rush yards to
+ * quarterbacks" — for the Matchup tab's softest-spot ranking.
+ */
+const POSITION_STATS = {
+  QB: ['passingYards', 'rushingYards'],
+  RB: ['rushingYards', 'receivingYards', 'receptions'],
+  WR: ['receivingYards', 'receptions'],
+  TE: ['receivingYards', 'receptions']
+}
+
+/**
+ * League ranks for every defense, 1 = allows the most (worst defense),
+ * matching "allowed the Nth-most X" phrasing — except sacks, where 1 = made
+ * the most. Ranked per game played, not on season totals: with byes
+ * falling in different weeks, a total would rank a team with an extra game
+ * as "allowing more" for that reason alone.
+ */
 function rankDefense(defense) {
-  const stats = ['rushingYardsAllowed', 'rushingTdsAllowed', 'receivingYardsAllowed', 'receivingTdsAllowed']
-  const teams = Object.keys(defense)
+  const teams = Object.keys(defense).filter((t) => defense[t].games > 0)
+  const perGame = (team, value) => value / defense[team].games
+  const values = {
+    rushingYardsAllowed: (t) => defense[t].rushingYardsAllowed,
+    rushingTdsAllowed: (t) => defense[t].rushingTdsAllowed,
+    receivingYardsAllowed: (t) => defense[t].receivingYardsAllowed,
+    receivingTdsAllowed: (t) => defense[t].receivingTdsAllowed,
+    sacks: (t) => defense[t].sacks,
+    bigPassesAllowed: (t) => defense[t].bigPassesAllowed,
+    bigRunsAllowed: (t) => defense[t].bigRunsAllowed
+  }
+  for (const [pos, stats] of Object.entries(POSITION_STATS)) {
+    for (const st of stats) values[`${pos}.${st}`] = (t) => defense[t].byPosition?.[pos]?.[st] ?? 0
+  }
   const out = {}
-  for (const stat of stats) {
-    const ranked = [...teams].sort((a, b) => defense[b][stat] - defense[a][stat])
+  for (const [stat, get] of Object.entries(values)) {
+    const ranked = [...teams].sort((a, b) => perGame(b, get(b)) - perGame(a, get(a)))
     ranked.forEach((team, i) => {
       (out[team] ??= {})[stat] = i + 1
     })
@@ -379,6 +442,21 @@ async function main() {
 
   const defenseOut = resolve(outDir, 'team-defense.json')
   writeFileSync(defenseOut, JSON.stringify(defensePayload, null, 2) + '\n')
+
+  // Each player's last five games this season, newest first — loaded only
+  // when a game's Matchup tab opens, so it never weighs on the main bundle.
+  const recent = {}
+  for (const [key, games] of Object.entries(latestData.logs ?? {})) {
+    recent[key] = [...games].sort((a, b) => b.week - a.week).slice(0, 5)
+  }
+  const recentOut = resolve(outDir, 'player-recent.json')
+  writeFileSync(recentOut, JSON.stringify({
+    generatedAt: playerPayload.generatedAt,
+    source: playerPayload.source,
+    season: latestSeason,
+    players: recent
+  }) + '\n')
+  console.log(`Wrote ${recentOut}`)
 
   console.log(`Wrote ${out}`)
   console.log(`Wrote ${metaOut}`)

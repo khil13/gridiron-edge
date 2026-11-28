@@ -77,7 +77,11 @@ function parseCSV(text) {
   return rows
 }
 
+// A blank cell is missing, not zero: Number('') is 0, which read every
+// timeout and end-of-quarter row (blank yard line) as a snap on the goal
+// line and counted it as a red-zone trip.
 const num = (v) => {
+  if (v == null || v === '' || v === 'NA') return null
   const n = Number(v)
   return Number.isFinite(n) ? n : null
 }
@@ -129,6 +133,7 @@ async function fetchSeason(season) {
     qbSpike: need('qb_spike'),
     yardline100: need('yardline_100'),
     fixedDrive: need('fixed_drive'),
+    twoPointAttempt: need('two_point_attempt'),
     fixedDriveResult: need('fixed_drive_result')
   }
 
@@ -143,7 +148,9 @@ async function fetchSeason(season) {
       defThirdAtt: 0, defThirdConv: 0,
       interceptions: 0, fumblesLost: 0,
       // Red zone is tracked per (game, drive) below, then rolled up.
-      redZoneDrives: new Set(), redZoneTds: new Set()
+      redZoneDrives: new Set(), redZoneTds: new Set(),
+      // Opponent drives that reached inside this team's 20.
+      redZoneTripsAllowed: new Set()
     })
 
   for (let i = 1; i < rows.length; i++) {
@@ -164,13 +171,22 @@ async function fetchSeason(season) {
       (r[idx.rushAttempt] === '1' || r[idx.passAttempt] === '1') &&
       r[idx.qbKneel] !== '1' && r[idx.qbSpike] !== '1'
 
-    // Red-zone tracking needs every play (to notice the drive reached the
-    // red zone) even though EPA/success below only count "real" plays.
-    if (posteam && gameId) {
+    // Red-zone tracking needs more than the "real" plays EPA counts (a
+    // field goal snap inside the 20 still means the drive got there) — but
+    // not the try after a touchdown: an extra point is snapped from the 15
+    // and a two-point try from the 2, so counting them made every
+    // touchdown drive a red-zone trip, long scores included. That inflated
+    // both trips per game (3.3-6.6 a game, against a typical NFL team's
+    // ~3) and the red-zone touchdown rate.
+    const isTry = playType === 'extra_point' || r[idx.twoPointAttempt] === '1'
+    if (posteam && gameId && !isTry) {
       const t = forTeam(posteam)
       const driveKey = `${gameId}:${r[idx.fixedDrive]}`
       const yardline = num(r[idx.yardline100])
-      if (yardline != null && yardline <= 20) t.redZoneDrives.add(driveKey)
+      if (yardline != null && yardline <= 20) {
+        t.redZoneDrives.add(driveKey)
+        if (defteam) forTeam(defteam).redZoneTripsAllowed.add(driveKey)
+      }
       if (r[idx.fixedDriveResult] === 'Touchdown') t.redZoneTds.add(driveKey)
     }
 
@@ -213,7 +229,12 @@ async function fetchSeason(season) {
       explosivePlayRateOff: round3(t.offPlays ? t.offExplosive / t.offPlays : null),
       thirdDownRateOff: round3(t.offThirdAtt ? t.offThirdConv / t.offThirdAtt : null),
       thirdDownRateDef: round3(t.defThirdAtt ? t.defThirdConv / t.defThirdAtt : null),
-      redZoneTdRateOff: round3(t.redZoneDrives.size ? t.redZoneTds.size / t.redZoneDrives.size : null),
+      // Touchdown drives that never snapped inside the 20 (a long score)
+      // are not red-zone trips, so only touchdowns on red-zone drives count.
+      redZoneTdRateOff: round3(t.redZoneDrives.size
+        ? [...t.redZoneDrives].filter((d) => t.redZoneTds.has(d)).length / t.redZoneDrives.size
+        : null),
+      redZoneTripsAllowedPerGame: round1(t.redZoneTripsAllowed.size / games),
       turnoverRate: round3(t.offPlays ? (t.interceptions + t.fumblesLost) / t.offPlays : null),
       playsPerGame: round1(t.offPlays / games)
     }
@@ -252,6 +273,7 @@ async function main() {
     definitions: {
       explosivePlayRateOff: 'share of offensive plays gaining >=10 yards on a run or >=20 on a pass',
       redZoneTdRateOff: 'share of drives that reached inside the opponent 20 ending in a touchdown',
+      redZoneTripsAllowedPerGame: 'opponent drives per game with at least one snap inside this team\'s 20',
       thirdDownRateOff: 'share of 3rd-down plays converted to a first down or touchdown'
     },
     latestSeason,

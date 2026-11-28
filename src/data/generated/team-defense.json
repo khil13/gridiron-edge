@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-27T20:28:33.357Z",
+  "generatedAt": "2026-11-27T23:54:55.612Z",
   "source": "https://github.com/nflverse/nflverse-data (stats_player release, regular season, aggregated by opponent)",
   "latestSeason": 2026,
   "seasons": {
@@ -9,12 +9,46 @@
         "rushingTdsAllowed": 20,
         "receivingYardsAllowed": 3849,
         "receivingTdsAllowed": 36,
+        "sacks": 26,
+        "bigPassesAllowed": 57,
+        "bigRunsAllowed": 65,
+        "byPosition": {
+          "QB": {
+            "passingYards": 3811,
+            "rushingYards": 327
+          },
+          "RB": {
+            "rushingYards": 1873,
+            "receivingYards": 587,
+            "receptions": 62
+          },
+          "WR": {
+            "receivingYards": 2313,
+            "receptions": 179
+          },
+          "TE": {
+            "receivingYards": 949,
+            "receptions": 95
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 4,
           "rushingTdsAllowed": 6,
           "receivingYardsAllowed": 17,
-          "receivingTdsAllowed": 1
+          "receivingTdsAllowed": 1,
+          "sacks": 31,
+          "bigPassesAllowed": 7,
+          "bigRunsAllowed": 2,
+          "QB.passingYards": 17,
+          "QB.rushingYards": 13,
+          "RB.rushingYards": 5,
+          "RB.receivingYards": 11,
+          "RB.receptions": 25,
+          "WR.receivingYards": 18,
+          "WR.receptions": 20,
+          "TE.receivingYards": 14,
+          "TE.receptions": 12
         }
       },
       "BAL": {
@@ -22,12 +56,46 @@
         "rushingTdsAllowed": 18,
         "receivingYardsAllowed": 4403,
         "receivingTdsAllowed": 23,
+        "sacks": 30,
+        "bigPassesAllowed": 64,
+        "bigRunsAllowed": 47,
+        "byPosition": {
+          "QB": {
+            "passingYards": 4403,
+            "rushingYards": 308
+          },
+          "RB": {
+            "rushingYards": 1400,
+            "receivingYards": 738,
+            "receptions": 95
+          },
+          "WR": {
+            "receivingYards": 2883,
+            "receptions": 221
+          },
+          "TE": {
+            "receivingYards": 791,
+            "receptions": 82
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 23,
           "rushingTdsAllowed": 10,
           "receivingYardsAllowed": 4,
-          "receivingTdsAllowed": 22
+          "receivingTdsAllowed": 22,
+          "sacks": 28,
+          "bigPassesAllowed": 1,
+          "bigRunsAllowed": 18,
+          "QB.passingYards": 4,
+          "QB.rushingYards": 17,
+          "RB.rushingYards": 26,
+          "RB.receivingYards": 2,
+          "RB.receptions": 2,
+          "WR.receivingYards": 2,
+          "WR.receptions": 2,
+          "TE.receivingYards": 24,
+          "TE.receptions": 24
         }
       },
       "PIT": {
@@ -35,12 +103,46 @@
         "rushingTdsAllowed": 10,
         "receivingYardsAllowed": 4437,
         "receivingTdsAllowed": 30,
+        "sacks": 48,
+        "bigPassesAllowed": 53,
+        "bigRunsAllowed": 47,
+        "byPosition": {
+          "QB": {
+            "passingYards": 4437,
+            "rushingYards": 260
+          },
+          "RB": {
+            "rushingYards": 1639,
+            "receivingYards": 534,
+            "receptions": 77
+          },
+          "WR": {
+            "receivingYards": 2782,
+            "receptions": 213
+          },
+          "TE": {
+            "receivingYards": 1121,
+            "receptions": 106
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 20,
           "rushingTdsAllowed": 30,
           "receivingYardsAllowed": 3,
-          "receivingTdsAllowed": 8
+          "receivingTdsAllowed": 8,
+          "sacks": 6,
+          "bigPassesAllowed": 10,
+          "bigRunsAllowed": 19,
+          "QB.passingYards": 3,
+          "QB.rushingYards": 24,
+          "RB.rushingYards": 17,
+          "RB.receivingYards": 15,
+          "RB.receptions": 14,
+          "WR.receivingYards": 5,
+          "WR.receptions": 3,
+          "TE.receivingYards": 5,
+          "TE.receptions": 4
         }
       },
       "CIN": {
@@ -48,12 +150,46 @@
         "rushingTdsAllowed": 18,
         "receivingYardsAllowed": 4175,
         "receivingTdsAllowed": 33,
+        "sacks": 35,
+        "bigPassesAllowed": 60,
+        "bigRunsAllowed": 62,
+        "byPosition": {
+          "QB": {
+            "passingYards": 4166,
+            "rushingYards": 323
+          },
+          "RB": {
+            "rushingYards": 2034,
+            "receivingYards": 729,
+            "receptions": 81
+          },
+          "WR": {
+            "receivingYards": 1958,
+            "receptions": 146
+          },
+          "TE": {
+            "receivingYards": 1444,
+            "receptions": 116
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 1,
           "rushingTdsAllowed": 11,
           "receivingYardsAllowed": 8,
-          "receivingTdsAllowed": 3
+          "receivingTdsAllowed": 3,
+          "sacks": 22,
+          "bigPassesAllowed": 3,
+          "bigRunsAllowed": 6,
+          "QB.passingYards": 8,
+          "QB.rushingYards": 14,
+          "RB.rushingYards": 1,
+          "RB.receivingYards": 4,
+          "RB.receptions": 9,
+          "WR.receivingYards": 30,
+          "WR.receptions": 32,
+          "TE.receivingYards": 1,
+          "TE.receptions": 1
         }
       },
       "NO": {
@@ -61,12 +197,46 @@
         "rushingTdsAllowed": 12,
         "receivingYardsAllowed": 3336,
         "receivingTdsAllowed": 25,
+        "sacks": 45,
+        "bigPassesAllowed": 44,
+        "bigRunsAllowed": 52,
+        "byPosition": {
+          "QB": {
+            "passingYards": 3336,
+            "rushingYards": 286
+          },
+          "RB": {
+            "rushingYards": 1746,
+            "receivingYards": 401,
+            "receptions": 57
+          },
+          "WR": {
+            "receivingYards": 2066,
+            "receptions": 166
+          },
+          "TE": {
+            "receivingYards": 869,
+            "receptions": 89
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 14,
           "rushingTdsAllowed": 26,
           "receivingYardsAllowed": 28,
-          "receivingTdsAllowed": 15
+          "receivingTdsAllowed": 15,
+          "sacks": 10,
+          "bigPassesAllowed": 22,
+          "bigRunsAllowed": 13,
+          "QB.passingYards": 28,
+          "QB.rushingYards": 19,
+          "RB.rushingYards": 11,
+          "RB.receivingYards": 30,
+          "RB.receptions": 29,
+          "WR.receivingYards": 26,
+          "WR.receptions": 27,
+          "TE.receivingYards": 20,
+          "TE.receptions": 18
         }
       },
       "HOU": {
@@ -74,12 +244,46 @@
         "rushingTdsAllowed": 13,
         "receivingYardsAllowed": 3486,
         "receivingTdsAllowed": 20,
+        "sacks": 47,
+        "bigPassesAllowed": 47,
+        "bigRunsAllowed": 35,
+        "byPosition": {
+          "QB": {
+            "passingYards": 3470,
+            "rushingYards": 334
+          },
+          "RB": {
+            "rushingYards": 1250,
+            "receivingYards": 541,
+            "receptions": 72
+          },
+          "WR": {
+            "receivingYards": 2162,
+            "receptions": 158
+          },
+          "TE": {
+            "receivingYards": 775,
+            "receptions": 87
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 29,
           "rushingTdsAllowed": 22,
           "receivingYardsAllowed": 26,
-          "receivingTdsAllowed": 24
+          "receivingTdsAllowed": 24,
+          "sacks": 7,
+          "bigPassesAllowed": 17,
+          "bigRunsAllowed": 29,
+          "QB.passingYards": 27,
+          "QB.rushingYards": 10,
+          "RB.rushingYards": 29,
+          "RB.receivingYards": 14,
+          "RB.receptions": 17,
+          "WR.receivingYards": 23,
+          "WR.receptions": 29,
+          "TE.receivingYards": 25,
+          "TE.receptions": 20
         }
       },
       "WAS": {
@@ -87,12 +291,46 @@
         "rushingTdsAllowed": 18,
         "receivingYardsAllowed": 4371,
         "receivingTdsAllowed": 33,
+        "sacks": 42,
+        "bigPassesAllowed": 53,
+        "bigRunsAllowed": 65,
+        "byPosition": {
+          "QB": {
+            "passingYards": 4371,
+            "rushingYards": 336
+          },
+          "RB": {
+            "rushingYards": 1966,
+            "receivingYards": 565,
+            "receptions": 58
+          },
+          "WR": {
+            "receivingYards": 2766,
+            "receptions": 206
+          },
+          "TE": {
+            "receivingYards": 1040,
+            "receptions": 86
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 3,
           "rushingTdsAllowed": 12,
           "receivingYardsAllowed": 5,
-          "receivingTdsAllowed": 4
+          "receivingTdsAllowed": 4,
+          "sacks": 12,
+          "bigPassesAllowed": 11,
+          "bigRunsAllowed": 3,
+          "QB.passingYards": 5,
+          "QB.rushingYards": 9,
+          "RB.rushingYards": 3,
+          "RB.receivingYards": 13,
+          "RB.receptions": 28,
+          "WR.receivingYards": 6,
+          "WR.receptions": 6,
+          "TE.receivingYards": 7,
+          "TE.receptions": 22
         }
       },
       "SEA": {
@@ -100,12 +338,46 @@
         "rushingTdsAllowed": 9,
         "receivingYardsAllowed": 3619,
         "receivingTdsAllowed": 20,
+        "sacks": 47,
+        "bigPassesAllowed": 44,
+        "bigRunsAllowed": 28,
+        "byPosition": {
+          "QB": {
+            "passingYards": 3619,
+            "rushingYards": 292
+          },
+          "RB": {
+            "rushingYards": 1239,
+            "receivingYards": 646,
+            "receptions": 98
+          },
+          "WR": {
+            "receivingYards": 1884,
+            "receptions": 169
+          },
+          "TE": {
+            "receivingYards": 1074,
+            "receptions": 104
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 30,
           "rushingTdsAllowed": 31,
           "receivingYardsAllowed": 21,
-          "receivingTdsAllowed": 25
+          "receivingTdsAllowed": 25,
+          "sacks": 8,
+          "bigPassesAllowed": 23,
+          "bigRunsAllowed": 32,
+          "QB.passingYards": 21,
+          "QB.rushingYards": 18,
+          "RB.rushingYards": 30,
+          "RB.receivingYards": 6,
+          "RB.receptions": 1,
+          "WR.receivingYards": 31,
+          "WR.receptions": 24,
+          "TE.receivingYards": 6,
+          "TE.receptions": 5
         }
       },
       "NYG": {
@@ -113,12 +385,46 @@
         "rushingTdsAllowed": 21,
         "receivingYardsAllowed": 3908,
         "receivingTdsAllowed": 25,
+        "sacks": 39,
+        "bigPassesAllowed": 49,
+        "bigRunsAllowed": 75,
+        "byPosition": {
+          "QB": {
+            "passingYards": 3889,
+            "rushingYards": 417
+          },
+          "RB": {
+            "rushingYards": 1984,
+            "receivingYards": 521,
+            "receptions": 78
+          },
+          "WR": {
+            "receivingYards": 2580,
+            "receptions": 197
+          },
+          "TE": {
+            "receivingYards": 807,
+            "receptions": 82
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 2,
           "rushingTdsAllowed": 4,
           "receivingYardsAllowed": 16,
-          "receivingTdsAllowed": 16
+          "receivingTdsAllowed": 16,
+          "sacks": 15,
+          "bigPassesAllowed": 15,
+          "bigRunsAllowed": 1,
+          "QB.passingYards": 16,
+          "QB.rushingYards": 1,
+          "RB.rushingYards": 2,
+          "RB.receivingYards": 17,
+          "RB.receptions": 11,
+          "WR.receivingYards": 9,
+          "WR.receptions": 12,
+          "TE.receivingYards": 23,
+          "TE.receptions": 25
         }
       },
       "ARI": {
@@ -126,12 +432,46 @@
         "rushingTdsAllowed": 19,
         "receivingYardsAllowed": 4128,
         "receivingTdsAllowed": 31,
+        "sacks": 30,
+        "bigPassesAllowed": 52,
+        "bigRunsAllowed": 62,
+        "byPosition": {
+          "QB": {
+            "passingYards": 4128,
+            "rushingYards": 171
+          },
+          "RB": {
+            "rushingYards": 1926,
+            "receivingYards": 609,
+            "receptions": 76
+          },
+          "WR": {
+            "receivingYards": 2330,
+            "receptions": 190
+          },
+          "TE": {
+            "receivingYards": 1166,
+            "receptions": 107
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 8,
           "rushingTdsAllowed": 9,
           "receivingYardsAllowed": 9,
-          "receivingTdsAllowed": 6
+          "receivingTdsAllowed": 6,
+          "sacks": 29,
+          "bigPassesAllowed": 13,
+          "bigRunsAllowed": 7,
+          "QB.passingYards": 9,
+          "QB.rushingYards": 32,
+          "RB.rushingYards": 4,
+          "RB.receivingYards": 9,
+          "RB.receptions": 15,
+          "WR.receivingYards": 16,
+          "WR.receptions": 15,
+          "TE.receivingYards": 3,
+          "TE.receptions": 3
         }
       },
       "DEN": {
@@ -139,12 +479,46 @@
         "rushingTdsAllowed": 11,
         "receivingYardsAllowed": 3606,
         "receivingTdsAllowed": 18,
+        "sacks": 68,
+        "bigPassesAllowed": 40,
+        "bigRunsAllowed": 30,
+        "byPosition": {
+          "QB": {
+            "passingYards": 3606,
+            "rushingYards": 311
+          },
+          "RB": {
+            "rushingYards": 1220,
+            "receivingYards": 367,
+            "receptions": 49
+          },
+          "WR": {
+            "receivingYards": 2224,
+            "receptions": 199
+          },
+          "TE": {
+            "receivingYards": 1015,
+            "receptions": 95
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 31,
           "rushingTdsAllowed": 28,
           "receivingYardsAllowed": 22,
-          "receivingTdsAllowed": 28
+          "receivingTdsAllowed": 28,
+          "sacks": 1,
+          "bigPassesAllowed": 28,
+          "bigRunsAllowed": 31,
+          "QB.passingYards": 22,
+          "QB.rushingYards": 16,
+          "RB.rushingYards": 31,
+          "RB.receivingYards": 31,
+          "RB.receptions": 32,
+          "WR.receivingYards": 20,
+          "WR.receptions": 10,
+          "TE.receivingYards": 9,
+          "TE.receptions": 13
         }
       },
       "ATL": {
@@ -152,12 +526,46 @@
         "rushingTdsAllowed": 12,
         "receivingYardsAllowed": 3773,
         "receivingTdsAllowed": 27,
+        "sacks": 57,
+        "bigPassesAllowed": 49,
+        "bigRunsAllowed": 51,
+        "byPosition": {
+          "QB": {
+            "passingYards": 3773,
+            "rushingYards": 345
+          },
+          "RB": {
+            "rushingYards": 1727,
+            "receivingYards": 520,
+            "receptions": 69
+          },
+          "WR": {
+            "receivingYards": 2438,
+            "receptions": 189
+          },
+          "TE": {
+            "receivingYards": 816,
+            "receptions": 72
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 9,
           "rushingTdsAllowed": 27,
           "receivingYardsAllowed": 18,
-          "receivingTdsAllowed": 13
+          "receivingTdsAllowed": 13,
+          "sacks": 2,
+          "bigPassesAllowed": 16,
+          "bigRunsAllowed": 15,
+          "QB.passingYards": 18,
+          "QB.rushingYards": 8,
+          "RB.rushingYards": 12,
+          "RB.receivingYards": 18,
+          "RB.receptions": 19,
+          "WR.receivingYards": 14,
+          "WR.receptions": 16,
+          "TE.receivingYards": 21,
+          "TE.receptions": 28
         }
       },
       "PHI": {
@@ -165,12 +573,46 @@
         "rushingTdsAllowed": 20,
         "receivingYardsAllowed": 3476,
         "receivingTdsAllowed": 14,
+        "sacks": 42,
+        "bigPassesAllowed": 46,
+        "bigRunsAllowed": 55,
+        "byPosition": {
+          "QB": {
+            "passingYards": 3476,
+            "rushingYards": 400
+          },
+          "RB": {
+            "rushingYards": 1642,
+            "receivingYards": 639,
+            "receptions": 63
+          },
+          "WR": {
+            "receivingYards": 2330,
+            "receptions": 179
+          },
+          "TE": {
+            "receivingYards": 507,
+            "receptions": 67
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 11,
           "rushingTdsAllowed": 7,
           "receivingYardsAllowed": 27,
-          "receivingTdsAllowed": 32
+          "receivingTdsAllowed": 32,
+          "sacks": 13,
+          "bigPassesAllowed": 18,
+          "bigRunsAllowed": 10,
+          "QB.passingYards": 26,
+          "QB.rushingYards": 2,
+          "RB.rushingYards": 16,
+          "RB.receivingYards": 7,
+          "RB.receptions": 24,
+          "WR.receivingYards": 17,
+          "WR.receptions": 21,
+          "TE.receivingYards": 31,
+          "TE.receptions": 31
         }
       },
       "CHI": {
@@ -178,12 +620,46 @@
         "rushingTdsAllowed": 15,
         "receivingYardsAllowed": 4067,
         "receivingTdsAllowed": 32,
+        "sacks": 35,
+        "bigPassesAllowed": 61,
+        "bigRunsAllowed": 59,
+        "byPosition": {
+          "QB": {
+            "passingYards": 4067,
+            "rushingYards": 396
+          },
+          "RB": {
+            "rushingYards": 1772,
+            "receivingYards": 470,
+            "receptions": 69
+          },
+          "WR": {
+            "receivingYards": 2721,
+            "receptions": 188
+          },
+          "TE": {
+            "receivingYards": 876,
+            "receptions": 98
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 6,
           "rushingTdsAllowed": 18,
           "receivingYardsAllowed": 11,
-          "receivingTdsAllowed": 5
+          "receivingTdsAllowed": 5,
+          "sacks": 23,
+          "bigPassesAllowed": 2,
+          "bigRunsAllowed": 9,
+          "QB.passingYards": 11,
+          "QB.rushingYards": 4,
+          "RB.rushingYards": 10,
+          "RB.receivingYards": 23,
+          "RB.receptions": 20,
+          "WR.receivingYards": 7,
+          "WR.receptions": 17,
+          "TE.receivingYards": 18,
+          "TE.receptions": 10
         }
       },
       "DET": {
@@ -191,12 +667,46 @@
         "rushingTdsAllowed": 16,
         "receivingYardsAllowed": 4027,
         "receivingTdsAllowed": 31,
+        "sacks": 49,
+        "bigPassesAllowed": 58,
+        "bigRunsAllowed": 54,
+        "byPosition": {
+          "QB": {
+            "passingYards": 3994,
+            "rushingYards": 258
+          },
+          "RB": {
+            "rushingYards": 1515,
+            "receivingYards": 418,
+            "receptions": 60
+          },
+          "WR": {
+            "receivingYards": 2644,
+            "receptions": 193
+          },
+          "TE": {
+            "receivingYards": 932,
+            "receptions": 88
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 19,
           "rushingTdsAllowed": 14,
           "receivingYardsAllowed": 12,
-          "receivingTdsAllowed": 7
+          "receivingTdsAllowed": 7,
+          "sacks": 4,
+          "bigPassesAllowed": 4,
+          "bigRunsAllowed": 12,
+          "QB.passingYards": 12,
+          "QB.rushingYards": 25,
+          "RB.rushingYards": 21,
+          "RB.receivingYards": 28,
+          "RB.receptions": 26,
+          "WR.receivingYards": 8,
+          "WR.receptions": 14,
+          "TE.receivingYards": 16,
+          "TE.receptions": 19
         }
       },
       "JAC": {
@@ -204,12 +714,46 @@
         "rushingTdsAllowed": 13,
         "receivingYardsAllowed": 3933,
         "receivingTdsAllowed": 25,
+        "sacks": 32,
+        "bigPassesAllowed": 46,
+        "bigRunsAllowed": 34,
+        "byPosition": {
+          "QB": {
+            "passingYards": 3933,
+            "rushingYards": 283
+          },
+          "RB": {
+            "rushingYards": 1156,
+            "receivingYards": 586,
+            "receptions": 82
+          },
+          "WR": {
+            "receivingYards": 2343,
+            "receptions": 210
+          },
+          "TE": {
+            "receivingYards": 1004,
+            "receptions": 104
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 32,
           "rushingTdsAllowed": 23,
           "receivingYardsAllowed": 14,
-          "receivingTdsAllowed": 17
+          "receivingTdsAllowed": 17,
+          "sacks": 27,
+          "bigPassesAllowed": 19,
+          "bigRunsAllowed": 30,
+          "QB.passingYards": 14,
+          "QB.rushingYards": 20,
+          "RB.rushingYards": 32,
+          "RB.receivingYards": 12,
+          "RB.receptions": 8,
+          "WR.receivingYards": 15,
+          "WR.receptions": 4,
+          "TE.receivingYards": 10,
+          "TE.receptions": 6
         }
       },
       "KC": {
@@ -217,12 +761,46 @@
         "rushingTdsAllowed": 14,
         "receivingYardsAllowed": 3487,
         "receivingTdsAllowed": 18,
+        "sacks": 35,
+        "bigPassesAllowed": 45,
+        "bigRunsAllowed": 41,
+        "byPosition": {
+          "QB": {
+            "passingYards": 3487,
+            "rushingYards": 328
+          },
+          "RB": {
+            "rushingYards": 1415,
+            "receivingYards": 495,
+            "receptions": 69
+          },
+          "WR": {
+            "receivingYards": 2119,
+            "receptions": 186
+          },
+          "TE": {
+            "receivingYards": 809,
+            "receptions": 82
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 24,
           "rushingTdsAllowed": 20,
           "receivingYardsAllowed": 25,
-          "receivingTdsAllowed": 29
+          "receivingTdsAllowed": 29,
+          "sacks": 24,
+          "bigPassesAllowed": 20,
+          "bigRunsAllowed": 24,
+          "QB.passingYards": 25,
+          "QB.rushingYards": 12,
+          "RB.rushingYards": 25,
+          "RB.receivingYards": 19,
+          "RB.receptions": 21,
+          "WR.receivingYards": 24,
+          "WR.receptions": 19,
+          "TE.receivingYards": 22,
+          "TE.receptions": 26
         }
       },
       "LAC": {
@@ -230,12 +808,46 @@
         "rushingTdsAllowed": 16,
         "receivingYardsAllowed": 3314,
         "receivingTdsAllowed": 16,
+        "sacks": 45,
+        "bigPassesAllowed": 37,
+        "bigRunsAllowed": 52,
+        "byPosition": {
+          "QB": {
+            "passingYards": 3306,
+            "rushingYards": 316
+          },
+          "RB": {
+            "rushingYards": 1444,
+            "receivingYards": 430,
+            "receptions": 59
+          },
+          "WR": {
+            "receivingYards": 2167,
+            "receptions": 178
+          },
+          "TE": {
+            "receivingYards": 717,
+            "receptions": 70
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 25,
           "rushingTdsAllowed": 15,
           "receivingYardsAllowed": 29,
-          "receivingTdsAllowed": 30
+          "receivingTdsAllowed": 30,
+          "sacks": 11,
+          "bigPassesAllowed": 30,
+          "bigRunsAllowed": 14,
+          "QB.passingYards": 29,
+          "QB.rushingYards": 15,
+          "RB.rushingYards": 24,
+          "RB.receivingYards": 26,
+          "RB.receptions": 27,
+          "WR.receivingYards": 21,
+          "WR.receptions": 23,
+          "TE.receivingYards": 29,
+          "TE.receptions": 29
         }
       },
       "BUF": {
@@ -243,12 +855,46 @@
         "rushingTdsAllowed": 24,
         "receivingYardsAllowed": 2894,
         "receivingTdsAllowed": 19,
+        "sacks": 36,
+        "bigPassesAllowed": 38,
+        "bigRunsAllowed": 65,
+        "byPosition": {
+          "QB": {
+            "passingYards": 2894,
+            "rushingYards": 368
+          },
+          "RB": {
+            "rushingYards": 1830,
+            "receivingYards": 425,
+            "receptions": 67
+          },
+          "WR": {
+            "receivingYards": 1965,
+            "receptions": 164
+          },
+          "TE": {
+            "receivingYards": 504,
+            "receptions": 46
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 5,
           "rushingTdsAllowed": 1,
           "receivingYardsAllowed": 32,
-          "receivingTdsAllowed": 27
+          "receivingTdsAllowed": 27,
+          "sacks": 20,
+          "bigPassesAllowed": 29,
+          "bigRunsAllowed": 4,
+          "QB.passingYards": 32,
+          "QB.rushingYards": 5,
+          "RB.rushingYards": 6,
+          "RB.receivingYards": 27,
+          "RB.receptions": 22,
+          "WR.receivingYards": 29,
+          "WR.receptions": 28,
+          "TE.receivingYards": 32,
+          "TE.receptions": 32
         }
       },
       "NE": {
@@ -256,12 +902,46 @@
         "rushingTdsAllowed": 11,
         "receivingYardsAllowed": 3512,
         "receivingTdsAllowed": 25,
+        "sacks": 35,
+        "bigPassesAllowed": 42,
+        "bigRunsAllowed": 42,
+        "byPosition": {
+          "QB": {
+            "passingYards": 3509,
+            "rushingYards": 276
+          },
+          "RB": {
+            "rushingYards": 1311,
+            "receivingYards": 524,
+            "receptions": 84
+          },
+          "WR": {
+            "receivingYards": 2014,
+            "receptions": 168
+          },
+          "TE": {
+            "receivingYards": 971,
+            "receptions": 97
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 27,
           "rushingTdsAllowed": 29,
           "receivingYardsAllowed": 24,
-          "receivingTdsAllowed": 18
+          "receivingTdsAllowed": 18,
+          "sacks": 25,
+          "bigPassesAllowed": 25,
+          "bigRunsAllowed": 23,
+          "QB.passingYards": 24,
+          "QB.rushingYards": 21,
+          "RB.rushingYards": 28,
+          "RB.receivingYards": 16,
+          "RB.receptions": 5,
+          "WR.receivingYards": 27,
+          "WR.receptions": 25,
+          "TE.receivingYards": 11,
+          "TE.receptions": 11
         }
       },
       "CLE": {
@@ -269,12 +949,46 @@
         "rushingTdsAllowed": 14,
         "receivingYardsAllowed": 3220,
         "receivingTdsAllowed": 25,
+        "sacks": 53,
+        "bigPassesAllowed": 43,
+        "bigRunsAllowed": 46,
+        "byPosition": {
+          "QB": {
+            "passingYards": 3188,
+            "rushingYards": 208
+          },
+          "RB": {
+            "rushingYards": 1664,
+            "receivingYards": 483,
+            "receptions": 71
+          },
+          "WR": {
+            "receivingYards": 1862,
+            "receptions": 152
+          },
+          "TE": {
+            "receivingYards": 875,
+            "receptions": 85
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 17,
           "rushingTdsAllowed": 21,
           "receivingYardsAllowed": 30,
-          "receivingTdsAllowed": 19
+          "receivingTdsAllowed": 19,
+          "sacks": 3,
+          "bigPassesAllowed": 24,
+          "bigRunsAllowed": 21,
+          "QB.passingYards": 30,
+          "QB.rushingYards": 30,
+          "RB.rushingYards": 15,
+          "RB.receivingYards": 21,
+          "RB.receptions": 18,
+          "WR.receivingYards": 32,
+          "WR.receptions": 30,
+          "TE.receivingYards": 19,
+          "TE.receptions": 23
         }
       },
       "MIN": {
@@ -282,12 +996,46 @@
         "rushingTdsAllowed": 13,
         "receivingYardsAllowed": 3021,
         "receivingTdsAllowed": 15,
+        "sacks": 49,
+        "bigPassesAllowed": 32,
+        "bigRunsAllowed": 55,
+        "byPosition": {
+          "QB": {
+            "passingYards": 3021,
+            "rushingYards": 262
+          },
+          "RB": {
+            "rushingYards": 1789,
+            "receivingYards": 331,
+            "receptions": 55
+          },
+          "WR": {
+            "receivingYards": 1971,
+            "receptions": 149
+          },
+          "TE": {
+            "receivingYards": 719,
+            "receptions": 75
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 12,
           "rushingTdsAllowed": 24,
           "receivingYardsAllowed": 31,
-          "receivingTdsAllowed": 31
+          "receivingTdsAllowed": 31,
+          "sacks": 5,
+          "bigPassesAllowed": 32,
+          "bigRunsAllowed": 11,
+          "QB.passingYards": 31,
+          "QB.rushingYards": 23,
+          "RB.rushingYards": 9,
+          "RB.receivingYards": 32,
+          "RB.receptions": 31,
+          "WR.receivingYards": 28,
+          "WR.receptions": 31,
+          "TE.receivingYards": 28,
+          "TE.receptions": 27
         }
       },
       "SF": {
@@ -295,12 +1043,46 @@
         "rushingTdsAllowed": 13,
         "receivingYardsAllowed": 4110,
         "receivingTdsAllowed": 29,
+        "sacks": 20,
+        "bigPassesAllowed": 45,
+        "bigRunsAllowed": 37,
+        "byPosition": {
+          "QB": {
+            "passingYards": 4110,
+            "rushingYards": 224
+          },
+          "RB": {
+            "rushingYards": 1582,
+            "receivingYards": 607,
+            "receptions": 94
+          },
+          "WR": {
+            "receivingYards": 2492,
+            "receptions": 201
+          },
+          "TE": {
+            "receivingYards": 968,
+            "receptions": 99
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 22,
           "rushingTdsAllowed": 25,
           "receivingYardsAllowed": 10,
-          "receivingTdsAllowed": 11
+          "receivingTdsAllowed": 11,
+          "sacks": 32,
+          "bigPassesAllowed": 21,
+          "bigRunsAllowed": 28,
+          "QB.passingYards": 10,
+          "QB.rushingYards": 29,
+          "RB.rushingYards": 19,
+          "RB.receivingYards": 10,
+          "RB.receptions": 3,
+          "WR.receivingYards": 12,
+          "WR.receptions": 9,
+          "TE.receivingYards": 13,
+          "TE.receptions": 9
         }
       },
       "LA": {
@@ -308,12 +1090,46 @@
         "rushingTdsAllowed": 8,
         "receivingYardsAllowed": 3988,
         "receivingTdsAllowed": 26,
+        "sacks": 47,
+        "bigPassesAllowed": 53,
+        "bigRunsAllowed": 39,
+        "byPosition": {
+          "QB": {
+            "passingYards": 3960,
+            "rushingYards": 254
+          },
+          "RB": {
+            "rushingYards": 1505,
+            "receivingYards": 650,
+            "receptions": 83
+          },
+          "WR": {
+            "receivingYards": 2462,
+            "receptions": 194
+          },
+          "TE": {
+            "receivingYards": 775,
+            "receptions": 92
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 21,
           "rushingTdsAllowed": 32,
           "receivingYardsAllowed": 13,
-          "receivingTdsAllowed": 14
+          "receivingTdsAllowed": 14,
+          "sacks": 9,
+          "bigPassesAllowed": 12,
+          "bigRunsAllowed": 26,
+          "QB.passingYards": 13,
+          "QB.rushingYards": 26,
+          "RB.rushingYards": 22,
+          "RB.receivingYards": 5,
+          "RB.receptions": 6,
+          "WR.receivingYards": 13,
+          "WR.receptions": 13,
+          "TE.receivingYards": 26,
+          "TE.receptions": 15
         }
       },
       "LV": {
@@ -321,12 +1137,46 @@
         "rushingTdsAllowed": 22,
         "receivingYardsAllowed": 3644,
         "receivingTdsAllowed": 23,
+        "sacks": 37,
+        "bigPassesAllowed": 37,
+        "bigRunsAllowed": 50,
+        "byPosition": {
+          "QB": {
+            "passingYards": 3644,
+            "rushingYards": 266
+          },
+          "RB": {
+            "rushingYards": 1683,
+            "receivingYards": 474,
+            "receptions": 78
+          },
+          "WR": {
+            "receivingYards": 2503,
+            "receptions": 210
+          },
+          "TE": {
+            "receivingYards": 656,
+            "receptions": 69
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 16,
           "rushingTdsAllowed": 3,
           "receivingYardsAllowed": 20,
-          "receivingTdsAllowed": 23
+          "receivingTdsAllowed": 23,
+          "sacks": 18,
+          "bigPassesAllowed": 31,
+          "bigRunsAllowed": 16,
+          "QB.passingYards": 20,
+          "QB.rushingYards": 22,
+          "RB.rushingYards": 14,
+          "RB.receivingYards": 22,
+          "RB.receptions": 12,
+          "WR.receivingYards": 11,
+          "WR.receptions": 5,
+          "TE.receivingYards": 30,
+          "TE.receptions": 30
         }
       },
       "TEN": {
@@ -334,12 +1184,46 @@
         "rushingTdsAllowed": 21,
         "receivingYardsAllowed": 4221,
         "receivingTdsAllowed": 30,
+        "sacks": 42,
+        "bigPassesAllowed": 58,
+        "bigRunsAllowed": 49,
+        "byPosition": {
+          "QB": {
+            "passingYards": 4221,
+            "rushingYards": 330
+          },
+          "RB": {
+            "rushingYards": 1553,
+            "receivingYards": 460,
+            "receptions": 57
+          },
+          "WR": {
+            "receivingYards": 2814,
+            "receptions": 205
+          },
+          "TE": {
+            "receivingYards": 947,
+            "receptions": 92
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 18,
           "rushingTdsAllowed": 5,
           "receivingYardsAllowed": 7,
-          "receivingTdsAllowed": 9
+          "receivingTdsAllowed": 9,
+          "sacks": 14,
+          "bigPassesAllowed": 5,
+          "bigRunsAllowed": 17,
+          "QB.passingYards": 7,
+          "QB.rushingYards": 11,
+          "RB.rushingYards": 20,
+          "RB.receivingYards": 24,
+          "RB.receptions": 30,
+          "WR.receivingYards": 4,
+          "WR.receptions": 8,
+          "TE.receivingYards": 15,
+          "TE.receptions": 16
         }
       },
       "TB": {
@@ -347,12 +1231,46 @@
         "rushingTdsAllowed": 16,
         "receivingYardsAllowed": 4332,
         "receivingTdsAllowed": 30,
+        "sacks": 37,
+        "bigPassesAllowed": 55,
+        "bigRunsAllowed": 39,
+        "byPosition": {
+          "QB": {
+            "passingYards": 4332,
+            "rushingYards": 350
+          },
+          "RB": {
+            "rushingYards": 1340,
+            "receivingYards": 860,
+            "receptions": 79
+          },
+          "WR": {
+            "receivingYards": 2509,
+            "receptions": 199
+          },
+          "TE": {
+            "receivingYards": 969,
+            "receptions": 100
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 28,
           "rushingTdsAllowed": 16,
           "receivingYardsAllowed": 6,
-          "receivingTdsAllowed": 10
+          "receivingTdsAllowed": 10,
+          "sacks": 19,
+          "bigPassesAllowed": 9,
+          "bigRunsAllowed": 27,
+          "QB.passingYards": 6,
+          "QB.rushingYards": 7,
+          "RB.rushingYards": 27,
+          "RB.receivingYards": 1,
+          "RB.receptions": 10,
+          "WR.receivingYards": 10,
+          "WR.receptions": 11,
+          "TE.receivingYards": 12,
+          "TE.receptions": 8
         }
       },
       "CAR": {
@@ -360,12 +1278,46 @@
         "rushingTdsAllowed": 20,
         "receivingYardsAllowed": 3657,
         "receivingTdsAllowed": 20,
+        "sacks": 30,
+        "bigPassesAllowed": 42,
+        "bigRunsAllowed": 47,
+        "byPosition": {
+          "QB": {
+            "passingYards": 3657,
+            "rushingYards": 246
+          },
+          "RB": {
+            "rushingYards": 1808,
+            "receivingYards": 487,
+            "receptions": 75
+          },
+          "WR": {
+            "receivingYards": 2118,
+            "receptions": 168
+          },
+          "TE": {
+            "receivingYards": 1019,
+            "receptions": 87
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 13,
           "rushingTdsAllowed": 8,
           "receivingYardsAllowed": 19,
-          "receivingTdsAllowed": 26
+          "receivingTdsAllowed": 26,
+          "sacks": 30,
+          "bigPassesAllowed": 26,
+          "bigRunsAllowed": 20,
+          "QB.passingYards": 19,
+          "QB.rushingYards": 27,
+          "RB.rushingYards": 8,
+          "RB.receivingYards": 20,
+          "RB.receptions": 16,
+          "WR.receivingYards": 25,
+          "WR.receptions": 26,
+          "TE.receivingYards": 8,
+          "TE.receptions": 21
         }
       },
       "MIA": {
@@ -373,12 +1325,46 @@
         "rushingTdsAllowed": 18,
         "receivingYardsAllowed": 3920,
         "receivingTdsAllowed": 29,
+        "sacks": 39,
+        "bigPassesAllowed": 51,
+        "bigRunsAllowed": 60,
+        "byPosition": {
+          "QB": {
+            "passingYards": 3920,
+            "rushingYards": 359
+          },
+          "RB": {
+            "rushingYards": 1826,
+            "receivingYards": 621,
+            "receptions": 83
+          },
+          "WR": {
+            "receivingYards": 2165,
+            "receptions": 179
+          },
+          "TE": {
+            "receivingYards": 1134,
+            "receptions": 109
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 7,
           "rushingTdsAllowed": 13,
           "receivingYardsAllowed": 15,
-          "receivingTdsAllowed": 12
+          "receivingTdsAllowed": 12,
+          "sacks": 16,
+          "bigPassesAllowed": 14,
+          "bigRunsAllowed": 8,
+          "QB.passingYards": 15,
+          "QB.rushingYards": 6,
+          "RB.rushingYards": 7,
+          "RB.receivingYards": 8,
+          "RB.receptions": 7,
+          "WR.receivingYards": 22,
+          "WR.receptions": 22,
+          "TE.receivingYards": 4,
+          "TE.receptions": 2
         }
       },
       "IND": {
@@ -386,12 +1372,46 @@
         "rushingTdsAllowed": 16,
         "receivingYardsAllowed": 4462,
         "receivingTdsAllowed": 24,
+        "sacks": 39,
+        "bigPassesAllowed": 57,
+        "bigRunsAllowed": 43,
+        "byPosition": {
+          "QB": {
+            "passingYards": 4462,
+            "rushingYards": 208
+          },
+          "RB": {
+            "rushingYards": 1479,
+            "receivingYards": 415,
+            "receptions": 67
+          },
+          "WR": {
+            "receivingYards": 2861,
+            "receptions": 228
+          },
+          "TE": {
+            "receivingYards": 1186,
+            "receptions": 102
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 26,
           "rushingTdsAllowed": 17,
           "receivingYardsAllowed": 2,
-          "receivingTdsAllowed": 20
+          "receivingTdsAllowed": 20,
+          "sacks": 17,
+          "bigPassesAllowed": 8,
+          "bigRunsAllowed": 22,
+          "QB.passingYards": 2,
+          "QB.rushingYards": 31,
+          "RB.rushingYards": 23,
+          "RB.receivingYards": 29,
+          "RB.receptions": 23,
+          "WR.receivingYards": 3,
+          "WR.receptions": 1,
+          "TE.receivingYards": 2,
+          "TE.receptions": 7
         }
       },
       "GB": {
@@ -399,12 +1419,46 @@
         "rushingTdsAllowed": 15,
         "receivingYardsAllowed": 3516,
         "receivingTdsAllowed": 24,
+        "sacks": 36,
+        "bigPassesAllowed": 41,
+        "bigRunsAllowed": 40,
+        "byPosition": {
+          "QB": {
+            "passingYards": 3516,
+            "rushingYards": 246
+          },
+          "RB": {
+            "rushingYards": 1708,
+            "receivingYards": 457,
+            "receptions": 78
+          },
+          "WR": {
+            "receivingYards": 2296,
+            "receptions": 187
+          },
+          "TE": {
+            "receivingYards": 759,
+            "receptions": 94
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 15,
           "rushingTdsAllowed": 19,
           "receivingYardsAllowed": 23,
-          "receivingTdsAllowed": 21
+          "receivingTdsAllowed": 21,
+          "sacks": 21,
+          "bigPassesAllowed": 27,
+          "bigRunsAllowed": 25,
+          "QB.passingYards": 23,
+          "QB.rushingYards": 28,
+          "RB.rushingYards": 13,
+          "RB.receivingYards": 25,
+          "RB.receptions": 13,
+          "WR.receivingYards": 19,
+          "WR.receptions": 18,
+          "TE.receivingYards": 27,
+          "TE.receptions": 14
         }
       },
       "DAL": {
@@ -412,12 +1466,46 @@
         "rushingTdsAllowed": 24,
         "receivingYardsAllowed": 4521,
         "receivingTdsAllowed": 35,
+        "sacks": 35,
+        "bigPassesAllowed": 58,
+        "bigRunsAllowed": 64,
+        "byPosition": {
+          "QB": {
+            "passingYards": 4521,
+            "rushingYards": 398
+          },
+          "RB": {
+            "rushingYards": 1619,
+            "receivingYards": 735,
+            "receptions": 85
+          },
+          "WR": {
+            "receivingYards": 2907,
+            "receptions": 206
+          },
+          "TE": {
+            "receivingYards": 879,
+            "receptions": 90
+          }
+        },
         "games": 17,
         "ranks": {
           "rushingYardsAllowed": 10,
           "rushingTdsAllowed": 2,
           "receivingYardsAllowed": 1,
-          "receivingTdsAllowed": 2
+          "receivingTdsAllowed": 2,
+          "sacks": 26,
+          "bigPassesAllowed": 6,
+          "bigRunsAllowed": 5,
+          "QB.passingYards": 1,
+          "QB.rushingYards": 3,
+          "RB.rushingYards": 18,
+          "RB.receivingYards": 3,
+          "RB.receptions": 4,
+          "WR.receivingYards": 1,
+          "WR.receptions": 7,
+          "TE.receivingYards": 17,
+          "TE.receptions": 17
         }
       }
     },
@@ -427,12 +1515,46 @@
         "rushingTdsAllowed": 10,
         "receivingYardsAllowed": 2519,
         "receivingTdsAllowed": 19,
+        "sacks": 21,
+        "bigPassesAllowed": 33,
+        "bigRunsAllowed": 33,
+        "byPosition": {
+          "QB": {
+            "passingYards": 2519,
+            "rushingYards": 68
+          },
+          "RB": {
+            "rushingYards": 1089,
+            "receivingYards": 360,
+            "receptions": 52
+          },
+          "WR": {
+            "receivingYards": 1649,
+            "receptions": 126
+          },
+          "TE": {
+            "receivingYards": 510,
+            "receptions": 54
+          }
+        },
         "games": 10,
         "ranks": {
-          "rushingYardsAllowed": 15,
-          "rushingTdsAllowed": 14,
-          "receivingYardsAllowed": 13,
-          "receivingTdsAllowed": 6
+          "rushingYardsAllowed": 14,
+          "rushingTdsAllowed": 13,
+          "receivingYardsAllowed": 6,
+          "receivingTdsAllowed": 5,
+          "sacks": 17,
+          "bigPassesAllowed": 9,
+          "bigRunsAllowed": 6,
+          "QB.passingYards": 6,
+          "QB.rushingYards": 30,
+          "RB.rushingYards": 7,
+          "RB.receivingYards": 13,
+          "RB.receptions": 5,
+          "WR.receivingYards": 6,
+          "WR.receptions": 6,
+          "TE.receivingYards": 18,
+          "TE.receptions": 15
         }
       },
       "PIT": {
@@ -440,12 +1562,46 @@
         "rushingTdsAllowed": 6,
         "receivingYardsAllowed": 2486,
         "receivingTdsAllowed": 11,
+        "sacks": 30,
+        "bigPassesAllowed": 34,
+        "bigRunsAllowed": 20,
+        "byPosition": {
+          "QB": {
+            "passingYards": 2486,
+            "rushingYards": 119
+          },
+          "RB": {
+            "rushingYards": 714,
+            "receivingYards": 439,
+            "receptions": 58
+          },
+          "WR": {
+            "receivingYards": 1528,
+            "receptions": 124
+          },
+          "TE": {
+            "receivingYards": 522,
+            "receptions": 46
+          }
+        },
         "games": 10,
         "ranks": {
           "rushingYardsAllowed": 30,
           "rushingTdsAllowed": 26,
-          "receivingYardsAllowed": 16,
-          "receivingTdsAllowed": 27
+          "receivingYardsAllowed": 9,
+          "receivingTdsAllowed": 26,
+          "sacks": 5,
+          "bigPassesAllowed": 7,
+          "bigRunsAllowed": 27,
+          "QB.passingYards": 9,
+          "QB.rushingYards": 23,
+          "RB.rushingYards": 28,
+          "RB.receivingYards": 2,
+          "RB.receptions": 2,
+          "WR.receivingYards": 13,
+          "WR.receptions": 11,
+          "TE.receivingYards": 17,
+          "TE.receptions": 25
         }
       },
       "IND": {
@@ -453,12 +1609,46 @@
         "rushingTdsAllowed": 10,
         "receivingYardsAllowed": 2582,
         "receivingTdsAllowed": 20,
+        "sacks": 23,
+        "bigPassesAllowed": 36,
+        "bigRunsAllowed": 36,
+        "byPosition": {
+          "QB": {
+            "passingYards": 2548,
+            "rushingYards": 210
+          },
+          "RB": {
+            "rushingYards": 1219,
+            "receivingYards": 441,
+            "receptions": 44
+          },
+          "WR": {
+            "receivingYards": 1628,
+            "receptions": 107
+          },
+          "TE": {
+            "receivingYards": 500,
+            "receptions": 49
+          }
+        },
         "games": 11,
         "ranks": {
           "rushingYardsAllowed": 4,
-          "rushingTdsAllowed": 15,
-          "receivingYardsAllowed": 10,
-          "receivingTdsAllowed": 5
+          "rushingTdsAllowed": 16,
+          "receivingYardsAllowed": 19,
+          "receivingTdsAllowed": 7,
+          "sacks": 20,
+          "bigPassesAllowed": 11,
+          "bigRunsAllowed": 7,
+          "QB.passingYards": 21,
+          "QB.rushingYards": 8,
+          "RB.rushingYards": 4,
+          "RB.receivingYards": 6,
+          "RB.receptions": 22,
+          "WR.receivingYards": 17,
+          "WR.receptions": 28,
+          "TE.receivingYards": 22,
+          "TE.receptions": 27
         }
       },
       "SF": {
@@ -466,12 +1656,46 @@
         "rushingTdsAllowed": 5,
         "receivingYardsAllowed": 2390,
         "receivingTdsAllowed": 16,
+        "sacks": 17,
+        "bigPassesAllowed": 27,
+        "bigRunsAllowed": 7,
+        "byPosition": {
+          "QB": {
+            "passingYards": 2390,
+            "rushingYards": 49
+          },
+          "RB": {
+            "rushingYards": 720,
+            "receivingYards": 383,
+            "receptions": 60
+          },
+          "WR": {
+            "receivingYards": 1461,
+            "receptions": 126
+          },
+          "TE": {
+            "receivingYards": 551,
+            "receptions": 61
+          }
+        },
         "games": 10,
         "ranks": {
           "rushingYardsAllowed": 32,
           "rushingTdsAllowed": 30,
-          "receivingYardsAllowed": 20,
-          "receivingTdsAllowed": 14
+          "receivingYardsAllowed": 16,
+          "receivingTdsAllowed": 14,
+          "sacks": 29,
+          "bigPassesAllowed": 22,
+          "bigRunsAllowed": 32,
+          "QB.passingYards": 16,
+          "QB.rushingYards": 32,
+          "RB.rushingYards": 27,
+          "RB.receivingYards": 9,
+          "RB.receptions": 1,
+          "WR.receivingYards": 19,
+          "WR.receptions": 7,
+          "TE.receivingYards": 12,
+          "TE.receptions": 6
         }
       },
       "MIA": {
@@ -479,12 +1703,46 @@
         "rushingTdsAllowed": 8,
         "receivingYardsAllowed": 2239,
         "receivingTdsAllowed": 18,
+        "sacks": 16,
+        "bigPassesAllowed": 29,
+        "bigRunsAllowed": 32,
+        "byPosition": {
+          "QB": {
+            "passingYards": 2198,
+            "rushingYards": 67
+          },
+          "RB": {
+            "rushingYards": 1083,
+            "receivingYards": 375,
+            "receptions": 51
+          },
+          "WR": {
+            "receivingYards": 1282,
+            "receptions": 98
+          },
+          "TE": {
+            "receivingYards": 582,
+            "receptions": 58
+          }
+        },
         "games": 10,
         "ranks": {
-          "rushingYardsAllowed": 18,
+          "rushingYardsAllowed": 16,
           "rushingTdsAllowed": 20,
-          "receivingYardsAllowed": 25,
-          "receivingTdsAllowed": 9
+          "receivingYardsAllowed": 23,
+          "receivingTdsAllowed": 8,
+          "sacks": 31,
+          "bigPassesAllowed": 18,
+          "bigRunsAllowed": 8,
+          "QB.passingYards": 25,
+          "QB.rushingYards": 31,
+          "RB.rushingYards": 9,
+          "RB.receivingYards": 10,
+          "RB.receptions": 7,
+          "WR.receivingYards": 28,
+          "WR.receptions": 27,
+          "TE.receivingYards": 11,
+          "TE.receptions": 8
         }
       },
       "GB": {
@@ -492,12 +1750,46 @@
         "rushingTdsAllowed": 14,
         "receivingYardsAllowed": 2434,
         "receivingTdsAllowed": 15,
+        "sacks": 30,
+        "bigPassesAllowed": 27,
+        "bigRunsAllowed": 29,
+        "byPosition": {
+          "QB": {
+            "passingYards": 2434,
+            "rushingYards": 119
+          },
+          "RB": {
+            "rushingYards": 1175,
+            "receivingYards": 363,
+            "receptions": 48
+          },
+          "WR": {
+            "receivingYards": 1632,
+            "receptions": 145
+          },
+          "TE": {
+            "receivingYards": 439,
+            "receptions": 47
+          }
+        },
         "games": 11,
         "ranks": {
-          "rushingYardsAllowed": 7,
-          "rushingTdsAllowed": 5,
-          "receivingYardsAllowed": 17,
-          "receivingTdsAllowed": 17
+          "rushingYardsAllowed": 13,
+          "rushingTdsAllowed": 8,
+          "receivingYardsAllowed": 25,
+          "receivingTdsAllowed": 21,
+          "sacks": 9,
+          "bigPassesAllowed": 24,
+          "bigRunsAllowed": 20,
+          "QB.passingYards": 24,
+          "QB.rushingYards": 26,
+          "RB.rushingYards": 11,
+          "RB.receivingYards": 19,
+          "RB.receptions": 18,
+          "WR.receivingYards": 16,
+          "WR.receptions": 2,
+          "TE.receivingYards": 31,
+          "TE.receptions": 29
         }
       },
       "TEN": {
@@ -505,12 +1797,46 @@
         "rushingTdsAllowed": 14,
         "receivingYardsAllowed": 2859,
         "receivingTdsAllowed": 18,
+        "sacks": 21,
+        "bigPassesAllowed": 41,
+        "bigRunsAllowed": 30,
+        "byPosition": {
+          "QB": {
+            "passingYards": 2859,
+            "rushingYards": 173
+          },
+          "RB": {
+            "rushingYards": 991,
+            "receivingYards": 334,
+            "receptions": 40
+          },
+          "WR": {
+            "receivingYards": 2086,
+            "receptions": 157
+          },
+          "TE": {
+            "receivingYards": 423,
+            "receptions": 47
+          }
+        },
         "games": 10,
         "ranks": {
-          "rushingYardsAllowed": 10,
-          "rushingTdsAllowed": 6,
-          "receivingYardsAllowed": 3,
-          "receivingTdsAllowed": 10
+          "rushingYardsAllowed": 8,
+          "rushingTdsAllowed": 4,
+          "receivingYardsAllowed": 1,
+          "receivingTdsAllowed": 9,
+          "sacks": 18,
+          "bigPassesAllowed": 1,
+          "bigRunsAllowed": 14,
+          "QB.passingYards": 1,
+          "QB.rushingYards": 14,
+          "RB.rushingYards": 15,
+          "RB.receivingYards": 18,
+          "RB.receptions": 23,
+          "WR.receivingYards": 1,
+          "WR.receptions": 1,
+          "TE.receivingYards": 29,
+          "TE.receptions": 22
         }
       },
       "NYG": {
@@ -518,12 +1844,46 @@
         "rushingTdsAllowed": 7,
         "receivingYardsAllowed": 2064,
         "receivingTdsAllowed": 18,
+        "sacks": 20,
+        "bigPassesAllowed": 25,
+        "bigRunsAllowed": 31,
+        "byPosition": {
+          "QB": {
+            "passingYards": 2064,
+            "rushingYards": 271
+          },
+          "RB": {
+            "rushingYards": 877,
+            "receivingYards": 227,
+            "receptions": 35
+          },
+          "WR": {
+            "receivingYards": 1389,
+            "receptions": 111
+          },
+          "TE": {
+            "receivingYards": 445,
+            "receptions": 57
+          }
+        },
         "games": 10,
         "ranks": {
-          "rushingYardsAllowed": 17,
+          "rushingYardsAllowed": 15,
           "rushingTdsAllowed": 24,
-          "receivingYardsAllowed": 30,
-          "receivingTdsAllowed": 11
+          "receivingYardsAllowed": 28,
+          "receivingTdsAllowed": 10,
+          "sacks": 22,
+          "bigPassesAllowed": 23,
+          "bigRunsAllowed": 11,
+          "QB.passingYards": 28,
+          "QB.rushingYards": 2,
+          "RB.rushingYards": 21,
+          "RB.receivingYards": 28,
+          "RB.receptions": 27,
+          "WR.receivingYards": 22,
+          "WR.receptions": 17,
+          "TE.receivingYards": 25,
+          "TE.receptions": 9
         }
       },
       "CHI": {
@@ -531,12 +1891,46 @@
         "rushingTdsAllowed": 11,
         "receivingYardsAllowed": 2655,
         "receivingTdsAllowed": 15,
+        "sacks": 33,
+        "bigPassesAllowed": 33,
+        "bigRunsAllowed": 28,
+        "byPosition": {
+          "QB": {
+            "passingYards": 2655,
+            "rushingYards": 160
+          },
+          "RB": {
+            "rushingYards": 995,
+            "receivingYards": 405,
+            "receptions": 50
+          },
+          "WR": {
+            "receivingYards": 1725,
+            "receptions": 113
+          },
+          "TE": {
+            "receivingYards": 522,
+            "receptions": 48
+          }
+        },
         "games": 11,
         "ranks": {
-          "rushingYardsAllowed": 16,
-          "rushingTdsAllowed": 13,
-          "receivingYardsAllowed": 6,
-          "receivingTdsAllowed": 18
+          "rushingYardsAllowed": 20,
+          "rushingTdsAllowed": 14,
+          "receivingYardsAllowed": 14,
+          "receivingTdsAllowed": 22,
+          "sacks": 6,
+          "bigPassesAllowed": 16,
+          "bigRunsAllowed": 21,
+          "QB.passingYards": 14,
+          "QB.rushingYards": 20,
+          "RB.rushingYards": 18,
+          "RB.receivingYards": 12,
+          "RB.receptions": 16,
+          "WR.receivingYards": 10,
+          "WR.receptions": 23,
+          "TE.receivingYards": 20,
+          "TE.receptions": 28
         }
       },
       "PHI": {
@@ -544,12 +1938,46 @@
         "rushingTdsAllowed": 13,
         "receivingYardsAllowed": 2668,
         "receivingTdsAllowed": 16,
+        "sacks": 24,
+        "bigPassesAllowed": 38,
+        "bigRunsAllowed": 34,
+        "byPosition": {
+          "QB": {
+            "passingYards": 2668,
+            "rushingYards": 197
+          },
+          "RB": {
+            "rushingYards": 1145,
+            "receivingYards": 202,
+            "receptions": 38
+          },
+          "WR": {
+            "receivingYards": 1995,
+            "receptions": 143
+          },
+          "TE": {
+            "receivingYards": 462,
+            "receptions": 47
+          }
+        },
         "games": 11,
         "ranks": {
-          "rushingYardsAllowed": 6,
-          "rushingTdsAllowed": 8,
-          "receivingYardsAllowed": 5,
-          "receivingTdsAllowed": 15
+          "rushingYardsAllowed": 12,
+          "rushingTdsAllowed": 11,
+          "receivingYardsAllowed": 12,
+          "receivingTdsAllowed": 18,
+          "sacks": 15,
+          "bigPassesAllowed": 6,
+          "bigRunsAllowed": 12,
+          "QB.passingYards": 12,
+          "QB.rushingYards": 11,
+          "RB.rushingYards": 12,
+          "RB.receivingYards": 31,
+          "RB.receptions": 29,
+          "WR.receivingYards": 2,
+          "WR.receptions": 3,
+          "TE.receivingYards": 30,
+          "TE.receptions": 30
         }
       },
       "BAL": {
@@ -557,12 +1985,46 @@
         "rushingTdsAllowed": 16,
         "receivingYardsAllowed": 2560,
         "receivingTdsAllowed": 14,
+        "sacks": 22,
+        "bigPassesAllowed": 32,
+        "bigRunsAllowed": 26,
+        "byPosition": {
+          "QB": {
+            "passingYards": 2560,
+            "rushingYards": 198
+          },
+          "RB": {
+            "rushingYards": 992,
+            "receivingYards": 176,
+            "receptions": 40
+          },
+          "WR": {
+            "receivingYards": 1788,
+            "receptions": 127
+          },
+          "TE": {
+            "receivingYards": 597,
+            "receptions": 53
+          }
+        },
         "games": 11,
         "ranks": {
-          "rushingYardsAllowed": 14,
-          "rushingTdsAllowed": 1,
-          "receivingYardsAllowed": 12,
-          "receivingTdsAllowed": 22
+          "rushingYardsAllowed": 19,
+          "rushingTdsAllowed": 2,
+          "receivingYardsAllowed": 20,
+          "receivingTdsAllowed": 24,
+          "sacks": 23,
+          "bigPassesAllowed": 17,
+          "bigRunsAllowed": 23,
+          "QB.passingYards": 19,
+          "QB.rushingYards": 10,
+          "RB.rushingYards": 19,
+          "RB.receivingYards": 32,
+          "RB.receptions": 25,
+          "WR.receivingYards": 8,
+          "WR.receptions": 14,
+          "TE.receivingYards": 15,
+          "TE.receptions": 20
         }
       },
       "ARI": {
@@ -570,12 +2032,46 @@
         "rushingTdsAllowed": 12,
         "receivingYardsAllowed": 2649,
         "receivingTdsAllowed": 25,
+        "sacks": 22,
+        "bigPassesAllowed": 34,
+        "bigRunsAllowed": 31,
+        "byPosition": {
+          "QB": {
+            "passingYards": 2649,
+            "rushingYards": 169
+          },
+          "RB": {
+            "rushingYards": 1220,
+            "receivingYards": 369,
+            "receptions": 39
+          },
+          "WR": {
+            "receivingYards": 1682,
+            "receptions": 111
+          },
+          "TE": {
+            "receivingYards": 598,
+            "receptions": 61
+          }
+        },
         "games": 11,
         "ranks": {
-          "rushingYardsAllowed": 5,
-          "rushingTdsAllowed": 11,
-          "receivingYardsAllowed": 7,
-          "receivingTdsAllowed": 1
+          "rushingYardsAllowed": 6,
+          "rushingTdsAllowed": 12,
+          "receivingYardsAllowed": 15,
+          "receivingTdsAllowed": 1,
+          "sacks": 24,
+          "bigPassesAllowed": 15,
+          "bigRunsAllowed": 16,
+          "QB.passingYards": 15,
+          "QB.rushingYards": 18,
+          "RB.rushingYards": 3,
+          "RB.receivingYards": 17,
+          "RB.receptions": 26,
+          "WR.receivingYards": 12,
+          "WR.receptions": 24,
+          "TE.receivingYards": 14,
+          "TE.receptions": 11
         }
       },
       "DEN": {
@@ -583,12 +2079,46 @@
         "rushingTdsAllowed": 6,
         "receivingYardsAllowed": 2516,
         "receivingTdsAllowed": 17,
+        "sacks": 31,
+        "bigPassesAllowed": 28,
+        "bigRunsAllowed": 34,
+        "byPosition": {
+          "QB": {
+            "passingYards": 2516,
+            "rushingYards": 201
+          },
+          "RB": {
+            "rushingYards": 1005,
+            "receivingYards": 494,
+            "receptions": 51
+          },
+          "WR": {
+            "receivingYards": 1320,
+            "receptions": 107
+          },
+          "TE": {
+            "receivingYards": 702,
+            "receptions": 67
+          }
+        },
         "games": 10,
         "ranks": {
-          "rushingYardsAllowed": 13,
+          "rushingYardsAllowed": 11,
           "rushingTdsAllowed": 27,
-          "receivingYardsAllowed": 14,
-          "receivingTdsAllowed": 12
+          "receivingYardsAllowed": 7,
+          "receivingTdsAllowed": 12,
+          "sacks": 4,
+          "bigPassesAllowed": 20,
+          "bigRunsAllowed": 5,
+          "QB.passingYards": 7,
+          "QB.rushingYards": 6,
+          "RB.rushingYards": 14,
+          "RB.receivingYards": 1,
+          "RB.receptions": 8,
+          "WR.receivingYards": 26,
+          "WR.receptions": 19,
+          "TE.receivingYards": 4,
+          "TE.receptions": 3
         }
       },
       "CAR": {
@@ -596,12 +2126,46 @@
         "rushingTdsAllowed": 16,
         "receivingYardsAllowed": 2237,
         "receivingTdsAllowed": 14,
+        "sacks": 17,
+        "bigPassesAllowed": 20,
+        "bigRunsAllowed": 32,
+        "byPosition": {
+          "QB": {
+            "passingYards": 2237,
+            "rushingYards": 178
+          },
+          "RB": {
+            "rushingYards": 1071,
+            "receivingYards": 309,
+            "receptions": 52
+          },
+          "WR": {
+            "receivingYards": 1487,
+            "receptions": 126
+          },
+          "TE": {
+            "receivingYards": 441,
+            "receptions": 47
+          }
+        },
         "games": 10,
         "ranks": {
-          "rushingYardsAllowed": 9,
-          "rushingTdsAllowed": 2,
-          "receivingYardsAllowed": 26,
-          "receivingTdsAllowed": 23
+          "rushingYardsAllowed": 7,
+          "rushingTdsAllowed": 1,
+          "receivingYardsAllowed": 24,
+          "receivingTdsAllowed": 19,
+          "sacks": 30,
+          "bigPassesAllowed": 31,
+          "bigRunsAllowed": 9,
+          "QB.passingYards": 23,
+          "QB.rushingYards": 12,
+          "RB.rushingYards": 10,
+          "RB.receivingYards": 21,
+          "RB.receptions": 6,
+          "WR.receivingYards": 15,
+          "WR.receptions": 8,
+          "TE.receivingYards": 26,
+          "TE.receptions": 23
         }
       },
       "SEA": {
@@ -609,12 +2173,46 @@
         "rushingTdsAllowed": 8,
         "receivingYardsAllowed": 1662,
         "receivingTdsAllowed": 9,
+        "sacks": 27,
+        "bigPassesAllowed": 16,
+        "bigRunsAllowed": 16,
+        "byPosition": {
+          "QB": {
+            "passingYards": 1662,
+            "rushingYards": 154
+          },
+          "RB": {
+            "rushingYards": 670,
+            "receivingYards": 300,
+            "receptions": 50
+          },
+          "WR": {
+            "receivingYards": 936,
+            "receptions": 90
+          },
+          "TE": {
+            "receivingYards": 426,
+            "receptions": 55
+          }
+        },
         "games": 10,
         "ranks": {
           "rushingYardsAllowed": 29,
           "rushingTdsAllowed": 21,
           "receivingYardsAllowed": 32,
-          "receivingTdsAllowed": 30
+          "receivingTdsAllowed": 30,
+          "sacks": 10,
+          "bigPassesAllowed": 32,
+          "bigRunsAllowed": 31,
+          "QB.passingYards": 32,
+          "QB.rushingYards": 17,
+          "RB.rushingYards": 31,
+          "RB.receivingYards": 22,
+          "RB.receptions": 10,
+          "WR.receivingYards": 32,
+          "WR.receptions": 31,
+          "TE.receivingYards": 28,
+          "TE.receptions": 13
         }
       },
       "BUF": {
@@ -622,12 +2220,46 @@
         "rushingTdsAllowed": 8,
         "receivingYardsAllowed": 2583,
         "receivingTdsAllowed": 15,
+        "sacks": 24,
+        "bigPassesAllowed": 36,
+        "bigRunsAllowed": 26,
+        "byPosition": {
+          "QB": {
+            "passingYards": 2583,
+            "rushingYards": 133
+          },
+          "RB": {
+            "rushingYards": 855,
+            "receivingYards": 427,
+            "receptions": 58
+          },
+          "WR": {
+            "receivingYards": 1500,
+            "receptions": 116
+          },
+          "TE": {
+            "receivingYards": 656,
+            "receptions": 61
+          }
+        },
         "games": 11,
         "ranks": {
-          "rushingYardsAllowed": 25,
-          "rushingTdsAllowed": 22,
-          "receivingYardsAllowed": 9,
-          "receivingTdsAllowed": 19
+          "rushingYardsAllowed": 27,
+          "rushingTdsAllowed": 23,
+          "receivingYardsAllowed": 18,
+          "receivingTdsAllowed": 23,
+          "sacks": 16,
+          "bigPassesAllowed": 12,
+          "bigRunsAllowed": 24,
+          "QB.passingYards": 18,
+          "QB.rushingYards": 22,
+          "RB.rushingYards": 23,
+          "RB.receivingYards": 8,
+          "RB.receptions": 4,
+          "WR.receivingYards": 24,
+          "WR.receptions": 21,
+          "TE.receivingYards": 9,
+          "TE.receptions": 12
         }
       },
       "LA": {
@@ -635,12 +2267,46 @@
         "rushingTdsAllowed": 4,
         "receivingYardsAllowed": 2188,
         "receivingTdsAllowed": 12,
+        "sacks": 22,
+        "bigPassesAllowed": 26,
+        "bigRunsAllowed": 24,
+        "byPosition": {
+          "QB": {
+            "passingYards": 2175,
+            "rushingYards": 223
+          },
+          "RB": {
+            "rushingYards": 753,
+            "receivingYards": 452,
+            "receptions": 54
+          },
+          "WR": {
+            "receivingYards": 1240,
+            "receptions": 95
+          },
+          "TE": {
+            "receivingYards": 495,
+            "receptions": 56
+          }
+        },
         "games": 11,
         "ranks": {
-          "rushingYardsAllowed": 24,
+          "rushingYardsAllowed": 26,
           "rushingTdsAllowed": 32,
-          "receivingYardsAllowed": 29,
-          "receivingTdsAllowed": 25
+          "receivingYardsAllowed": 30,
+          "receivingTdsAllowed": 29,
+          "sacks": 25,
+          "bigPassesAllowed": 29,
+          "bigRunsAllowed": 25,
+          "QB.passingYards": 31,
+          "QB.rushingYards": 5,
+          "RB.rushingYards": 30,
+          "RB.receivingYards": 5,
+          "RB.receptions": 12,
+          "WR.receivingYards": 31,
+          "WR.receptions": 32,
+          "TE.receivingYards": 23,
+          "TE.receptions": 17
         }
       },
       "NE": {
@@ -648,12 +2314,46 @@
         "rushingTdsAllowed": 10,
         "receivingYardsAllowed": 2566,
         "receivingTdsAllowed": 17,
+        "sacks": 27,
+        "bigPassesAllowed": 36,
+        "bigRunsAllowed": 27,
+        "byPosition": {
+          "QB": {
+            "passingYards": 2566,
+            "rushingYards": 86
+          },
+          "RB": {
+            "rushingYards": 943,
+            "receivingYards": 375,
+            "receptions": 41
+          },
+          "WR": {
+            "receivingYards": 1744,
+            "receptions": 126
+          },
+          "TE": {
+            "receivingYards": 447,
+            "receptions": 47
+          }
+        },
         "games": 10,
         "ranks": {
-          "rushingYardsAllowed": 23,
-          "rushingTdsAllowed": 16,
-          "receivingYardsAllowed": 11,
-          "receivingTdsAllowed": 13
+          "rushingYardsAllowed": 21,
+          "rushingTdsAllowed": 15,
+          "receivingYardsAllowed": 5,
+          "receivingTdsAllowed": 13,
+          "sacks": 11,
+          "bigPassesAllowed": 5,
+          "bigRunsAllowed": 18,
+          "QB.passingYards": 5,
+          "QB.rushingYards": 29,
+          "RB.rushingYards": 17,
+          "RB.receivingYards": 11,
+          "RB.receptions": 20,
+          "WR.receivingYards": 4,
+          "WR.receptions": 9,
+          "TE.receivingYards": 24,
+          "TE.receptions": 24
         }
       },
       "KC": {
@@ -661,12 +2361,46 @@
         "rushingTdsAllowed": 7,
         "receivingYardsAllowed": 2286,
         "receivingTdsAllowed": 8,
+        "sacks": 22,
+        "bigPassesAllowed": 27,
+        "bigRunsAllowed": 27,
+        "byPosition": {
+          "QB": {
+            "passingYards": 2286,
+            "rushingYards": 200
+          },
+          "RB": {
+            "rushingYards": 838,
+            "receivingYards": 383,
+            "receptions": 48
+          },
+          "WR": {
+            "receivingYards": 1244,
+            "receptions": 102
+          },
+          "TE": {
+            "receivingYards": 659,
+            "receptions": 71
+          }
+        },
         "games": 11,
         "ranks": {
-          "rushingYardsAllowed": 20,
+          "rushingYardsAllowed": 22,
           "rushingTdsAllowed": 25,
-          "receivingYardsAllowed": 24,
-          "receivingTdsAllowed": 32
+          "receivingYardsAllowed": 27,
+          "receivingTdsAllowed": 32,
+          "sacks": 26,
+          "bigPassesAllowed": 25,
+          "bigRunsAllowed": 22,
+          "QB.passingYards": 27,
+          "QB.rushingYards": 9,
+          "RB.rushingYards": 24,
+          "RB.receivingYards": 15,
+          "RB.receptions": 19,
+          "WR.receivingYards": 30,
+          "WR.receptions": 30,
+          "TE.receivingYards": 8,
+          "TE.receptions": 4
         }
       },
       "CIN": {
@@ -674,12 +2408,46 @@
         "rushingTdsAllowed": 9,
         "receivingYardsAllowed": 2423,
         "receivingTdsAllowed": 11,
+        "sacks": 29,
+        "bigPassesAllowed": 34,
+        "bigRunsAllowed": 35,
+        "byPosition": {
+          "QB": {
+            "passingYards": 2423,
+            "rushingYards": 309
+          },
+          "RB": {
+            "rushingYards": 886,
+            "receivingYards": 320,
+            "receptions": 47
+          },
+          "WR": {
+            "receivingYards": 1352,
+            "receptions": 106
+          },
+          "TE": {
+            "receivingYards": 751,
+            "receptions": 60
+          }
+        },
         "games": 10,
         "ranks": {
-          "rushingYardsAllowed": 11,
+          "rushingYardsAllowed": 9,
           "rushingTdsAllowed": 18,
-          "receivingYardsAllowed": 19,
-          "receivingTdsAllowed": 28
+          "receivingYardsAllowed": 13,
+          "receivingTdsAllowed": 27,
+          "sacks": 7,
+          "bigPassesAllowed": 8,
+          "bigRunsAllowed": 3,
+          "QB.passingYards": 13,
+          "QB.rushingYards": 1,
+          "RB.rushingYards": 20,
+          "RB.receivingYards": 20,
+          "RB.receptions": 14,
+          "WR.receivingYards": 25,
+          "WR.receptions": 20,
+          "TE.receivingYards": 2,
+          "TE.receptions": 7
         }
       },
       "LV": {
@@ -687,12 +2455,46 @@
         "rushingTdsAllowed": 16,
         "receivingYardsAllowed": 2703,
         "receivingTdsAllowed": 23,
+        "sacks": 23,
+        "bigPassesAllowed": 35,
+        "bigRunsAllowed": 44,
+        "byPosition": {
+          "QB": {
+            "passingYards": 2703,
+            "rushingYards": 166
+          },
+          "RB": {
+            "rushingYards": 1436,
+            "receivingYards": 313,
+            "receptions": 37
+          },
+          "WR": {
+            "receivingYards": 1789,
+            "receptions": 109
+          },
+          "TE": {
+            "receivingYards": 601,
+            "receptions": 70
+          }
+        },
         "games": 11,
         "ranks": {
-          "rushingYardsAllowed": 2,
+          "rushingYardsAllowed": 1,
           "rushingTdsAllowed": 3,
-          "receivingYardsAllowed": 4,
-          "receivingTdsAllowed": 3
+          "receivingYardsAllowed": 10,
+          "receivingTdsAllowed": 2,
+          "sacks": 21,
+          "bigPassesAllowed": 14,
+          "bigRunsAllowed": 2,
+          "QB.passingYards": 10,
+          "QB.rushingYards": 19,
+          "RB.rushingYards": 1,
+          "RB.receivingYards": 24,
+          "RB.receptions": 30,
+          "WR.receivingYards": 7,
+          "WR.receptions": 26,
+          "TE.receivingYards": 13,
+          "TE.receptions": 5
         }
       },
       "CLE": {
@@ -700,12 +2502,46 @@
         "rushingTdsAllowed": 8,
         "receivingYardsAllowed": 2193,
         "receivingTdsAllowed": 15,
+        "sacks": 27,
+        "bigPassesAllowed": 29,
+        "bigRunsAllowed": 41,
+        "byPosition": {
+          "QB": {
+            "passingYards": 2193,
+            "rushingYards": 140
+          },
+          "RB": {
+            "rushingYards": 1104,
+            "receivingYards": 189,
+            "receptions": 35
+          },
+          "WR": {
+            "receivingYards": 1465,
+            "receptions": 113
+          },
+          "TE": {
+            "receivingYards": 531,
+            "receptions": 48
+          }
+        },
         "games": 10,
         "ranks": {
-          "rushingYardsAllowed": 12,
-          "rushingTdsAllowed": 23,
-          "receivingYardsAllowed": 28,
-          "receivingTdsAllowed": 20
+          "rushingYardsAllowed": 10,
+          "rushingTdsAllowed": 22,
+          "receivingYardsAllowed": 26,
+          "receivingTdsAllowed": 16,
+          "sacks": 12,
+          "bigPassesAllowed": 19,
+          "bigRunsAllowed": 1,
+          "QB.passingYards": 26,
+          "QB.rushingYards": 21,
+          "RB.rushingYards": 5,
+          "RB.receivingYards": 30,
+          "RB.receptions": 28,
+          "WR.receivingYards": 18,
+          "WR.receptions": 15,
+          "TE.receivingYards": 16,
+          "TE.receptions": 21
         }
       },
       "DAL": {
@@ -713,12 +2549,46 @@
         "rushingTdsAllowed": 16,
         "receivingYardsAllowed": 3101,
         "receivingTdsAllowed": 24,
+        "sacks": 32,
+        "bigPassesAllowed": 45,
+        "bigRunsAllowed": 37,
+        "byPosition": {
+          "QB": {
+            "passingYards": 3101,
+            "rushingYards": 281
+          },
+          "RB": {
+            "rushingYards": 1302,
+            "receivingYards": 423,
+            "receptions": 47
+          },
+          "WR": {
+            "receivingYards": 2124,
+            "receptions": 152
+          },
+          "TE": {
+            "receivingYards": 554,
+            "receptions": 59
+          }
+        },
         "games": 12,
         "ranks": {
-          "rushingYardsAllowed": 1,
-          "rushingTdsAllowed": 4,
-          "receivingYardsAllowed": 1,
-          "receivingTdsAllowed": 2
+          "rushingYardsAllowed": 2,
+          "rushingTdsAllowed": 5,
+          "receivingYardsAllowed": 4,
+          "receivingTdsAllowed": 4,
+          "sacks": 13,
+          "bigPassesAllowed": 3,
+          "bigRunsAllowed": 13,
+          "QB.passingYards": 4,
+          "QB.rushingYards": 3,
+          "RB.rushingYards": 8,
+          "RB.receivingYards": 14,
+          "RB.receptions": 24,
+          "WR.receivingYards": 3,
+          "WR.receptions": 4,
+          "TE.receivingYards": 21,
+          "TE.receptions": 18
         }
       },
       "NO": {
@@ -726,12 +2596,46 @@
         "rushingTdsAllowed": 13,
         "receivingYardsAllowed": 2426,
         "receivingTdsAllowed": 15,
+        "sacks": 28,
+        "bigPassesAllowed": 33,
+        "bigRunsAllowed": 32,
+        "byPosition": {
+          "QB": {
+            "passingYards": 2426,
+            "rushingYards": 164
+          },
+          "RB": {
+            "rushingYards": 1102,
+            "receivingYards": 390,
+            "receptions": 46
+          },
+          "WR": {
+            "receivingYards": 1395,
+            "receptions": 100
+          },
+          "TE": {
+            "receivingYards": 641,
+            "receptions": 57
+          }
+        },
         "games": 10,
         "ranks": {
-          "rushingYardsAllowed": 8,
-          "rushingTdsAllowed": 9,
-          "receivingYardsAllowed": 18,
-          "receivingTdsAllowed": 21
+          "rushingYardsAllowed": 5,
+          "rushingTdsAllowed": 6,
+          "receivingYardsAllowed": 11,
+          "receivingTdsAllowed": 17,
+          "sacks": 8,
+          "bigPassesAllowed": 10,
+          "bigRunsAllowed": 10,
+          "QB.passingYards": 11,
+          "QB.rushingYards": 15,
+          "RB.rushingYards": 6,
+          "RB.receivingYards": 7,
+          "RB.receptions": 15,
+          "WR.receivingYards": 21,
+          "WR.receptions": 25,
+          "TE.receivingYards": 6,
+          "TE.receptions": 10
         }
       },
       "MIN": {
@@ -739,12 +2643,46 @@
         "rushingTdsAllowed": 6,
         "receivingYardsAllowed": 1978,
         "receivingTdsAllowed": 9,
+        "sacks": 38,
+        "bigPassesAllowed": 21,
+        "bigRunsAllowed": 29,
+        "byPosition": {
+          "QB": {
+            "passingYards": 1978,
+            "rushingYards": 93
+          },
+          "RB": {
+            "rushingYards": 951,
+            "receivingYards": 226,
+            "receptions": 33
+          },
+          "WR": {
+            "receivingYards": 1316,
+            "receptions": 105
+          },
+          "TE": {
+            "receivingYards": 436,
+            "receptions": 37
+          }
+        },
         "games": 10,
         "ranks": {
-          "rushingYardsAllowed": 21,
+          "rushingYardsAllowed": 18,
           "rushingTdsAllowed": 28,
           "receivingYardsAllowed": 31,
-          "receivingTdsAllowed": 31
+          "receivingTdsAllowed": 31,
+          "sacks": 1,
+          "bigPassesAllowed": 30,
+          "bigRunsAllowed": 15,
+          "QB.passingYards": 30,
+          "QB.rushingYards": 27,
+          "RB.rushingYards": 16,
+          "RB.receivingYards": 29,
+          "RB.receptions": 31,
+          "WR.receivingYards": 27,
+          "WR.receptions": 22,
+          "TE.receivingYards": 27,
+          "TE.receptions": 32
         }
       },
       "LAC": {
@@ -752,12 +2690,46 @@
         "rushingTdsAllowed": 13,
         "receivingYardsAllowed": 2361,
         "receivingTdsAllowed": 16,
+        "sacks": 16,
+        "bigPassesAllowed": 28,
+        "bigRunsAllowed": 27,
+        "byPosition": {
+          "QB": {
+            "passingYards": 2361,
+            "rushingYards": 93
+          },
+          "RB": {
+            "rushingYards": 1019,
+            "receivingYards": 239,
+            "receptions": 41
+          },
+          "WR": {
+            "receivingYards": 1538,
+            "receptions": 112
+          },
+          "TE": {
+            "receivingYards": 583,
+            "receptions": 49
+          }
+        },
         "games": 10,
         "ranks": {
-          "rushingYardsAllowed": 19,
-          "rushingTdsAllowed": 10,
-          "receivingYardsAllowed": 21,
-          "receivingTdsAllowed": 16
+          "rushingYardsAllowed": 17,
+          "rushingTdsAllowed": 7,
+          "receivingYardsAllowed": 17,
+          "receivingTdsAllowed": 15,
+          "sacks": 32,
+          "bigPassesAllowed": 21,
+          "bigRunsAllowed": 19,
+          "QB.passingYards": 17,
+          "QB.rushingYards": 28,
+          "RB.rushingYards": 13,
+          "RB.receivingYards": 27,
+          "RB.receptions": 21,
+          "WR.receivingYards": 11,
+          "WR.receptions": 16,
+          "TE.receivingYards": 10,
+          "TE.receptions": 19
         }
       },
       "JAC": {
@@ -765,12 +2737,46 @@
         "rushingTdsAllowed": 6,
         "receivingYardsAllowed": 2311,
         "receivingTdsAllowed": 11,
+        "sacks": 18,
+        "bigPassesAllowed": 24,
+        "bigRunsAllowed": 19,
+        "byPosition": {
+          "QB": {
+            "passingYards": 2298,
+            "rushingYards": 178
+          },
+          "RB": {
+            "rushingYards": 646,
+            "receivingYards": 346,
+            "receptions": 53
+          },
+          "WR": {
+            "receivingYards": 1622,
+            "receptions": 124
+          },
+          "TE": {
+            "receivingYards": 343,
+            "receptions": 41
+          }
+        },
         "games": 10,
         "ranks": {
           "rushingYardsAllowed": 28,
           "rushingTdsAllowed": 29,
-          "receivingYardsAllowed": 23,
-          "receivingTdsAllowed": 29
+          "receivingYardsAllowed": 22,
+          "receivingTdsAllowed": 28,
+          "sacks": 27,
+          "bigPassesAllowed": 27,
+          "bigRunsAllowed": 28,
+          "QB.passingYards": 22,
+          "QB.rushingYards": 13,
+          "RB.rushingYards": 32,
+          "RB.receivingYards": 16,
+          "RB.receptions": 3,
+          "WR.receivingYards": 9,
+          "WR.receptions": 12,
+          "TE.receivingYards": 32,
+          "TE.receptions": 31
         }
       },
       "TB": {
@@ -778,12 +2784,46 @@
         "rushingTdsAllowed": 5,
         "receivingYardsAllowed": 2319,
         "receivingTdsAllowed": 14,
+        "sacks": 18,
+        "bigPassesAllowed": 24,
+        "bigRunsAllowed": 19,
+        "byPosition": {
+          "QB": {
+            "passingYards": 2319,
+            "rushingYards": 113
+          },
+          "RB": {
+            "rushingYards": 695,
+            "receivingYards": 289,
+            "receptions": 44
+          },
+          "WR": {
+            "receivingYards": 1382,
+            "receptions": 111
+          },
+          "TE": {
+            "receivingYards": 648,
+            "receptions": 55
+          }
+        },
         "games": 10,
         "ranks": {
           "rushingYardsAllowed": 31,
           "rushingTdsAllowed": 31,
-          "receivingYardsAllowed": 22,
-          "receivingTdsAllowed": 24
+          "receivingYardsAllowed": 21,
+          "receivingTdsAllowed": 20,
+          "sacks": 28,
+          "bigPassesAllowed": 28,
+          "bigRunsAllowed": 29,
+          "QB.passingYards": 20,
+          "QB.rushingYards": 24,
+          "RB.rushingYards": 29,
+          "RB.receivingYards": 23,
+          "RB.receptions": 17,
+          "WR.receivingYards": 23,
+          "WR.receptions": 18,
+          "TE.receivingYards": 5,
+          "TE.receptions": 14
         }
       },
       "WAS": {
@@ -791,12 +2831,46 @@
         "rushingTdsAllowed": 9,
         "receivingYardsAllowed": 2641,
         "receivingTdsAllowed": 19,
+        "sacks": 21,
+        "bigPassesAllowed": 32,
+        "bigRunsAllowed": 21,
+        "byPosition": {
+          "QB": {
+            "passingYards": 2627,
+            "rushingYards": 196
+          },
+          "RB": {
+            "rushingYards": 746,
+            "receivingYards": 414,
+            "receptions": 51
+          },
+          "WR": {
+            "receivingYards": 1423,
+            "receptions": 125
+          },
+          "TE": {
+            "receivingYards": 804,
+            "receptions": 69
+          }
+        },
         "games": 10,
         "ranks": {
-          "rushingYardsAllowed": 26,
+          "rushingYardsAllowed": 24,
           "rushingTdsAllowed": 19,
-          "receivingYardsAllowed": 8,
-          "receivingTdsAllowed": 7
+          "receivingYardsAllowed": 3,
+          "receivingTdsAllowed": 6,
+          "sacks": 19,
+          "bigPassesAllowed": 13,
+          "bigRunsAllowed": 26,
+          "QB.passingYards": 2,
+          "QB.rushingYards": 7,
+          "RB.rushingYards": 26,
+          "RB.receivingYards": 4,
+          "RB.receptions": 9,
+          "WR.receivingYards": 20,
+          "WR.receptions": 10,
+          "TE.receivingYards": 1,
+          "TE.receptions": 2
         }
       },
       "DET": {
@@ -804,12 +2878,46 @@
         "rushingTdsAllowed": 10,
         "receivingYardsAllowed": 2926,
         "receivingTdsAllowed": 23,
+        "sacks": 40,
+        "bigPassesAllowed": 40,
+        "bigRunsAllowed": 30,
+        "byPosition": {
+          "QB": {
+            "passingYards": 2873,
+            "rushingYards": 234
+          },
+          "RB": {
+            "rushingYards": 823,
+            "receivingYards": 457,
+            "receptions": 52
+          },
+          "WR": {
+            "receivingYards": 1656,
+            "receptions": 139
+          },
+          "TE": {
+            "receivingYards": 806,
+            "receptions": 76
+          }
+        },
         "games": 11,
         "ranks": {
-          "rushingYardsAllowed": 22,
+          "rushingYardsAllowed": 23,
           "rushingTdsAllowed": 17,
           "receivingYardsAllowed": 2,
-          "receivingTdsAllowed": 4
+          "receivingTdsAllowed": 3,
+          "sacks": 2,
+          "bigPassesAllowed": 4,
+          "bigRunsAllowed": 17,
+          "QB.passingYards": 3,
+          "QB.rushingYards": 4,
+          "RB.rushingYards": 25,
+          "RB.receivingYards": 3,
+          "RB.receptions": 13,
+          "WR.receivingYards": 14,
+          "WR.receptions": 5,
+          "TE.receivingYards": 3,
+          "TE.receptions": 1
         }
       },
       "NYJ": {
@@ -817,12 +2925,46 @@
         "rushingTdsAllowed": 14,
         "receivingYardsAllowed": 2236,
         "receivingTdsAllowed": 19,
+        "sacks": 29,
+        "bigPassesAllowed": 27,
+        "bigRunsAllowed": 38,
+        "byPosition": {
+          "QB": {
+            "passingYards": 2236,
+            "rushingYards": 174
+          },
+          "RB": {
+            "rushingYards": 1283,
+            "receivingYards": 288,
+            "receptions": 36
+          },
+          "WR": {
+            "receivingYards": 1287,
+            "receptions": 107
+          },
+          "TE": {
+            "receivingYards": 661,
+            "receptions": 57
+          }
+        },
         "games": 11,
         "ranks": {
           "rushingYardsAllowed": 3,
-          "rushingTdsAllowed": 7,
-          "receivingYardsAllowed": 27,
-          "receivingTdsAllowed": 8
+          "rushingTdsAllowed": 9,
+          "receivingYardsAllowed": 29,
+          "receivingTdsAllowed": 11,
+          "sacks": 14,
+          "bigPassesAllowed": 26,
+          "bigRunsAllowed": 4,
+          "QB.passingYards": 29,
+          "QB.rushingYards": 16,
+          "RB.rushingYards": 2,
+          "RB.receivingYards": 26,
+          "RB.receptions": 32,
+          "WR.receivingYards": 29,
+          "WR.receptions": 29,
+          "TE.receivingYards": 7,
+          "TE.receptions": 16
         }
       },
       "HOU": {
@@ -830,12 +2972,46 @@
         "rushingTdsAllowed": 12,
         "receivingYardsAllowed": 2512,
         "receivingTdsAllowed": 12,
+        "sacks": 35,
+        "bigPassesAllowed": 38,
+        "bigRunsAllowed": 19,
+        "byPosition": {
+          "QB": {
+            "passingYards": 2512,
+            "rushingYards": 113
+          },
+          "RB": {
+            "rushingYards": 835,
+            "receivingYards": 268,
+            "receptions": 50
+          },
+          "WR": {
+            "receivingYards": 1702,
+            "receptions": 116
+          },
+          "TE": {
+            "receivingYards": 483,
+            "receptions": 45
+          }
+        },
         "games": 10,
         "ranks": {
-          "rushingYardsAllowed": 27,
-          "rushingTdsAllowed": 12,
-          "receivingYardsAllowed": 15,
-          "receivingTdsAllowed": 26
+          "rushingYardsAllowed": 25,
+          "rushingTdsAllowed": 10,
+          "receivingYardsAllowed": 8,
+          "receivingTdsAllowed": 25,
+          "sacks": 3,
+          "bigPassesAllowed": 2,
+          "bigRunsAllowed": 30,
+          "QB.passingYards": 8,
+          "QB.rushingYards": 25,
+          "RB.rushingYards": 22,
+          "RB.receivingYards": 25,
+          "RB.receptions": 11,
+          "WR.receivingYards": 5,
+          "WR.receptions": 13,
+          "TE.receivingYards": 19,
+          "TE.receptions": 26
         }
       }
     }
