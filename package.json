@@ -13,6 +13,7 @@
     "team-efficiency": "node scripts/fetch-team-efficiency.mjs",
     "injury-report": "node scripts/fetch-injury-report.mjs",
     "prop-accuracy": "node scripts/grade-props.mjs",
+    "division-history": "node scripts/fetch-division-history.mjs",
     "test": "vitest run",
     "lint": "eslint ."
   },

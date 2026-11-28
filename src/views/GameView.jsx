@@ -13,6 +13,8 @@ import { groupTeamStats } from '../lib/boxscore.js'
 import FieldGraphic from '../components/FieldGraphic.jsx'
 import PropsTab from './PropsTab.jsx'
 import MatchupTab from './MatchupTab.jsx'
+import DivisionalTab from './DivisionalTab.jsx'
+import { isDivisional } from '../lib/divisional.js'
 import { toSlipLeg } from '../lib/edges.js'
 import { winProbabilityPath, liveWinProbability } from '../lib/model.js'
 import { QB_OUT_POINTS } from '../lib/injuries.js'
@@ -147,6 +149,7 @@ export default function GameView({ game, data }) {
           ...(isLive || isFinal ? [{ value: 'stats', label: 'Stats' }] : []),
           { value: 'odds', label: 'Odds', count: game.market?.books?.length },
           ...(isFinal ? [] : [{ value: 'matchup', label: 'Matchup' }, { value: 'props', label: 'Props' }]),
+          ...(isDivisional(game.home, game.away) ? [{ value: 'divisional', label: 'Divisional History' }] : []),
           { value: 'model', label: 'Model' }
         ]}
       />
@@ -156,6 +159,7 @@ export default function GameView({ game, data }) {
         {tab === 'stats' && <StatsTab game={game} data={data} gameSummary={gameSummary} />}
         {tab === 'matchup' && <MatchupTab game={game} data={data} />}
         {tab === 'props' && <PropsTab game={game} data={data} />}
+        {tab === 'divisional' && <DivisionalTab game={game} final={isFinal} />}
         {tab === 'odds' && <OddsTab game={game} />}
         {tab === 'model' && <ModelTab game={game} data={data} />}
       </div>
